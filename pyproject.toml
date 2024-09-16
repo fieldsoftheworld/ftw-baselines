@@ -1,0 +1,87 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ftw"
+version = "0.3"
+description = "Fields of The World (FTW) - Codebase"
+authors = [
+    { name = "Your Name", email = "your.email@example.com" }
+]
+dependencies = [
+    "click",
+    "tqdm",
+    "requests",
+    "boto3",
+    "geopandas",
+    "rasterio",
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "seaborn",
+    "scikit-learn",
+    "torch",
+    "torchvision",
+    "pytorch-lightning",
+    "PyYAML",
+    "flask",
+    "wget",
+    "cloudpickle",
+    "docker-py",
+    "alembic",
+    "azure-storage-blob",
+    "cryptography",
+    "pyarrow"
+]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "isort",
+    "mypy",
+    "pydocstyle",
+    "flake8"
+]
+
+[project.scripts]
+ftw = "ftw.cli:ftw"
+
+[tool.setuptools]
+packages = { find = { where = ["src"] } }
+include-package-data = true  # Moved here from [project]
+
+[tool.black]
+target-version = ["py310"]
+color = true
+skip_magic_trailing_comma = true
+
+[tool.isort]
+profile = "black"
+known_first_party = ["ftw"]
+skip_gitignore = true
+color_output = true
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+show_error_codes = true
+exclude = "(data|configs)/"
+warn_unused_configs = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+no_implicit_reexport = true
+strict_equality = true
+
+[tool.pydocstyle]
+convention = "google"
+match_dir = "(ftw)"

@@ -1,0 +1,9 @@
+data/
+__pycache__
+logs/
+submission/
+.vscode/
+results/
+logs_old/
+build/
+src/ftw.egg-info/

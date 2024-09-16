@@ -1,0 +1,48 @@
+trainer:
+  max_epochs: <E.G. 100, NUMBER OF EPOCHS>
+  log_every_n_steps: <E.G. 10, LOGGING FREQUENCY>
+  accelerator: <E.G. "gpu", ACCELERATOR>
+  default_root_dir: <LOGS DIRECTORY>
+  devices:
+    - <DEVICE ID>
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        monitor: val_loss
+        mode: min
+        save_top_k: <E.G. 0, NUMBER OF MODELS TO SAVE>
+        save_last: <TRUE / FALSE, WHETHER TO SAVE THE LAST MODEL OR NOT>
+        filename: "{epoch}-{val_loss:.2f}"
+model:
+  class_path: src.trainers.CustomSemanticSegmentationTask
+  init_args:
+    loss: <E.G. "jaccard", LOSS FUNCTION>
+    model: <E.G. "unet", MODEL>
+    backbone: <E.G. "efficientnet-b3", BACKBONE MODEL>
+    weights: <TRUE / FALSE, WHETHER TO USE PRETRAINED WEIGHTS OR NOT>
+    patch_weights : <TRUE / FALSE, WHETHER TO PATCH THE WEIGHTS IN A CUSTOM FORMAT OR NOT>
+    in_channels: <E.G. 8, NUMBER OF INPUT CHANNELS>
+    num_classes: <E.G. 3, NUMBER OF CLASSES>
+    num_filters: <E.G. 64, NUMBER OF FILTERS>
+    ignore_index: null
+    lr: <E.G. 1e-3, LEARNING RATE>
+    patience: <E.G. 100, PATIENCE FOR COSINE ANNEALING>
+data:
+  class_path: src.datamodules.FTWDataModule
+  init_args:
+    batch_size: 32
+    num_workers: 8
+    num_samples: -1
+    train_countries:
+      - country 1
+      - country 2
+    val_countries:
+      - country 1
+      - country 2
+    test_countries:
+      - country 1
+      - country 2
+  dict_kwargs:
+    root: <ROOT FOLDER OF THE DATASET>
+    load_boundaries: <TRUE / FALSE WHETHER TO LOAD 3 CLASS MASKS OR NOT>
+seed_everything: <SEED VALUE>
