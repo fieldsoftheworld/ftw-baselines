@@ -42,10 +42,12 @@ Fields-of-The-World
 ├── notebooks
 │   └── visualize_dataset.ipynb
 ├── pyproject.toml
-├── scripts
-│   ├── download_dataset.py
-│   └── unpack_dataset.py
 ├── src
+│   ├── ftw
+│   │   ├── __init__.py
+│   │   ├── cli.py
+│   │   ├── download_dataset.py
+│   │   └── unpack_dataset.py
 │   ├── __init__.py
 │   ├── datamodules.py
 │   ├── datasets.py
