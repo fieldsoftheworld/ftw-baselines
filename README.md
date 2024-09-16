@@ -1,5 +1,5 @@
 
-# Fields of The World (FTW) - Codebase
+# Fields of The World (FTW) - Baselines Codebase
 
 **Fields of The World (FTW)** is a large-scale benchmark dataset designed to advance machine learning models for instance segmentation of agricultural field boundaries. This dataset supports the need for accurate and scalable field boundary data, which is essential for global agricultural monitoring, land use assessments, and environmental studies.
 
