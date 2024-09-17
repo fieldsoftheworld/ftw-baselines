@@ -13,7 +13,6 @@ dependencies = [
     "click",
     "tqdm",
     "requests",
-    "boto3",
     "geopandas",
     "rasterio",
     "numpy",

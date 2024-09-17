@@ -74,21 +74,13 @@ Verify that PyTorch and CUDA are installed correctly (if using a GPU):
 python -c "import torch; print(torch.cuda.is_available())"
 ```
 
-### Install Wget (Linux OS generally has preinstalled)
-
-Wget is needed to download the dataset in .zip format, hence download and install wget 
-- [Windows](https://eternallybored.org/misc/wget/)
-- [Linux](https://www.tecmint.com/install-wget-in-linux/)
-- [Mac OS](https://www.cyberciti.biz/faq/howto-install-wget-om-mac-os-x-mountain-lion-mavericks-snow-leopard/)
-
 ### Setup FTW CLI
 
-This is required to download and unpack the data.
+This creates the `ftw` command-line tool, which is used to download and unpack the data.
 
 ```bash
 pip install -e .
 ```
-
 
 ## Dataset Setup
 
