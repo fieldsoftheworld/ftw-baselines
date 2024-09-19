@@ -4,32 +4,6 @@ import hashlib
 import os
 import torch.nn as nn
 
-class BoundaryLoss(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, probs, dist_maps):
-        assert probs.shape == dist_maps.shape
-        loss = probs * dist_maps
-        return loss.mean()
-
-
-class CEandSurfaceLoss(nn.Module):
-
-    def __init__(self, class_weight, ce_weight=1.0):
-        super().__init__()
-        self.ce_weight = ce_weight
-        self.ce_loss = nn.CrossEntropyLoss(weight=class_weight)
-        self.boundary_loss = BoundaryLoss()
-
-    def forward(self, logits, target, dist_maps):
-        l1 = self.ce_loss(logits, target)
-        probs = nn.functional.softmax(logits, dim=1)
-
-        l2 = self.boundary_loss(probs[:, 1], dist_maps)
-        loss = self.ce_weight * l1 + l2
-        return loss
-
 
 def compute_md5(file_path):
     """Compute the MD5 checksum of a file."""
@@ -137,21 +111,6 @@ def featurize(polygon):
     temp_radius = np.sqrt(polygon.area / np.pi)
     exchange = (polygon & polygon.centroid.buffer(temp_radius)).area
 
-    # TODO: This is slow, so I disabled it
-    # iter_count = 0
-    # random_interior_points = []
-    # while len(random_interior_points) < 30:
-    #     x = np.random.rand() * (maxx - minx) + minx
-    #     y = np.random.rand() * (maxy - miny) + miny
-    #     pt = shapely.geometry.Point(x, y)
-    #     if polygon.contains(pt):
-    #         random_interior_points.append((x, y))
-    #     if iter_count > 50000:
-    #         print("ERROR", coords, polygon.area)
-    #         assert False
-    #     iter_count += 1
-    # cohesion = np.mean(scipy.spatial.distance.pdist(random_interior_points))
-
     centroid_pt = list(polygon.centroid.coords)
     distances_to_centroids = scipy.spatial.distance.cdist(centroid_pt, coords)[0]
     proximity = np.mean(distances_to_centroids)
@@ -170,8 +129,6 @@ def featurize(polygon):
         "range_index": range_ / (2 * diameter_of_equal_area_circle),
         "exchange": exchange,
         "exchange_index": exchange / area,
-        #"cohesion": cohesion,
-        #"cohesion_index": cohesion / radius_of_equal_area_circle,
         "proximity": proximity,
         "proximity_index": proximity / ((2 / 3) * radius_of_equal_area_circle),
         "spin": spin,

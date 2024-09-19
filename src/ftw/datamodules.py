@@ -72,7 +72,6 @@ class FTWDataModule(NonGeoDataModule):
         print(f"Test countries: {self.test_countries}")
         print(f"Number of samples: {self.num_samples}")
 
-        # TODO: Discuss augmentations
         self.train_aug = AugmentationSequential(
             K.Normalize(mean=self.mean, std=self.std),
             K.RandomRotation(p=0.5, degrees=90),
@@ -124,7 +123,8 @@ class FTWDataModule(NonGeoDataModule):
                 **self.kwargs,
             )
 
-    # TODO: can get rid of this when https://github.com/microsoft/torchgeo/pull/2003 is merged and released
+    # NOTE: can get rid of this when https://github.com/microsoft/torchgeo/pull/2003 is merged and released
+    # TODO: remove this method, test, then pin torchgeo>=0.6
     def plot(self, *args: Any, **kwargs: Any) -> Optional[Figure]:
         """Run the plot method of the validation dataset if one exists.
 
