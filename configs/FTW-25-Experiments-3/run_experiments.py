@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # Add the experiments to the queue with the GPU index
     for config in experiment_configs:
         command = (
-            f"python main.py fit"
+            f"ftw model fit"
             + f" --config {config}.yaml"
             + f" --trainer.devices [GPU]"
         )

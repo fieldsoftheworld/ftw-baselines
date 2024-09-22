@@ -52,7 +52,7 @@ if __name__ == "__main__":
         (checkpoint, temporal_op) = checkpoints_data
         for country in countries:
             command = [
-                "python", "test.py",
+                "ftw model test",
                 "--gpu", "0",
                 "--checkpoint_fn", checkpoint,
                 "--output_fn", "with_prp_all_results_train_all_contries_3_class.csv",

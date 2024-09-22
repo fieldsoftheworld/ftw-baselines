@@ -209,7 +209,14 @@ class FTW(NonGeoDataset):
         Returns:
             True if the dataset directories and split files are found, else False
         """
-        for country in self.valid_countries:
+
+
+
+        for country in self.countries:
+            if country not in self.valid_countries:
+                print(f"Invalid country {country}")
+                return False
+            
             country_dir = os.path.join(self.root, country)
             if not os.path.exists(country_dir):
                 print(f"Country directory {country_dir} not found")

@@ -17,7 +17,7 @@ if __name__ == "__main__":
         checkpoint = checkpoints_data
         for country in countries:
             command = [
-                "python", "test.py",
+                "ftw model test",
                 "--gpu", "0",
                 "--checkpoint_fn", checkpoint,
                 "--output_fn", "results/experiments-2-1.csv",

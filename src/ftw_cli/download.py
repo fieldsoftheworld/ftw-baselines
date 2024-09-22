@@ -14,7 +14,8 @@ def ftw():
 @click.command(help="Download the FTW dataset.")
 @click.option('--clean_download', is_flag=True, help="If set, the script will delete the root folder before downloading.")
 @click.option('--root_folder', type=str, default="./data", help="Root folder where the files will be downloaded. Defaults to './data'.")
-def download(clean_download, root_folder):
+@click.option('--countries', type=str, help="Comma-separated list of countries to download. If 'all' is passed, downloads all available countries.")
+def download(clean_download, root_folder, countries):
     # Use the provided root_folder or prompt the user for it
     if root_folder is None:
         root_folder = click.prompt(
@@ -173,6 +174,35 @@ def download(clean_download, root_folder):
 
         overall_progress.close()
 
+    # List of all available countries
+    all_countries = [
+        "belgium", 
+        "cambodia", 
+        "croatia", 
+        "estonia", 
+        "portugal", 
+        "slovakia", 
+        "south_africa", 
+        "sweden", 
+        "austria", 
+        "brazil", 
+        "corsica", 
+        "denmark", 
+        "france", 
+        "india", 
+        "latvia", 
+        "luxembourg", 
+        "finland", 
+        "germany", 
+        "kenya", 
+        "lithuania", 
+        "netherlands", 
+        "rwanda", 
+        "slovenia", 
+        "spain", 
+        "vietnam"
+    ]
+
     # Main script
     # Step 1: Clean the dataset folder if --clean_download is specified
     if clean_download:
@@ -189,40 +219,22 @@ def download(clean_download, root_folder):
         # Step 3: Load the checksum data
         checksum_data = load_checksums(local_md5_file_path)
 
-        # Step 4: Specify the country names to download
-        country_names = [
-            "belgium", 
-            "cambodia", 
-            "croatia", 
-            "estonia", 
-            "portugal", 
-            "slovakia", 
-            "south_africa", 
-            "sweden", 
-            "austria", 
-            "brazil", 
-            "corsica", 
-            "denmark", 
-            "france", 
-            "india", 
-            "latvia", 
-            "luxembourg", 
-            "finland", 
-            "germany", 
-            "kenya", 
-            "lithuania", 
-            "netherlands", 
-            "rwanda", 
-            "slovenia", 
-            "spain", 
-            "vietnam"
-        ]
+        # Step 4: Handle country selection (all or specific countries)
+        if countries == 'all':
+            country_names = all_countries
+            print("Downloading all available countries...")
+        else:
+            country_names = [country.lower().strip() for country in countries.split(',') if country.lower().strip() in all_countries]
+            print(f"Downloading selected countries: {country_names}")
 
         # Step 5: Download all .zip files for the specified countries and verify their checksums
         download_all_country_files(root_folder_path, country_names, checksum_data)
 
     else:
         print("Failed to download checksum.md5 file.")
+
+# Add the download command to the ftw click group
+ftw.add_command(download)
 
 if __name__ == "__main__":
     ftw()

@@ -72,7 +72,7 @@ if __name__ == "__main__":
                 log_dir = os.path.join("logs", "FTW-25-Experiments-3", experiment_name)
 
                 command = (
-                    f"python main.py fit "
+                    f"ftw model fit "
                     f"--config {experiment_config['config']} "
                     f"--ckpt_path {experiment_config['ckpt']} "
                     f"--data.init_args.num_samples {int(num_samples)} "

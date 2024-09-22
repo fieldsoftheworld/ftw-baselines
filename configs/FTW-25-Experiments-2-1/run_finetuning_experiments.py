@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     for experiment_config in experiment_configs:
         command = (
-            f"python main.py fit"
+            f"ftw model fit"
             + f" --config {experiment_config['config']}"
             + f" --ckpt_path {experiment_config['ckpt']}"
             + f" --trainer.devices [GPU]"

@@ -6,3 +6,10 @@
 - Using WGET to download the zipped version of the data.
 - Visualize notebook is updated to display stats about the images.
 - Updated folder structure in README.md
+
+## Version 1.0.1 (Public Release)
+
+- FTW Cli now supports downloading partial datasets (country wise) alongside downloading entire dataset.
+- Updated FTW Cli to support model training and testing.
+- `main.py` and `test.py` are removed and merged within the FTW Cli for seamless experimentation.
+- Configuration files are updated to use the new `ftw` and `ftw_cli` modules.

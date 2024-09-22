@@ -37,7 +37,7 @@ if __name__ == "__main__":
             os.makedirs(log_dir, exist_ok=True)
 
         command = (
-            "python main.py fit"
+            "ftw model fit"
             + f" --config {config_file}"
             + f" --trainer.default_root_dir {log_dir}"
             + f" --model.init_args.model {model}"

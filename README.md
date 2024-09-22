@@ -6,21 +6,28 @@
 This repository provides the codebase for working with the [FTW dataset](https://beta.source.coop/repositories/kerner-lab/fields-of-the-world/description/), including tools for data pre-processing, model training, and evaluation.
 
 ## Table of Contents
-- [Fields of The World (FTW) - Codebase](#fields-of-the-world-ftw---codebase)
+- [Fields of The World (FTW) - Baselines Codebase](#fields-of-the-world-ftw---baselines-codebase)
   - [Table of Contents](#table-of-contents)
-  - [Setup](#setup)
-    - [1. Create Conda/Mamba Environment](#1-create-condamamba-environment)
-    - [2. Verify PyTorch Installation and CUDA Availability](#2-verify-pytorch-installation-and-cuda-availability)
-    - [3. Install AWS CLI 2](#3-install-aws-cli-2)
-    - [4. Obtain AWS Credentials](#4-obtain-aws-credentials)
+  - [Folder Structure](#folder-structure)
+  - [System Setup](#system-setup)
+    - [Create Conda/Mamba Environment](#create-condamamba-environment)
+    - [Verify PyTorch Installation and CUDA Availability](#verify-pytorch-installation-and-cuda-availability)
+    - [Setup FTW CLI](#setup-ftw-cli)
   - [Dataset Setup](#dataset-setup)
-      - [Option 1: Download Using AWS CLI](#option-1-download-using-aws-cli)
-      - [Option 2: Download and Unpack the Zipped Version](#option-2-download-and-unpack-the-zipped-version)
+    - [Option 1: Download and Unpack the Zipped Version (Recommended)](#option-1-download-and-unpack-the-zipped-version-recommended)
+    - [Option 2: Download Using AWS CLI](#option-2-download-using-aws-cli)
+      - [AWS CLI Pre-requisites](#aws-cli-pre-requisites)
+      - [Obtain AWS Credentials](#obtain-aws-credentials)
   - [Dataset Visualization](#dataset-visualization)
   - [Pre-Requisites for Experimentation](#pre-requisites-for-experimentation)
-  - [Experimentation](#experimentation)
-    - [Training](#training)
-    - [Testing](#testing)
+- [Experimentation](#experimentation)
+  - [Training](#training)
+    - [To train a model from scratch:](#to-train-a-model-from-scratch)
+    - [To resume training from a checkpoint:](#to-resume-training-from-a-checkpoint)
+  - [Parallel Experimentation](#parallel-experimentation)
+    - [To run experiments in parallel:](#to-run-experiments-in-parallel)
+  - [Testing](#testing)
+    - [To test a model:](#to-test-a-model)
   - [Contributing](#contributing)
   - [License](#license)
 
@@ -82,6 +89,20 @@ This creates the `ftw` command-line tool, which is used to download and unpack t
 pip install -e .
 ```
 
+```bash
+Usage: ftw [OPTIONS] COMMAND [ARGS]...
+
+  Fields of The World (FTW) - Command Line Interface
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  download  Download the FTW dataset.
+  model     Model Training and Testing
+  unpack    Unpack the downloaded FTW dataset.
+```
+
 ## Dataset Setup
 
 You can download the FTW dataset using one of two methods:
@@ -89,22 +110,35 @@ You can download the FTW dataset using one of two methods:
 ### Option 1: Download and Unpack the Zipped Version (Recommended)
 
 1. Download the dataset using the `FTW Cli`, `root_folder` defaults to `./data` and `clean_download` is to freshly download the entire dataset(deletes default local folder):
+
     ```bash
-    ftw download
+    ftw download --help
+    Usage: ftw download [OPTIONS]
 
-    or 
+      Download the FTW dataset.
 
-    ftw download --root_folder /path/to/local/folder --clean_download
+    Options:
+      --clean_download    If set, the script will delete the root folder before
+                          downloading.
+      --root_folder TEXT  Root folder where the files will be downloaded. Defaults
+                          to './data'.
+      --countries TEXT    Comma-separated list of countries to download. If 'all'
+                          is passed, downloads all available countries.
+      --help              Show this message and exit.
     ```
 
 2. Unpack the dataset using the `unpack_dataset.py` script, this will create a `ftw` folder under the `data` after unpacking.
 
     ```bash
-    ftw unpack 
-    
-    or 
-    
-    ftw unpack --root_folder /path/to/local/folder
+    ftw unpack --help
+        Usage: ftw unpack [OPTIONS]
+
+      Unpack the downloaded FTW dataset.
+
+    Options:
+      --root_folder TEXT  Root folder where the .zip files are located. Defaults
+                          to './data'.
+      --help              Show this message and exit.
     ```
 
 ### Option 2: Download Using AWS CLI
@@ -157,7 +191,7 @@ trainer:
         save_last: <TRUE / FALSE, WHETHER TO SAVE THE LAST MODEL OR NOT>
         filename: "{epoch}-{val_loss:.2f}"
 model:
-  class_path: src.trainers.CustomSemanticSegmentationTask
+  class_path: ftw.trainers.CustomSemanticSegmentationTask
   init_args:
     loss: <E.G. "jaccard", LOSS FUNCTION>
     model: <E.G. "unet", MODEL>
@@ -171,7 +205,7 @@ model:
     lr: <E.G. 1e-3, LEARNING RATE>
     patience: <E.G. 100, PATIENCE FOR COSINE ANNEALING>
 data:
-  class_path: src.datamodules.FTWDataModule
+  class_path: ftw.datamodules.FTWDataModule
   init_args:
     batch_size: 32
     num_workers: 8
@@ -195,6 +229,16 @@ seed_everything: <SEED VALUE>
 
 This section provides guidelines for running model training, testing, and experimentation using multiple GPUs and configuration files.
 
+```bash
+ftw model --help
+  Usage: ftw model [OPTIONS] {fit|test} [CLI_ARGS]...
+
+  Model Training and Testing
+
+Options:
+  --help  Show this message and exit.
+```
+
 ## Training
 
 We use [LightningCLI](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.cli.LightningCLI.html) to streamline the training process, leveraging configuration files to define the model architecture, dataset, and training parameters.
@@ -204,7 +248,7 @@ We use [LightningCLI](https://lightning.ai/docs/pytorch/stable/api/lightning.pyt
 You can train your model using a configuration file as follows:
 
 ```bash
-python main.py fit --config configs/example_config.yaml
+ftw model fit --config configs/example_config.yaml
 ```
 
 ### To resume training from a checkpoint:
@@ -212,7 +256,7 @@ python main.py fit --config configs/example_config.yaml
 If training has been interrupted or if you wish to fine-tune a pre-trained model, you can resume training from a checkpoint:
 
 ```bash
-python main.py fit --config configs/example_config.yaml --ckpt_path <Checkpoint File Path>
+ftw model fit --config configs/example_config.yaml --ckpt_path <Checkpoint File Path>
 ```
 
 ## Parallel Experimentation
@@ -239,14 +283,10 @@ Once your model has been trained, you can evaluate it on the test set specified 
 
 ### To test a model:
 
-```bash
-python main.py test --config configs/example_config.yaml --trainer.devices [1] --ckpt_path "logs/model_path/checkpoints/last.ckpt"
-```
-
-Alternatively, you can pass specific options, such as selecting the GPUs, providing checkpoints, specifying countries for testing, and postprocessing results:
+Using FTW cli commands to test the model, you can pass specific options, such as selecting the GPUs, providing checkpoints, specifying countries for testing, and postprocessing results:
 
 ```bash
-python test.py --gpu 1 --checkpoint_fn logs/path_to_model/checkpoints/last.ckpt --countries denmark finland --postprocess --output_fn results.csv
+ftw model test --gpu 0 --checkpoint_fn logs/path_to_model/checkpoints/last.ckpt --countries denmark finland --postprocess --output_fn results.csv
 ```
 
 This will output test results into `results.csv` after running on the selected GPUs and processing the specified countries.
