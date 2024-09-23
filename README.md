@@ -45,23 +45,23 @@ Fields-of-The-World
 │   └── example_config.yaml
 ├── environment.yml
 ├── inference.py
-├── main.py
 ├── notebooks
 │   └── visualize_dataset.ipynb
 ├── pyproject.toml
-├── src
-│   ├── ftw
-│   │   ├── __init__.py
-│   │   ├── cli.py
-│   │   ├── download_dataset.py
-│   │   └── unpack_dataset.py
-│   ├── __init__.py
-│   ├── datamodules.py
-│   ├── datasets.py
-│   ├── metrics.py
-│   ├── trainers.py
-│   └── utils.py
-└── test.py
+└── src
+   ├── ftw
+   │   ├── __init__.py
+   │   ├── datamodules.py
+   │   ├── datasets.py
+   │   ├── metrics.py
+   │   ├── trainers.py
+   │   └── utils.py
+   └── ftw_cli
+       ├── __init__.py
+       ├── cli.py
+       ├── download.py
+       ├── model.py
+       └── unpack.py
 ```
 
 ## System Setup
@@ -127,7 +127,7 @@ You can download the FTW dataset using one of two methods:
       --help              Show this message and exit.
     ```
 
-2. Unpack the dataset using the `unpack_dataset.py` script, this will create a `ftw` folder under the `data` after unpacking.
+2. Unpack the dataset using the `unpack.py` script, this will create a `ftw` folder under the `data` after unpacking.
 
     ```bash
     ftw unpack --help
@@ -140,6 +140,20 @@ You can download the FTW dataset using one of two methods:
                           to './data'.
       --help              Show this message and exit.
     ```
+
+#### Examples:
+To download and unpack the complete dataset use following commands:
+  ```bash
+  ftw download 
+  ftw unpack
+  ```
+
+To download and unpack the specific set of countries use following commands:
+  ```bash
+  ftw download --countries belgium,kenya,vietnam
+  ftw unpack
+  ```
+Note: Make sure to avoid adding any space in between the list of comma seperated countries.
 
 ### Option 2: Download Using AWS CLI
 
@@ -290,6 +304,8 @@ ftw model test --gpu 0 --checkpoint_fn logs/path_to_model/checkpoints/last.ckpt 
 ```
 
 This will output test results into `results.csv` after running on the selected GPUs and processing the specified countries.
+
+Note: If data directory path is custom (not default ./data/) then make sure to pass custom data directory path in testing using ```--root_dir custom_dir/ftw```.
 
 
 ## Contributing
