@@ -5,7 +5,7 @@
 
 This repository provides the codebase for working with the [FTW dataset](https://beta.source.coop/repositories/kerner-lab/fields-of-the-world/description/), including tools for data pre-processing, model training, and evaluation.
 
-## Table of Contents
+## Table of contents
 - [Fields of The World (FTW) - Codebase](#fields-of-the-world-ftw---codebase)
   - [Table of Contents](#table-of-contents)
   - [Setup](#setup)
@@ -24,7 +24,7 @@ This repository provides the codebase for working with the [FTW dataset](https:/
   - [Contributing](#contributing)
   - [License](#license)
 
-## Folder Structure
+## Folder structure
 
 ```
 Fields-of-The-World
@@ -57,9 +57,9 @@ Fields-of-The-World
 └── test.py
 ```
 
-## System Setup
+## System setup
 
-### Create Conda/Mamba Environment
+### Create Conda/Mamba environment
 To set up the environment using the provided `env.yml` file:
 
 ```bash
@@ -67,7 +67,7 @@ mamba env create -f env.yml
 mamba activate ftw
 ```
 
-### Verify PyTorch Installation and CUDA Availability
+### Verify PyTorch installation and CUDA availability
 Verify that PyTorch and CUDA are installed correctly (if using a GPU):
 
 ```bash
@@ -82,11 +82,11 @@ This creates the `ftw` command-line tool, which is used to download and unpack t
 pip install -e .
 ```
 
-## Dataset Setup
+## Dataset setup
 
 You can download the FTW dataset using one of two methods:
 
-### Option 1: Download and Unpack the Zipped Version (Recommended)
+### Option 1: Download and unpack the zipped version (recommended)
 
 1. Download the dataset using the `FTW Cli`, `root_folder` defaults to `./data` and `clean_download` is to freshly download the entire dataset(deletes default local folder):
     ```bash
@@ -107,9 +107,9 @@ You can download the FTW dataset using one of two methods:
     ftw unpack --root_folder /path/to/local/folder
     ```
 
-### Option 2: Download Using AWS CLI
+### Option 2: Download using AWS CLI
 
-#### AWS CLI Pre-requisites
+#### AWS CLI pre-requisites
 To download the dataset, install AWS CLI 2 by following the [AWS CLI installation guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html). Alternatively, you can install it via the command line:
 
   ```bash
@@ -118,7 +118,7 @@ To download the dataset, install AWS CLI 2 by following the [AWS CLI installatio
   sudo ./aws/install
   ```
 
-#### Obtain AWS Credentials
+#### Obtain AWS credentials
 To access the dataset, generate AWS credentials (AWS Access Key ID, AWS Secret Access Key, and AWS Session Token) from the Source Cooperative. Follow the instructions on the [Source Cooperative website](https://beta.source.coop/repositories/kerner-lab/fields-of-the-world/download/). To sync the dataset to your local machine using AWS CLI, replace `/path/to/local/
 folder` with your preferred location.
 
@@ -126,7 +126,7 @@ folder` with your preferred location.
 aws s3 sync s3://us-west-2.opendata.source.coop/kerner-lab/fields-of-the-world/ /path/to/local/folder
 ```
 
-## Dataset Visualization
+## Dataset visualization
 
 Explore `visualize_dataset.ipynb` to know more about the dataset.
 
@@ -134,7 +134,7 @@ Explore `visualize_dataset.ipynb` to know more about the dataset.
 ![Sample 2](/assets/sample2.png)
 
 
-## Pre-Requisites for Experimentation
+## Pre-requisites for experimentation
 
 Before running experiments, make sure to create configuration files in the `configs` directory. These files should specify the root directory of the dataset. Additionally, update the `root` argument in `datasets.py` to reflect the correct dataset path.
 
@@ -215,7 +215,7 @@ If training has been interrupted or if you wish to fine-tune a pre-trained model
 python main.py fit --config configs/example_config.yaml --ckpt_path <Checkpoint File Path>
 ```
 
-## Parallel Experimentation
+## Parallel experimentation
 
 For running multiple experiments across different GPUs in parallel, the provided Python script `run_experiments.py` can be used. It efficiently manages and distributes training tasks across available GPUs by using multiprocessing and queuing mechanisms.
 
