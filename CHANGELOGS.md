@@ -13,3 +13,7 @@
 - Updated FTW Cli to support model training and testing.
 - `main.py` and `test.py` are removed and merged within the FTW Cli for seamless experimentation.
 - Configuration files are updated to use the new `ftw` and `ftw_cli` modules.
+
+## Version 1.0.2 (Public Release)
+
+- Separate click grouping for model class, which has two separate commands fit and test. Checkout `README.md` for more details.

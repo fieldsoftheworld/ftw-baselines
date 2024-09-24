@@ -22,54 +22,74 @@ def ftw():
     pass
 
 
-# Define the unified 'model' command for fit or test
-@click.command(help="Model Training and Testing", context_settings=dict(
-    ignore_unknown_options=True,
-    allow_extra_args=True
-))
-@click.argument('mode', type=click.Choice(['fit', 'test'], case_sensitive=False))  # Capture 'fit' or 'test' as argument
+# Define the 'model' click group
+@click.group()
+def model():
+    """Model-related commands."""
+    pass
+
+
+# Define the 'fit' command under 'model'
+@click.command(help="Fit the model")
+@click.option('--config', required=True, type=click.Path(exists=True), help='Path to the config file (required)')
 @click.argument('cli_args', nargs=-1, type=click.UNPROCESSED)  # Capture all remaining arguments
-@click.pass_context  # Pass click context to capture extra arguments
-def model(ctx, mode, cli_args):
-    """Command to fit or test the model."""
-    print(f"Running model command in {mode} mode with cli_args: {cli_args}")
+def fit(config, cli_args):
+    """Command to fit the model."""
+    print("Running fit command")
 
-    if mode == "fit":
-        print("Running fit command")
-        cli_args = ["fit"] + list(cli_args)
-        run_cli(cli_args, mode="fit")
-    elif mode == "test":
-        print("Running test command")
-        test_model(cli_args)
+    # Construct the arguments for PyTorch Lightning CLI
+    cli_args = ["fit", f"--config={config}"] + list(cli_args)
+
+    print(f"CLI arguments: {cli_args}")
+
+    # Best practices for Rasterio environment variables
+    rasterio_best_practices = {
+        "GDAL_DISABLE_READDIR_ON_OPEN": "EMPTY_DIR",
+        "AWS_NO_SIGN_REQUEST": "YES",
+        "GDAL_MAX_RAW_BLOCK_CACHE_SIZE": "200000000",
+        "GDAL_SWATH_SIZE": "200000000",
+        "VSI_CURL_CACHE_SIZE": "200000000",
+    }
+    os.environ.update(rasterio_best_practices)
+
+    # Run the LightningCLI with the constructed arguments
+    cli = LightningCLI(
+        model_class=BaseTask,
+        datamodule_class=BaseDataModule,
+        seed_everything_default=0,
+        subclass_mode_model=True,
+        subclass_mode_data=True,
+        save_config_kwargs={"overwrite": True},
+        args=cli_args,  # Pass the constructed cli_args
+    )
 
 
-def test_model(cli_args):
-    """Function to handle the test command logic."""
-    import argparse
+# Define the 'test' command under 'model'
+@click.command(help="Test the model")
+@click.option('--checkpoint_fn', required=True, type=str, help='Path to model checkpoint')
+@click.option('--root_dir', type=str, default="data/ftw", help='Root directory of dataset')
+@click.option('--gpu', type=int, default=0, help='GPU to use')
+@click.option('--countries', type=str, multiple=True, required=True, help='Countries to evaluate on')
+@click.option('--postprocess', is_flag=True, help='Apply postprocessing to the model output')
+@click.option('--iou_threshold', type=float, default=0.5, help='IoU threshold for matching predictions to ground truths')
+@click.option('--output_fn', type=str, default="metrics.json", help='Output file for metrics')
+@click.option('--model_predicts_3_classes', is_flag=True, help='Whether the model predicts 3 classes or 2 classes')
+@click.option('--test_on_3_classes', is_flag=True, help='Whether to test on 3 classes or 2 classes')
+@click.option('--temporal_options', type=str, default="stacked", help='Temporal option (stacked, windowA, windowB, etc.)')
+@click.argument('cli_args', nargs=-1, type=click.UNPROCESSED)  # Capture all remaining arguments
+def test(checkpoint_fn, root_dir, gpu, countries, postprocess, iou_threshold, output_fn, model_predicts_3_classes, test_on_3_classes, temporal_options, cli_args):
+    """Command to test the model."""
+    print("Running test command")
 
-    # Use argparse to parse additional cli_args for the test mode
-    parser = argparse.ArgumentParser(description='Evaluates a trained model on a set of test data')
-    parser.add_argument('--checkpoint_fn', required=True, type=str, help='Path to model checkpoint')
-    parser.add_argument('--root_dir', type=str, default="data/ftw", help='Root directory of dataset')
-    parser.add_argument('--gpu', type=int, default=0, help='GPU to use')
-    parser.add_argument('--countries', type=str, nargs='+', required=True, help='Countries to evaluate on')
-    parser.add_argument('--postprocess', action='store_true', help='Apply postprocessing to the model output')
-    parser.add_argument('--iou_threshold', type=float, default=0.5, help='IoU threshold for matching predictions to ground truths')
-    parser.add_argument('--output_fn', type=str, default="metrics.json", help='Output file for metrics')
-    parser.add_argument('--model_predicts_3_classes', action='store_true', help='Whether the model predicts 3 classes or 2 classes')
-    parser.add_argument('--test_on_3_classes', action='store_true', help='Whether to test on 3 classes or 2 classes')
-    parser.add_argument('--temporal_options', type=str, default="stacked", help='Temporal option (stacked, windowA, windowB, etc.)')
-
-    args = parser.parse_args(cli_args)
-
+    # Merge `test_model` function into this test command
     if torch.cuda.is_available():
-        device = torch.device(f"cuda:{args.gpu}")
+        device = torch.device(f"cuda:{gpu}")
     else:
         device = torch.device("cpu")
 
     print("Loading model")
     tic = time.time()
-    trainer = CustomSemanticSegmentationTask.load_from_checkpoint(args.checkpoint_fn, map_location="cpu")
+    trainer = CustomSemanticSegmentationTask.load_from_checkpoint(checkpoint_fn, map_location="cpu")
     model = trainer.model.eval().to(device)
     print(f"Model loaded in {time.time() - tic:.2f}s")
 
@@ -77,17 +97,17 @@ def test_model(cli_args):
     tic = time.time()
 
     ds = FTW(
-        root=args.root_dir,
-        countries=args.countries,
+        root=root_dir,
+        countries=countries,
         split="test",
         transforms=preprocess,
-        load_boundaries=args.test_on_3_classes,
-        temporal_options=args.temporal_options
+        load_boundaries=test_on_3_classes,
+        temporal_options=temporal_options
     )
     dl = DataLoader(ds, batch_size=64, shuffle=False, num_workers=12)
     print(f"Created dataloader with {len(ds)} samples in {time.time() - tic:.2f}s")
 
-    if args.test_on_3_classes:
+    if test_on_3_classes:
         metrics = MetricCollection([
             JaccardIndex(task="multiclass", average="none", num_classes=3, ignore_index=3),
             Precision(task="multiclass", average="none", num_classes=3, ignore_index=3),
@@ -111,14 +131,14 @@ def test_model(cli_args):
 
         outputs = outputs.argmax(dim=1)
 
-        if args.model_predicts_3_classes:
+        if model_predicts_3_classes:
             new_outputs = torch.zeros(outputs.shape[0], outputs.shape[1], outputs.shape[2], device=device)
             new_outputs[outputs == 2] = 0  # Boundary pixels
             new_outputs[outputs == 0] = 0  # Background pixels
             new_outputs[outputs == 1] = 1  # Crop pixels
             outputs = new_outputs
         else:
-            if args.test_on_3_classes:
+            if test_on_3_classes:
                 raise ValueError("Cannot test on 3 classes when the model was trained on 2 classes")
 
         metrics.update(outputs, masks)
@@ -128,10 +148,10 @@ def test_model(cli_args):
         for i in range(len(outputs)):
             output = outputs[i]
             mask = masks[i]
-            if args.postprocess:
+            if postprocess:
                 post_processed_output = output.copy()
                 output = post_processed_output
-            tps, fps, fns = get_object_level_metrics(mask, output, iou_threshold=args.iou_threshold)
+            tps, fps, fns = get_object_level_metrics(mask, output, iou_threshold=iou_threshold)
             all_tps += tps
             all_fps += fps
             all_fns += fns
@@ -157,39 +177,19 @@ def test_model(cli_args):
     print(f"Object level precision: {object_precision:.4f}")
     print(f"Object level recall: {object_recall:.4f}")
 
-    if args.output_fn is not None:
-        if not os.path.exists(args.output_fn):
-            with open(args.output_fn, "w") as f:
+    if output_fn is not None:
+        if not os.path.exists(output_fn):
+            with open(output_fn, "w") as f:
                 f.write("train_checkpoint,test_countries,pixel_level_iou,pixel_level_precision,pixel_level_recall,object_level_precision,object_level_recall\n")
-        with open(args.output_fn, "a") as f:
-            f.write(f"{args.checkpoint_fn},{args.countries},{pixel_level_iou},{pixel_level_precision},{pixel_level_recall},{object_precision},{object_recall}\n")
+        with open(output_fn, "a") as f:
+            f.write(f"{checkpoint_fn},{countries},{pixel_level_iou},{pixel_level_precision},{pixel_level_recall},{object_precision},{object_recall}\n")
 
 
-def run_cli(cli_args: ArgsType = None, mode: str = "fit") -> None:
-    """Runs the TorchGeo LightningCLI for fit or validation mode."""
-    print(cli_args)
+# Add 'fit' and 'test' commands under the 'model' group
+model.add_command(fit)
+model.add_command(test)
 
-    rasterio_best_practices = {
-        "GDAL_DISABLE_READDIR_ON_OPEN": "EMPTY_DIR",
-        "AWS_NO_SIGN_REQUEST": "YES",
-        "GDAL_MAX_RAW_BLOCK_CACHE_SIZE": "200000000",
-        "GDAL_SWATH_SIZE": "200000000",
-        "VSI_CURL_CACHE_SIZE": "200000000",
-    }
-    os.environ.update(rasterio_best_practices)
-
-    cli = LightningCLI(
-        model_class=BaseTask,
-        datamodule_class=BaseDataModule,
-        seed_everything_default=0,
-        subclass_mode_model=True,
-        subclass_mode_data=True,
-        save_config_kwargs={"overwrite": True},
-        args=list(cli_args),
-    )
-
-
-# Add the unified 'model' command to the click group
+# Add the 'model' group under the 'ftw' group
 ftw.add_command(model)
 
 

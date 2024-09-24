@@ -99,7 +99,7 @@ Options:
 
 Commands:
   download  Download the FTW dataset.
-  model     Model Training and Testing
+  model     Model-related commands.
   unpack    Unpack the downloaded FTW dataset.
 ```
 
@@ -245,12 +245,16 @@ This section provides guidelines for running model training, testing, and experi
 
 ```bash
 ftw model --help
-  Usage: ftw model [OPTIONS] {fit|test} [CLI_ARGS]...
+  Usage: ftw model [OPTIONS] COMMAND [ARGS]...
 
-  Model Training and Testing
+  Model-related commands.
 
 Options:
   --help  Show this message and exit.
+
+Commands:
+  fit   Fit the model
+  test  Test the model
 ```
 
 ## Training
@@ -258,6 +262,18 @@ Options:
 We use [LightningCLI](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.cli.LightningCLI.html) to streamline the training process, leveraging configuration files to define the model architecture, dataset, and training parameters.
 
 ### To train a model from scratch:
+
+```bash
+ftw model fit --help
+
+Usage: ftw model fit [OPTIONS] [CLI_ARGS]...
+
+  Fit the model
+
+Options:
+  --config PATH  Path to the config file (required)  [required]
+  --help         Show this message and exit.
+```
 
 You can train your model using a configuration file as follows:
 
@@ -295,6 +311,31 @@ The script will distribute the experiments across the specified GPUs using a que
 
 Once your model has been trained, you can evaluate it on the test set specified in your datamodule. This can be done using the same configuration file used for training.
 
+```bash
+ftw model test --help
+
+Usage: ftw model test [OPTIONS] [CLI_ARGS]...
+
+  Test the model
+
+Options:
+  --checkpoint_fn TEXT        Path to model checkpoint  [required]
+  --root_dir TEXT             Root directory of dataset
+  --gpu INTEGER               GPU to use
+  --countries TEXT            Countries to evaluate on  [required]
+  --postprocess               Apply postprocessing to the model output
+  --iou_threshold FLOAT       IoU threshold for matching predictions to ground
+                              truths
+  --output_fn TEXT            Output file for metrics
+  --model_predicts_3_classes  Whether the model predicts 3 classes or 2
+                              classes
+  --test_on_3_classes         Whether to test on 3 classes or 2 classes
+  --temporal_options TEXT     Temporal option (stacked, windowA, windowB,
+                              etc.)
+  --help                      Show this message and exit.
+```
+
+
 ### To test a model:
 
 Using FTW cli commands to test the model, you can pass specific options, such as selecting the GPUs, providing checkpoints, specifying countries for testing, and postprocessing results:
@@ -307,6 +348,16 @@ This will output test results into `results.csv` after running on the selected G
 
 Note: If data directory path is custom (not default ./data/) then make sure to pass custom data directory path in testing using ```--root_dir custom_dir/ftw```.
 
+## Notes
+
+If you see any warnings in this format,
+
+```bash
+/home/byteboogie/miniforge3/envs/ftw/lib/python3.12/site-packages/kornia/feature/lightglue.py:44: FutureWarning: `torch.cuda.amp.custom_fwd(args...)` is deprecated. Please use `torch.amp.custom_fwd(args..., device_type='cuda')` instead.
+  @torch.cuda.amp.custom_fwd(cast_inputs=torch.float32)
+```
+
+this is due to a PR in official PyTorch `PyTorch 2.4 deprecated the use of torch.cuda.amp.autocast in favor of torch.amp.autocast("cuda", ...), but this change has missed updating internal uses in PyTorch` [Link](https://github.com/pytorch/pytorch/issues/130659), rest assured `ftw` won't face any issue in experimentation and dataset exploration.
 
 ## Contributing
 
