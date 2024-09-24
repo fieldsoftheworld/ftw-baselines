@@ -16,7 +16,7 @@ if __name__ == "__main__":
     for checkpoints_data in checkpoints:
         checkpoint = checkpoints_data
         command = [
-            "python", "test.py",
+            "ftw model test",
             "--gpu", "1",
             "--checkpoint_fn", checkpoint,
             "--output_fn", "results/experiments-2-2.csv",

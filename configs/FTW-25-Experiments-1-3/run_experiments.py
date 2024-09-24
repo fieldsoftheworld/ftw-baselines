@@ -48,7 +48,7 @@ if __name__ == "__main__":
             os.makedirs(log_dir, exist_ok=True)
 
         command = (
-            "python main.py fit"
+            "ftw model fit"
             + f" --config {config_file}"
             + f" --trainer.devices [GPU]"
         )

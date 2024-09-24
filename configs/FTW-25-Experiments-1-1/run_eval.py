@@ -52,7 +52,7 @@ if __name__ == "__main__":
             if model_predicts_classes == 2:
                 # Test on the same country
                 command = [
-                    "python", "test.py",
+                    "ftw model test",
                     "--gpu", "0",
                     "--checkpoint_fn", checkpoint,
                     "--output_fn", "results/experiments-1-1.csv",
@@ -62,7 +62,7 @@ if __name__ == "__main__":
             elif model_predicts_classes == 3:
                 # Test on the same country
                 command = [
-                    "python", "test.py",
+                    "ftw model test",
                     "--gpu", "0",
                     "--checkpoint_fn", checkpoint,
                     "--output_fn", "results/experiments-1-1.csv",

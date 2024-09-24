@@ -10,45 +10,45 @@ authors = [
     { name = "Your Name", email = "your.email@example.com" }
 ]
 dependencies = [
-    "click",
-    "tqdm",
-    "requests",
-    "geopandas",
-    "rasterio",
-    "numpy",
-    "pandas",
-    "matplotlib",
-    "seaborn",
-    "scikit-learn",
-    "torch",
-    "torchvision",
-    "pytorch-lightning",
-    "PyYAML",
-    "flask",
-    "wget",
-    "cloudpickle",
-    "docker-py",
-    "alembic",
-    "azure-storage-blob",
-    "cryptography",
-    "pyarrow"
+    "click",                   # For CLI functionality
+    "tqdm",                    # For progress bars
+    "requests",                # For downloading resources
+    "geopandas",               # For geospatial data handling
+    "rasterio",                # For raster data
+    "numpy",                   # For numerical computation
+    "pandas",                  # For data manipulation
+    "matplotlib",              # For plotting
+    "seaborn",                 # For statistical data visualization
+    "scikit-learn",            # For machine learning
+    "torch",                   # For deep learning
+    "torchvision",             # For vision-related tasks in PyTorch
+    "pytorch-lightning",       # For high-level PyTorch training loops
+    "PyYAML",                  # For parsing YAML config files
+    "flask",                   # For web development (if necessary)
+    "wget",                    # For file downloads
+    "cloudpickle",             # For object serialization
+    "docker-py",               # For Docker integration
+    "alembic",                 # For database migrations
+    "azure-storage-blob",      # For Azure storage
+    "cryptography",            # For encryption and security
+    "pyarrow"                  # For in-memory data processing
 ]
 
 [project.optional-dependencies]
 dev = [
-    "black",
-    "isort",
-    "mypy",
-    "pydocstyle",
-    "flake8"
+    "black",       # Code formatting tool
+    "isort",       # Import sorting tool
+    "mypy",        # Static type checker
+    "pydocstyle",  # Python docstring style checker
+    "flake8"       # Linter for Python
 ]
 
 [project.scripts]
-ftw = "ftw.cli:ftw"
+ftw = "ftw_cli.cli:ftw"
 
 [tool.setuptools]
 packages = { find = { where = ["src"] } }
-include-package-data = true  # Moved here from [project]
+include-package-data = true  # Includes non-Python files specified in MANIFEST.in
 
 [tool.black]
 target-version = ["py310"]
