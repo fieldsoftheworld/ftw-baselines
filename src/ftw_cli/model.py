@@ -32,13 +32,18 @@ def model():
 # Define the 'fit' command under 'model'
 @click.command(help="Fit the model")
 @click.option('--config', required=True, type=click.Path(exists=True), help='Path to the config file (required)')
+@click.option('--ckpt_path', type=click.Path(exists=True), help='Path to a checkpoint file to resume training from')
 @click.argument('cli_args', nargs=-1, type=click.UNPROCESSED)  # Capture all remaining arguments
-def fit(config, cli_args):
+def fit(config, ckpt_path, cli_args):
     """Command to fit the model."""
     print("Running fit command")
 
     # Construct the arguments for PyTorch Lightning CLI
     cli_args = ["fit", f"--config={config}"] + list(cli_args)
+
+    # If a checkpoint path is provided, append it to the CLI arguments
+    if ckpt_path:
+        cli_args += [f"--ckpt_path={ckpt_path}"]
 
     print(f"CLI arguments: {cli_args}")
 
@@ -62,6 +67,7 @@ def fit(config, cli_args):
         save_config_kwargs={"overwrite": True},
         args=cli_args,  # Pass the constructed cli_args
     )
+
 
 
 # Define the 'test' command under 'model'
