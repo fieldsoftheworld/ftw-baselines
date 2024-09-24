@@ -14,20 +14,17 @@ This repository provides the codebase for working with the [FTW dataset](https:/
     - [Verify PyTorch Installation and CUDA Availability](#verify-pytorch-installation-and-cuda-availability)
     - [Setup FTW CLI](#setup-ftw-cli)
   - [Dataset Setup](#dataset-setup)
-    - [Option 1: Download and Unpack the Zipped Version (Recommended)](#option-1-download-and-unpack-the-zipped-version-recommended)
-    - [Option 2: Download Using AWS CLI](#option-2-download-using-aws-cli)
-      - [AWS CLI Pre-requisites](#aws-cli-pre-requisites)
-      - [Obtain AWS Credentials](#obtain-aws-credentials)
+    - [Download and Unpack the Zipped Version](#download-and-unpack-the-zipped-version)
   - [Dataset Visualization](#dataset-visualization)
   - [Pre-Requisites for Experimentation](#pre-requisites-for-experimentation)
 - [Experimentation](#experimentation)
   - [Training](#training)
-    - [To train a model from scratch:](#to-train-a-model-from-scratch)
-    - [To resume training from a checkpoint:](#to-resume-training-from-a-checkpoint)
-  - [Parallel Experimentation](#parallel-experimentation)
-    - [To run experiments in parallel:](#to-run-experiments-in-parallel)
+    - [To train a model from scratch](#to-train-a-model-from-scratch)
+    - [To resume training from a checkpoint](#to-resume-training-from-a-checkpoint)
   - [Testing](#testing)
-    - [To test a model:](#to-test-a-model)
+    - [To test a model](#to-test-a-model)
+  - [Parallel Experimentation](#parallel-experimentation)
+    - [To run experiments in parallel](#to-run-experiments-in-parallel)
   - [Contributing](#contributing)
   - [License](#license)
 
@@ -105,74 +102,54 @@ Commands:
 
 ## Dataset setup
 
-You can download the FTW dataset using one of two methods:
+Download the dataset using the `FTW Cli`, `root_folder` defaults to `./data` and `clean_download` is to freshly download the entire dataset(deletes default local folder):
 
-### Option 1: Download and unpack the zipped version (recommended)
+```bash
+ftw download --help
+Usage: ftw download [OPTIONS]
 
-1. Download the dataset using the `FTW Cli`, `root_folder` defaults to `./data` and `clean_download` is to freshly download the entire dataset(deletes default local folder):
+  Download the FTW dataset.
 
-    ```bash
-    ftw download --help
-    Usage: ftw download [OPTIONS]
+Options:
+  --clean_download    If set, the script will delete the root folder before
+                      downloading.
+  --root_folder TEXT  Root folder where the files will be downloaded. Defaults
+                      to './data'.
+  --countries TEXT    Comma-separated list of countries to download. If 'all'
+                      is passed, downloads all available countries.
+  --help              Show this message and exit.
+```
 
-      Download the FTW dataset.
+Unpack the dataset using the `unpack.py` script, this will create a `ftw` folder under the `data` after unpacking.
 
-    Options:
-      --clean_download    If set, the script will delete the root folder before
-                          downloading.
-      --root_folder TEXT  Root folder where the files will be downloaded. Defaults
-                          to './data'.
-      --countries TEXT    Comma-separated list of countries to download. If 'all'
-                          is passed, downloads all available countries.
-      --help              Show this message and exit.
-    ```
+```bash
+ftw unpack --help
+    Usage: ftw unpack [OPTIONS]
 
-2. Unpack the dataset using the `unpack.py` script, this will create a `ftw` folder under the `data` after unpacking.
+  Unpack the downloaded FTW dataset.
 
-    ```bash
-    ftw unpack --help
-        Usage: ftw unpack [OPTIONS]
-
-      Unpack the downloaded FTW dataset.
-
-    Options:
-      --root_folder TEXT  Root folder where the .zip files are located. Defaults
-                          to './data'.
-      --help              Show this message and exit.
-    ```
+Options:
+  --root_folder TEXT  Root folder where the .zip files are located. Defaults
+                      to './data'.
+  --help              Show this message and exit.
+```
 
 #### Examples:
 To download and unpack the complete dataset use following commands:
-  ```bash
-  ftw download 
-  ftw unpack
-  ```
-
-To download and unpack the specific set of countries use following commands:
-  ```bash
-  ftw download --countries belgium,kenya,vietnam
-  ftw unpack
-  ```
-Note: Make sure to avoid adding any space in between the list of comma seperated countries.
-
-### Option 2: Download using AWS CLI
-
-#### AWS CLI pre-requisites
-To download the dataset, install AWS CLI 2 by following the [AWS CLI installation guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html). Alternatively, you can install it via the command line:
-
-  ```bash
-  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-  unzip awscliv2.zip
-  sudo ./aws/install
-  ```
-
-#### Obtain AWS credentials
-To access the dataset, generate AWS credentials (AWS Access Key ID, AWS Secret Access Key, and AWS Session Token) from the Source Cooperative. Follow the instructions on the [Source Cooperative website](https://beta.source.coop/repositories/kerner-lab/fields-of-the-world/download/). To sync the dataset to your local machine using AWS CLI, replace `/path/to/local/
-folder` with your preferred location.
 
 ```bash
-aws s3 sync s3://us-west-2.opendata.source.coop/kerner-lab/fields-of-the-world/ /path/to/local/folder
+ftw download 
+ftw unpack
 ```
+
+To download and unpack the specific set of countries use following commands:
+
+```bash
+ftw download --countries belgium,kenya,vietnam
+ftw unpack
+```
+
+*Note:* Make sure to avoid adding any space in between the list of comma seperated countries.
 
 ## Dataset visualization
 
@@ -289,24 +266,6 @@ If training has been interrupted or if you wish to fine-tune a pre-trained model
 ftw model fit --config configs/example_config.yaml --ckpt_path <Checkpoint File Path>
 ```
 
-## Parallel experimentation
-
-For running multiple experiments across different GPUs in parallel, the provided Python script `run_experiments.py` can be used. It efficiently manages and distributes training tasks across available GPUs by using multiprocessing and queuing mechanisms.
-
-### To run experiments in parallel:
-
-1. Define the list of experiment configuration files in the `experiment_configs` list.
-2. Specify the list of GPUs in the `GPUS` variable (e.g., `[0,1,2,3]`).
-3. Set `DRY_RUN = False` to execute the experiments.
-
-The script automatically detects the available GPUs and runs the specified experiments on them. Each experiment will use the configuration file specified in `experiment_configs`.
-
-```bash
-python run_experiments.py
-```
-
-The script will distribute the experiments across the specified GPUs using a queue, with each experiment running on the corresponding GPU.
-
 ## Testing
 
 Once your model has been trained, you can evaluate it on the test set specified in your datamodule. This can be done using the same configuration file used for training.
@@ -347,6 +306,24 @@ ftw model test --gpu 0 --checkpoint_fn logs/path_to_model/checkpoints/last.ckpt 
 This will output test results into `results.csv` after running on the selected GPUs and processing the specified countries.
 
 Note: If data directory path is custom (not default ./data/) then make sure to pass custom data directory path in testing using ```--root_dir custom_dir/ftw```.
+
+## Parallel experimentation
+
+For running multiple experiments across different GPUs in parallel, the provided Python script `run_experiments.py` can be used. It efficiently manages and distributes training tasks across available GPUs by using multiprocessing and queuing mechanisms.
+
+### To run experiments in parallel:
+
+1. Define the list of experiment configuration files in the `experiment_configs` list.
+2. Specify the list of GPUs in the `GPUS` variable (e.g., `[0,1,2,3]`).
+3. Set `DRY_RUN = False` to execute the experiments.
+
+The script automatically detects the available GPUs and runs the specified experiments on them. Each experiment will use the configuration file specified in `experiment_configs`.
+
+```bash
+python run_experiments.py
+```
+
+The script will distribute the experiments across the specified GPUs using a queue, with each experiment running on the corresponding GPU.
 
 ## Notes
 
