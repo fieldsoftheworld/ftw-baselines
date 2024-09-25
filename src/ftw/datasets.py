@@ -2,8 +2,6 @@
 
 import os
 
-# TODO: when torchgeo 0.6 is released, then use this
-# from torchgeo.datasets.utils import DatasetNotFoundError
 from typing import Any, Callable, Optional, Union, Sequence
 
 import matplotlib.pyplot as plt
@@ -121,16 +119,10 @@ class FTW(NonGeoDataset):
             print("Loading 3 Class Masks, with Boundaries")
         else:
             print("Loading 2 Class Masks, without Boundaries")
-            
+
         print("Temporal option: ", temporal_options)
-        
-        #! We donot have the implicit download function enabled in this version, later this will be supported by TorchGeo release
-        # if download:
-        #     self._download()
 
         if not self._check_integrity():
-            # TODO: when torchgeo 0.6 is released, then use this
-            # raise DatasetNotFoundError(self)
             raise RuntimeError(
                 "Dataset not found at root directory or corrupted. "
                 + "You can use download=True to download it"
@@ -141,16 +133,15 @@ class FTW(NonGeoDataset):
 
         self.filenames = []
         all_filenames = []
-        
+
         for country in self.countries:
             country_root: str = os.path.join(self.root, country)
             chips_fn = os.path.join(country_root, f"chips_{country}.parquet")
             chips_df = gpd.read_parquet(str(chips_fn))
             chips_df = chips_df[chips_df["split"] == split]
-            aoi_ids = chips_df["aoi_id"].values            
+            aoi_ids = chips_df["aoi_id"].values
 
             for idx in aoi_ids:
-                # TODO Need a better way to handle 3 class masks and 2 class masks, Maybe loading some kind of layering
                 window_b_fn = Path(os.path.join( country_root, "s2_images/window_b", f"{idx}.tif"))
                 window_a_fn =  Path(os.path.join( country_root, "s2_images/window_a", f"{idx}.tif"))
                 masks_2c_fn =  Path(os.path.join( country_root, "label_masks/semantic_2class", f"{idx}.tif"))
@@ -164,7 +155,7 @@ class FTW(NonGeoDataset):
                     mask_fn = os.path.join(country_root, "label_masks/semantic_3class", f"{idx}.tif")
                 else:
                     mask_fn = os.path.join(country_root, "label_masks/semantic_2class", f"{idx}.tif")
-                
+
                 if os.path.exists(mask_fn):
                     all_filenames.append(
                         {
@@ -227,8 +218,7 @@ class FTW(NonGeoDataset):
             if len(chips_fns) != 1:
                 print(f"Country {country} does not have chips file")
                 return False
-            
-            # TODO Need a better way to handle 3 class masks and 2 class masks, Maybe loading some kind of layering
+
             if self.load_boundaries:
                 if not all(
                     [
@@ -261,13 +251,7 @@ class FTW(NonGeoDataset):
             print("Files already downloaded and verified")
             return
 
-        # TODO: implement download
-        # download_and_extract_archive(
-        #     self.url,
-        #     self.root,
-        #     filename=self.filename,
-        #     md5=self.md5 if self.checksum else None,
-        # )
+        raise NotImplementedError("Download functionality not implemented yet")
 
     def __len__(self) -> int:
         """Return the number of data points in the dataset.
@@ -316,17 +300,6 @@ class FTW(NonGeoDataset):
             mask = f.read(1)
         mask = torch.from_numpy(mask).long()
 
-        # with rasterio.open(filenames["distance"]) as f:
-        #     distance = f.read(1)
-        # distance = torch.from_numpy(distance)
-
-        # Any chip that doesn't have a positive mask will be filled with
-        # max float values -- we can assume if a distance value is over 1000
-        # then this is the case and the distances should instead be 0
-        # if distance[0,0] > 1000:
-        #     distance = torch.zeros_like(distance)
-
-        # sample = {"image": image, "mask": mask, "distance": distance}
         sample = {"image": image, "mask": mask}
 
         if self.transforms is not None:
@@ -345,7 +318,7 @@ class FTW(NonGeoDataset):
             a matplotlib Figure with the rendered sample
         """
         img1 = sample["image"][0:3].numpy().transpose(1, 2, 0)
-        
+
         if self.temporal_options in ("stacked", "rgb"): # only two option where we will have more than 4 channels in input image
             img2 = sample["image"][3:6]  if self.temporal_options == "rgb" else sample["image"][4:7]
             img2 = img2.numpy().transpose(1, 2, 0)

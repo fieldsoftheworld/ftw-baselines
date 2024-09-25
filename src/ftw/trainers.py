@@ -5,10 +5,7 @@ import warnings
 from typing import Any, Optional, Union
 
 import matplotlib.pyplot as plt
-try:
-    import torchseg as smp
-except ImportError:
-    import segmentation_models_pytorch as smp
+import segmentation_models_pytorch as smp
 import torch.nn as nn
 from matplotlib.figure import Figure
 import torch
@@ -25,8 +22,6 @@ from torchgeo.models import FCN, get_weight
 from torchgeo.trainers import utils
 from torchgeo.trainers.base import BaseTask
 
-from .metrics import get_object_level_metrics
-from .utils import CEandSurfaceLoss
 
 class CustomSemanticSegmentationTask(BaseTask):
     """Semantic Segmentation.
@@ -140,8 +135,6 @@ class CustomSemanticSegmentationTask(BaseTask):
             self.criterion = smp.losses.FocalLoss(
                 "multiclass", ignore_index=ignore_index, normalized=True
             )
-        elif loss == "ce+boundary":
-            self.criterion = CEandSurfaceLoss(class_weight=class_weights)
         else:
             raise ValueError(
                 f"Loss type '{loss}' is not valid. "
@@ -293,11 +286,6 @@ class CustomSemanticSegmentationTask(BaseTask):
                         summary_writer.add_figure(
                             f"image/{batch_idx}", fig, global_step=self.global_step
                         )
-                    # elif hasattr(summary_writer, "log_image"):
-                    #     filename = "val_predictions.png"
-                    #     fig.savefig(filename, bbox_inches="tight")
-                    #     image = mlflow.Image(filename)
-                    #     summary_writer.log_image(run_id=logger.run_id, image=image, key="val/predictions", step=self.global_step)
                 plt.close()
 
     def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
@@ -342,7 +330,6 @@ class CustomSemanticSegmentationTask(BaseTask):
             Optimizer and learning rate scheduler.
         """
         optimizer = AdamW(self.parameters(), lr=self.hparams["lr"], amsgrad=True)
-        #scheduler = ReduceLROnPlateau(optimizer, patience=self.hparams["patience"])
         scheduler = CosineAnnealingLR(optimizer, T_max=self.hparams["patience"], eta_min=1e-6)
         return {
             "optimizer": optimizer,
@@ -376,7 +363,7 @@ class CustomSemanticSegmentationTask(BaseTask):
             # TODO : generalizing the patch mapping
             encoder_key = prefix+layer_key
             layer_w = pretrained_weights[layer_key]
-            if encoder_key in model_dict:                
+            if encoder_key in model_dict:
                 if index == 0: # pacth first conv. layer weights
                     # Extract pre-trained weights for the first convolutional layer
                     pretrained_conv1_weights = layer_w
