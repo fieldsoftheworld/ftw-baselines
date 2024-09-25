@@ -17,3 +17,7 @@
 ## Version 1.0.2 (Public Release)
 
 - Separate click grouping for model class, which has two separate commands fit and test. Checkout `README.md` for more details.
+
+## Version 1.0.3 (Public Release)
+
+- `README.md` is cleaned up to keep instruction simple and easy to use.
