@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 """Script for running inference on a satellite image with a torchgeo segmentation model."""
+
 import argparse
 import math
 import os
@@ -16,8 +17,11 @@ from torch.utils.data import DataLoader
 from torchgeo.datasets import stack_samples
 from torchgeo.samplers import GridGeoSampler
 
-from src.datasets import SingleRasterDataset
-from src.trainers import CustomSemanticSegmentationTask
+from src.ftw.datasets import SingleRasterDataset
+from src.ftw.trainers import CustomSemanticSegmentationTask
+
+import kornia.augmentation as K
+from kornia.constants import Resample
 
 
 def preprocess(sample):
@@ -25,27 +29,36 @@ def preprocess(sample):
     return sample
 
 
-def add_inference_parser() -> argparse.ArgumentParser:
-    """Adds the arguments for the inference.py script to the base parser."""
+def get_parser() -> argparse.ArgumentParser:
+    """Creates argument parser."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--input_fn",
         type=str,
-        help="Model checkpoint to load, defaults to `last.ckpt` in the training checkpoints directory",
+        help="Input raster file. Should be a 8 channel stack of two Sentinel-2 L2A scenes with B04, B03, B02, B08 band ordering and original uint16 values.",
     )
     parser.add_argument(
         "--model_fn",
         type=str,
-        help="Model checkpoint to load, defaults to `last.ckpt` in the training checkpoints directory",
+        help="Model checkpoint to load",
     )
     parser.add_argument(
         "--output_fn",
         type=str,
-        help="Subdirectory to save outputs in, defaults to `outputs/` in the experiment directory",
+        help="Output filename",
     )
-    parser.add_argument("--gpu_id", type=int, help="GPU id to use")
     parser.add_argument(
-        "--patch_size", default=2048, type=int, help="Size of patch to use for inference"
+        "--resize_factor",
+        type=int,
+        default=2,
+        help="Resize factor to use for inference",
+    )
+    parser.add_argument("--gpu_id", type=int, required=True, help="GPU id to use")
+    parser.add_argument(
+        "--patch_size",
+        default=1024,
+        type=int,
+        help="Size of patch to use for inference",
     )
     parser.add_argument("--batch_size", default=2, type=int, help="Batch size")
     parser.add_argument(
@@ -86,9 +99,7 @@ def main(args) -> None:
         )
         return
 
-    device = torch.device(
-        f"cuda:{args.gpu_id}" if torch.cuda.is_available() else "cpu"
-    )
+    device = torch.device(f"cuda:{args.gpu_id}" if torch.cuda.is_available() else "cpu")
 
     # Load task and data
     tic = time.time()
@@ -96,6 +107,13 @@ def main(args) -> None:
     task.freeze()
     model = task.model
     model = model.eval().to(device)
+
+    up_sample = K.Resize(
+        (patch_size * args.resize_factor, patch_size * args.resize_factor)
+    ).to(device)
+    down_sample = K.Resize((patch_size, patch_size), resample=Resample.NEAREST.name).to(
+        device
+    )
 
     dataset = SingleRasterDataset(input_image_fn, transforms=preprocess)
     sampler = GridGeoSampler(dataset, size=patch_size, stride=stride)
@@ -124,10 +142,15 @@ def main(args) -> None:
 
     for batch in dl_enumerator:
         images = batch["image"].to(device)
+        images = up_sample(images)
         bboxes = batch["bbox"]
         with torch.inference_mode():
             predictions = task(images)
-            predictions = predictions.argmax(axis=1).cpu().numpy()
+            # TODO: investigate doing bilinear interpolation before argmax
+            predictions = predictions.argmax(axis=1).unsqueeze(0)
+
+            # Don't squeeze here as somtimes the batch size is one
+            predictions = down_sample(predictions.float()).int().cpu().numpy()[0]
 
         for i in range(len(bboxes)):
             bb = bboxes[i]
@@ -188,14 +211,8 @@ def main(args) -> None:
         f.write_colormap(
             1,
             {
-                1: (
-                    0,
-                    0,
-                    0,
-                    0,
-                ),  # this alpha doesn't work because of a limitation in TIFFs
-                2: (0, 255, 0, 255),
-                3: (255, 0, 0, 255),
+                1: (0, 255, 0),
+                2: (255, 0, 0),
             },
         )
         f.colorinterp = [ColorInterp.palette]
@@ -204,6 +221,6 @@ def main(args) -> None:
 
 
 if __name__ == "__main__":
-    parser = add_inference_parser()
+    parser = get_parser()
     args = parser.parse_args()
     main(args)
