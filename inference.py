@@ -118,12 +118,20 @@ def main(args) -> None:
     model = task.model
     model = model.eval().to(device)
 
-    up_sample = K.Resize(
-        (patch_size * args.resize_factor, patch_size * args.resize_factor)
-    ).to(device)
-    down_sample = K.Resize((patch_size, patch_size), resample=Resample.NEAREST.name).to(
-        device
-    )
+    if args.mps_mode:
+        up_sample = K.Resize(
+            (patch_size * args.resize_factor, patch_size * args.resize_factor)
+        ).to("cpu")
+        down_sample = K.Resize((patch_size, patch_size), resample=Resample.NEAREST.name).to(
+            device
+        ).to("cpu")
+    else:
+        up_sample = K.Resize(
+            (patch_size * args.resize_factor, patch_size * args.resize_factor)
+        ).to(device)
+        down_sample = K.Resize((patch_size, patch_size), resample=Resample.NEAREST.name).to(
+            device
+        )
 
     dataset = SingleRasterDataset(input_image_fn, transforms=preprocess)
     sampler = GridGeoSampler(dataset, size=patch_size, stride=stride)
@@ -151,16 +159,23 @@ def main(args) -> None:
     dl_enumerator = tqdm.tqdm(dataloader)
 
     for batch in dl_enumerator:
-        images = batch["image"].to(device)
-        images = up_sample(images)
+        if args.mps_mode:  # If we are in MPS mode, do upsampling on CPU
+            images = batch["image"]
+            images = up_sample(images).float().to(device)
+        else:
+            images = batch["image"].to(device)
+            images = up_sample(images)
         bboxes = batch["bbox"]
         with torch.inference_mode():
             predictions = model(images)
-            # TODO: investigate doing bilinear interpolation before argmax
-            predictions = predictions.argmax(axis=1).unsqueeze(0)
-
-            # Don't squeeze here as somtimes the batch size is one
-            predictions = down_sample(predictions.float()).int().cpu().numpy()[0]
+            if args.mps_mode:
+                predictions = predictions.argmax(axis=1).unsqueeze(0).cpu()
+                predictions = down_sample(predictions.float()).int().numpy()[0]
+            else:
+                # TODO: investigate doing bilinear interpolation before argmax
+                predictions = predictions.argmax(axis=1).unsqueeze(0)
+                # Don't squeeze here as somtimes the batch size is one
+                predictions = down_sample(predictions.float()).int().cpu().numpy()[0]
 
         for i in range(len(bboxes)):
             bb = bboxes[i]
