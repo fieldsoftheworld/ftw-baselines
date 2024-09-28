@@ -70,6 +70,11 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--overwrite", action="store_true", help="Overwrites the outputs if they exist"
     )
+    parser.add_argument(
+        "--mps_mode",
+        action="store_true",
+        help="Use this flag to run inference in MPS mode on latest Apple GPUs",
+    )
 
     return parser
 
@@ -99,11 +104,16 @@ def main(args) -> None:
         )
         return
 
-    device = torch.device(f"cuda:{args.gpu_id}" if torch.cuda.is_available() else "cpu")
+    if args.mps_mode:
+        assert torch.backends.mps.is_available()
+        device = torch.device("mps")
+    else:
+        assert torch.cuda.is_available()
+        device = torch.device(f"cuda:{args.gpu_id}")
 
     # Load task and data
     tic = time.time()
-    task = CustomSemanticSegmentationTask.load_from_checkpoint(input_model_checkpoint)
+    task = CustomSemanticSegmentationTask.load_from_checkpoint(input_model_checkpoint, map_location="cpu")
     task.freeze()
     model = task.model
     model = model.eval().to(device)
@@ -145,7 +155,7 @@ def main(args) -> None:
         images = up_sample(images)
         bboxes = batch["bbox"]
         with torch.inference_mode():
-            predictions = task(images)
+            predictions = model(images)
             # TODO: investigate doing bilinear interpolation before argmax
             predictions = predictions.argmax(axis=1).unsqueeze(0)
 
