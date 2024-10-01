@@ -25,8 +25,9 @@ This repository provides the codebase for working with the [FTW dataset](https:/
     - [To test a model](#to-test-a-model)
   - [Parallel Experimentation](#parallel-experimentation)
     - [To run experiments in parallel](#to-run-experiments-in-parallel)
-  - [Contributing](#contributing)
-  - [License](#license)
+- [Inference](#inference)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Folder structure
 
@@ -335,6 +336,17 @@ If you see any warnings in this format,
 ```
 
 this is due to a PR in official PyTorch `PyTorch 2.4 deprecated the use of torch.cuda.amp.autocast in favor of torch.amp.autocast("cuda", ...), but this change has missed updating internal uses in PyTorch` [Link](https://github.com/pytorch/pytorch/issues/130659), rest assured `ftw` won't face any issue in experimentation and dataset exploration.
+
+## Inference
+
+We provide two scripts that allow users to run models that have been pre-trained on FTW on any temporal pair of S2 images. First, you need to train a model (or download a pre-trained model), we provide an example pre-trained model in the [Releases](https://github.com/fieldsoftheworld/ftw-baselines/releases) list. Second, you need to concatenate the bands of two aligned Sentinel-2 scenes that show your area of interest in two seasons (e.g. planting and harvesting seasons) in the following order: B04_t1, BO3_t1, BO2_t1, B08_t1, B04_t2, BO3_t2, BO2_t2, B08_t2 (t1 and t2 represent two different points in time). The `download_imagery.py` script does this automatically given two STAC items. The Microsoft [Planetary Computer Explorer](https://planetarycomputer.microsoft.com/explore?d=sentinel-2-l2a) is a convinient tool for finding relevant scenes and their corresponding STAC items. Finally, `inference.py` is a script that will run a given model on overlapping patches of input imagery (i.e. the output of `download_imagery.py`) and stitch the results together in GeoTIFF format.
+
+The following commands show these three steps for a pair of Sentinel-2 scenes over Austria:
+```
+wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/model/FTW-25-Experiment-1-1-4_model.ckpt
+python download_imagery.py --win_a "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729" --win_b "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923" --output_fn inference_imagery/austria_example.tif
+python inference.py --input_fn inference_imagery/austria_example.tif --model_fn FTW-25-Experiment-1-1-4_model.ckpt --output_fn austria_example_output.tif --gpu 0 --overwrite --resize_factor 2
+```
 
 ## Contributing
 
