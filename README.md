@@ -343,7 +343,7 @@ We provide two scripts that allow users to run models that have been pre-trained
 
 The following commands show these three steps for a pair of Sentinel-2 scenes over Austria:
 ```
-wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/untagged-9bde11b32578f4d0a6d1/FTW-25-Experiment-1-1-4_model.ckpt
+wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/model/FTW-25-Experiment-1-1-4_model.ckpt
 python download_imagery.py --win_a "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729" --win_b "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923" --output_fn inference_imagery/austria_example.tif
 python inference.py --input_fn inference_imagery/austria_example.tif --model_fn FTW-25-Experiment-1-1-4_model.ckpt --output_fn austria_example_output.tif --gpu 0 --overwrite --resize_factor 2
 ```
