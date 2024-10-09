@@ -21,3 +21,9 @@
 ## Version 1.0.3 (Public Release)
 
 - `README.md` is cleaned up to keep instruction simple and easy to use.
+
+## Version 1.0.4 (Public Release)
+
+- Added configuration and evaluation script for Full FTW and CC-BY Countries training.
+- Added tensorboard for monitoring training progress.
+- Added torchgeo 0.7 version information in the `upcoming features` section.

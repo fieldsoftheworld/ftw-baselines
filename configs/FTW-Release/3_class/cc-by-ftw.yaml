@@ -1,0 +1,87 @@
+trainer:
+  max_epochs: 100
+  log_every_n_steps: 10
+  accelerator: gpu
+  default_root_dir: logs/FTW-Release-CC-BY-3-class
+  devices:
+    - 0
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        monitor: val_loss
+        mode: min
+        save_top_k: 0
+        save_last: true
+        filename: "{epoch}-{val_loss:.2f}"
+model:
+  class_path: ftw.trainers.CustomSemanticSegmentationTask
+  init_args:
+    class_weights: [0.04,0.08,0.88]
+    loss: "ce" 
+    model: "unet"
+    backbone: "efficientnet-b3"
+    weights: true
+    patch_weights : false
+    in_channels: 8
+    num_classes: 3
+    num_filters: 64
+    ignore_index: 3
+    lr: 1e-3
+    patience: 100
+data:
+  class_path: ftw.datamodules.FTWDataModule
+  init_args:
+    batch_size: 32
+    num_workers: 12 
+    train_countries:
+      - austria
+      - brazil
+      - corsica
+      - denmark
+      - estonia
+      - finland
+      - france
+      - india
+      - kenya
+      - luxembourg
+      - netherlands
+      - rwanda
+      - slovakia
+      - spain
+      - vietnam
+    val_countries:
+      - austria
+      - brazil
+      - corsica
+      - denmark
+      - estonia
+      - finland
+      - france
+      - india
+      - kenya
+      - luxembourg
+      - netherlands
+      - rwanda
+      - slovakia
+      - spain
+      - vietnam
+    test_countries:
+      - austria
+      - brazil
+      - corsica
+      - denmark
+      - estonia
+      - finland
+      - france
+      - india
+      - kenya
+      - luxembourg
+      - netherlands
+      - rwanda
+      - slovakia
+      - spain
+      - vietnam
+  dict_kwargs:
+    root: data/ftw
+    load_boundaries: true
+seed_everything: 7
