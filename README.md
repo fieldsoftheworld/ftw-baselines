@@ -8,26 +8,29 @@ This repository provides the codebase for working with the [FTW dataset](https:/
 ## Table of Contents
 - [Fields of The World (FTW) - Baselines Codebase](#fields-of-the-world-ftw---baselines-codebase)
   - [Table of Contents](#table-of-contents)
-  - [Folder Structure](#folder-structure)
-  - [System Setup](#system-setup)
-    - [Create Conda/Mamba Environment](#create-condamamba-environment)
-    - [Verify PyTorch Installation and CUDA Availability](#verify-pytorch-installation-and-cuda-availability)
+  - [Folder structure](#folder-structure)
+  - [System setup](#system-setup)
+    - [Create Conda/Mamba environment](#create-condamamba-environment)
+    - [Verify PyTorch installation and CUDA availability](#verify-pytorch-installation-and-cuda-availability)
     - [Setup FTW CLI](#setup-ftw-cli)
-  - [Dataset Setup](#dataset-setup)
-    - [Download and Unpack the Zipped Version](#download-and-unpack-the-zipped-version)
-  - [Dataset Visualization](#dataset-visualization)
-  - [Pre-Requisites for Experimentation](#pre-requisites-for-experimentation)
+  - [Dataset setup](#dataset-setup)
+      - [Examples:](#examples)
+  - [Dataset visualization](#dataset-visualization)
+  - [Pre-requisites for experimentation](#pre-requisites-for-experimentation)
 - [Experimentation](#experimentation)
   - [Training](#training)
-    - [To train a model from scratch](#to-train-a-model-from-scratch)
-    - [To resume training from a checkpoint](#to-resume-training-from-a-checkpoint)
+    - [To train a model from scratch:](#to-train-a-model-from-scratch)
+    - [To resume training from a checkpoint:](#to-resume-training-from-a-checkpoint)
+    - [VIsuaizing training process](#visuaizing-training-process)
   - [Testing](#testing)
-    - [To test a model](#to-test-a-model)
-  - [Parallel Experimentation](#parallel-experimentation)
-    - [To run experiments in parallel](#to-run-experiments-in-parallel)
-- [Inference](#inference)
-- [Contributing](#contributing)
-- [License](#license)
+    - [To test a model:](#to-test-a-model)
+  - [Parallel experimentation](#parallel-experimentation)
+    - [To run experiments in parallel:](#to-run-experiments-in-parallel)
+  - [Inference](#inference)
+  - [Notes](#notes)
+  - [Upcoming features](#upcoming-features)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 ## Folder structure
 
@@ -235,6 +238,8 @@ Commands:
   test  Test the model
 ```
 
+**Our current best model architecture comprises `unet` with `efficientnet-b3` backbone trained with weighted `cross-entropy` loss. Please see the config files under `configs/FTW-Release` folder for more information.**
+
 ## Training
 
 We use [LightningCLI](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.cli.LightningCLI.html) to streamline the training process, leveraging configuration files to define the model architecture, dataset, and training parameters.
@@ -266,6 +271,30 @@ If training has been interrupted or if you wish to fine-tune a pre-trained model
 ```bash
 ftw model fit --config configs/example_config.yaml --ckpt_path <Checkpoint File Path>
 ```
+
+### VIsuaizing training process
+
+Tensorboard is used to log the training and validation steps. The logs are situated in folders specified in the `config.yaml` files. Search for this line in the configuration. 
+
+```
+default_root_dir: logs/<experiment name>
+```
+
+To visualize the the logs run:
+
+```
+tensorboard --logdir=<log directory of experiments>
+```
+
+Currently logged informations are:
+- Train multi class accuracy
+- Train multi class jaccard index
+- Train loss
+- Validation multi class accuracy
+- Validation multi class jaccard index
+- Validation loss
+- 10 prediction results (images)
+- Learning rate
 
 ## Testing
 
@@ -301,7 +330,7 @@ Options:
 Using FTW cli commands to test the model, you can pass specific options, such as selecting the GPUs, providing checkpoints, specifying countries for testing, and postprocessing results:
 
 ```bash
-ftw model test --gpu 0 --checkpoint_fn logs/path_to_model/checkpoints/last.ckpt --countries denmark finland --postprocess --output_fn results.csv
+ftw model test --gpu 0 --root_dir /path/to/dataset --checkpoint_fn logs/path_to_model/checkpoints/last.ckpt --countries country_to_test_on --output_fn results.csv
 ```
 
 This will output test results into `results.csv` after running on the selected GPUs and processing the specified countries.
@@ -326,6 +355,17 @@ python run_experiments.py
 
 The script will distribute the experiments across the specified GPUs using a queue, with each experiment running on the corresponding GPU.
 
+## Inference
+
+We provide two scripts that allow users to run models that have been pre-trained on FTW on any temporal pair of S2 images. First, you need a trained model - either download a pre-trained model (we provide an example pre-trained model in the [Releases](https://github.com/fieldsoftheworld/ftw-baselines/releases) list), or train your own model as explained in the [Training](#training) section. Second, you need to concatenate the bands of two aligned Sentinel-2 scenes that show your area of interest in two seasons (e.g. planting and harvesting seasons) in the following order: B04_t1, BO3_t1, BO2_t1, B08_t1, B04_t2, BO3_t2, BO2_t2, B08_t2 (t1 and t2 represent two different points in time). The `download_imagery.py` script does this automatically given two STAC items. The Microsoft [Planetary Computer Explorer](https://planetarycomputer.microsoft.com/explore?d=sentinel-2-l2a) is a convenient tool for finding relevant scenes and their corresponding STAC items. Finally, `inference.py` is a script that will run a given model on overlapping patches of input imagery (i.e. the output of `download_imagery.py`) and stitch the results together in GeoTIFF format.
+
+The following commands show these three steps for a pair of Sentinel-2 scenes over Austria:
+```
+wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/model/FTW-25-Experiment-1-1-4_model.ckpt
+python download_imagery.py --win_a "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729" --win_b "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923" --output_fn inference_imagery/austria_example.tif
+python inference.py --input_fn inference_imagery/austria_example.tif --model_fn FTW-25-Experiment-1-1-4_model.ckpt --output_fn austria_example_output.tif --gpu 0 --overwrite --resize_factor 2
+```
+
 ## Notes
 
 If you see any warnings in this format,
@@ -337,16 +377,18 @@ If you see any warnings in this format,
 
 this is due to a PR in official PyTorch `PyTorch 2.4 deprecated the use of torch.cuda.amp.autocast in favor of torch.amp.autocast("cuda", ...), but this change has missed updating internal uses in PyTorch` [Link](https://github.com/pytorch/pytorch/issues/130659), rest assured `ftw` won't face any issue in experimentation and dataset exploration.
 
-## Inference
+## Upcoming features
 
-We provide two scripts that allow users to run models that have been pre-trained on FTW on any temporal pair of S2 images. First, you need to train a model (or download a pre-trained model), we provide an example pre-trained model in the [Releases](https://github.com/fieldsoftheworld/ftw-baselines/releases) list. Second, you need to concatenate the bands of two aligned Sentinel-2 scenes that show your area of interest in two seasons (e.g. planting and harvesting seasons) in the following order: B04_t1, BO3_t1, BO2_t1, B08_t1, B04_t2, BO3_t2, BO2_t2, B08_t2 (t1 and t2 represent two different points in time). The `download_imagery.py` script does this automatically given two STAC items. The Microsoft [Planetary Computer Explorer](https://planetarycomputer.microsoft.com/explore?d=sentinel-2-l2a) is a convinient tool for finding relevant scenes and their corresponding STAC items. Finally, `inference.py` is a script that will run a given model on overlapping patches of input imagery (i.e. the output of `download_imagery.py`) and stitch the results together in GeoTIFF format.
+We have made the dataset compatible with torchgeo for ease of use, and [TorchGeo](https://github.com/microsoft/torchgeo) release 0.7 will include both the dataset and pre-trained models for streamlined integration. To get started, you can install the development version of TorchGeo and load the Fields of the World dataset with the following code:
 
-The following commands show these three steps for a pair of Sentinel-2 scenes over Austria:
+```bash
+pip install git+https://github.com/Microsoft/torchgeo.git  # to get version 0.7 dev
 ```
-wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/model/FTW-25-Experiment-1-1-4_model.ckpt
-python download_imagery.py --win_a "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729" --win_b "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923" --output_fn inference_imagery/austria_example.tif
-python inference.py --input_fn inference_imagery/austria_example.tif --model_fn FTW-25-Experiment-1-1-4_model.ckpt --output_fn austria_example_output.tif --gpu 0 --overwrite --resize_factor 2
-```
+
+```python
+from torchgeo.datasets import FieldsOfTheWorld
+ds = FieldsOfTheWorld("dataset/", countries="austria", split="train", download=True)
+````
 
 ## Contributing
 
