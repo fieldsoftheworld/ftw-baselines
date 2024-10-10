@@ -21,7 +21,7 @@ This repository provides the codebase for working with the [FTW dataset](https:/
   - [Training](#training)
     - [To train a model from scratch:](#to-train-a-model-from-scratch)
     - [To resume training from a checkpoint:](#to-resume-training-from-a-checkpoint)
-    - [VIsuaizing training process](#visuaizing-training-process)
+    - [Visualizing the training process](#visuaizing-training-process)
   - [Testing](#testing)
     - [To test a model:](#to-test-a-model)
   - [Parallel experimentation](#parallel-experimentation)
