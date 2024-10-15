@@ -363,7 +363,7 @@ The following commands show these three steps for a pair of Sentinel-2 scenes ov
 
 - Download pretrained checkpoint from [Pretrained-Models](https://github.com/fieldsoftheworld/ftw-baselines/releases/tag/Pretrained-Models).
   ```bash
-  wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/Pretrained-Models/3_Class_CCBY_FTW_Pretrained.ckpt
+  wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/Pretrained-Models/3_Class_FULL_FTW_Pretrained.ckpt
   ```
 - Download S2 Image scene.
   ```bash
@@ -375,6 +375,17 @@ The following commands show these three steps for a pair of Sentinel-2 scenes ov
   ```
 
 **NOTE: Consider using CC-BY FTW Trained Checkpoints from the release file for Commercial Purpose, For Non-Commercial Purpose and Academic purpose you can use the FULL FTW Trained Checkpoints (See the Image below for perfrmance comparison)**
+
+We have also made FTW model checkpoints available that are pretrained only on CC-BY (or equivalent open licenses) datasets. You can download these checkpoints using the following command: 
+  
+- 3 Class
+  ```bash
+  wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/Pretrained-Models/3_Class_CCBY_FTW_Pretrained.ckpt
+  ```
+- 2 Class
+  ```bash
+  https://github.com/fieldsoftheworld/ftw-baselines/releases/download/Pretrained-Models/2_Class_CCBY_FTW_Pretrained.ckpt
+  ```
 
 ![2 Class IoU](/assets/2%20Class%20IoU%20Comparison.png)
 ![3 Class IoU](/assets/3%20Class%20IoU%20Comparison.png)

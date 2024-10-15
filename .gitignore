@@ -6,4 +6,7 @@ submission/
 results/
 logs_old/
 build/
+inference_imagery/
 src/ftw.egg-info/
+*.ckpt
+*.tif
