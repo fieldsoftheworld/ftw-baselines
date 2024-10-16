@@ -28,3 +28,6 @@
 - Added tensorboard for monitoring training progress.
 - Added torchgeo 0.7 version information in the `upcoming features` section.
 - Updated ReadMe for inference section for Commercial and Non-Commercial purposes.
+- Fixed [Issue 11](https://github.com/fieldsoftheworld/ftw-baselines/issues/11).
+- Added Prediction output sample in the `README.md`.
+- Integrated inference pipeline with ftw cli.
