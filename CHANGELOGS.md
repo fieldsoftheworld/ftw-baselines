@@ -27,3 +27,4 @@
 - Added configuration and evaluation script for Full FTW and CC-BY Countries training.
 - Added tensorboard for monitoring training progress.
 - Added torchgeo 0.7 version information in the `upcoming features` section.
+- Updated ReadMe for inference section for Commercial and Non-Commercial purposes.
