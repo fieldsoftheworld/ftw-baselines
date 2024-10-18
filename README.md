@@ -27,6 +27,7 @@ This repository provides the codebase for working with the [FTW dataset](https:/
   - [Parallel experimentation](#parallel-experimentation)
     - [To run experiments in parallel:](#to-run-experiments-in-parallel)
   - [Inference](#inference)
+    - [CC-BY(or equivalent) trained models](#cc-byor-equivalent-trained-models)
   - [Notes](#notes)
   - [Upcoming features](#upcoming-features)
   - [Contributing](#contributing)
@@ -234,8 +235,9 @@ Options:
   --help  Show this message and exit.
 
 Commands:
-  fit   Fit the model
-  test  Test the model
+  fit        Fit the model
+  inference  Run inference on a satellite image
+  test       Test the model
 ```
 
 **Our current best model architecture comprises `unet` with `efficientnet-b3` backbone trained with weighted `cross-entropy` loss. Please see the config files under `configs/FTW-Release` folder for more information.**
@@ -357,24 +359,59 @@ The script will distribute the experiments across the specified GPUs using a que
 
 ## Inference
 
-We provide two scripts that allow users to run models that have been pre-trained on FTW on any temporal pair of S2 images. First, you need a trained model - either download a pre-trained model (we provide an example pre-trained model in the [Releases](https://github.com/fieldsoftheworld/ftw-baselines/releases) list), or train your own model as explained in the [Training](#training) section. Second, you need to concatenate the bands of two aligned Sentinel-2 scenes that show your area of interest in two seasons (e.g. planting and harvesting seasons) in the following order: B04_t1, BO3_t1, BO2_t1, B08_t1, B04_t2, BO3_t2, BO2_t2, B08_t2 (t1 and t2 represent two different points in time). The `download_imagery.py` script does this automatically given two STAC items. The Microsoft [Planetary Computer Explorer](https://planetarycomputer.microsoft.com/explore?d=sentinel-2-l2a) is a convenient tool for finding relevant scenes and their corresponding STAC items. Finally, `inference.py` is a script that will run a given model on overlapping patches of input imagery (i.e. the output of `download_imagery.py`) and stitch the results together in GeoTIFF format.
+We provide two scripts that allow users to run models that have been pre-trained on FTW on any temporal pair of S2 images. First, you need a trained model - either download a pre-trained model (we provide an example pre-trained model in the [Releases](https://github.com/fieldsoftheworld/ftw-baselines/releases) list), or train your own model as explained in the [Training](#training) section. Second, you need to concatenate the bands of two aligned Sentinel-2 scenes that show your area of interest in two seasons (e.g. planting and harvesting seasons) in the following order: B04_t1, BO3_t1, BO2_t1, B08_t1, B04_t2, BO3_t2, BO2_t2, B08_t2 (t1 and t2 represent two different points in time). The `download_imagery.py` script does this automatically given two STAC items. The Microsoft [Planetary Computer Explorer](https://planetarycomputer.microsoft.com/explore?d=sentinel-2-l2a) is a convenient tool for finding relevant scenes and their corresponding STAC items. Finally, `ftw model inference` is a script that will run a given model on overlapping patches of input imagery (i.e. the output of `download_imagery.py`) and stitch the results together in GeoTIFF format.
+
+```bash
+ftw model inference --help
+
+Usage: ftw model inference [OPTIONS]
+
+  Run inference on a satellite image
+
+Options:
+  --input_fn PATH          Input raster file (Sentinel-2 L2A stack).
+                           [required]
+  --model_fn PATH          Path to the model checkpoint.  [required]
+  --output_fn TEXT         Output filename.  [required]
+  --resize_factor INTEGER  Resize factor to use for inference.
+  --gpu INTEGER            GPU ID to use. If not provided, CPU will be used by
+                           default.
+  --patch_size INTEGER     Size of patch to use for inference.
+  --batch_size INTEGER     Batch size.
+  --padding INTEGER        Pixels to discard from each side of the patch.
+  --overwrite              Overwrite outputs if they exist.
+  --mps_mode               Run inference in MPS mode (Apple GPUs).
+  --help                   Show this message and exit.
+```
 
 The following commands show these three steps for a pair of Sentinel-2 scenes over Austria:
 
 - Download pretrained checkpoint from [Pretrained-Models](https://github.com/fieldsoftheworld/ftw-baselines/releases/tag/Pretrained-Models).
-  ```bash
-  wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/Pretrained-Models/3_Class_FULL_FTW_Pretrained.ckpt
-  ```
+  - 3 Class
+    ```bash
+    wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/Pretrained-Models/3_Class_FULL_FTW_Pretrained.ckpt
+    ```
+  - 2 Class
+    ```bash
+    wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/Pretrained-Models/2_Class_FULL_FTW_Pretrained.ckpt
+    ```
+
 - Download S2 Image scene.
   ```bash
   python download_imagery.py --win_a "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729" --win_b "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923" --output_fn inference_imagery/austria_example.tif
   ```
-- Run inference script on the entire scene.
+
+- Run inference on the entire scene.
   ```bash
-  python inference.py --input_fn inference_imagery/austria_example.tif --model_fn FTW-25-Experiment-1-1-4_model.ckpt --output_fn austria_example_output.tif --gpu 0 --overwrite --resize_factor 2
+  ftw model inference --input_fn inference_imagery/austria_example.tif --model_fn 3_Class_FULL_FTW_Pretrained.ckpt --output_fn austria_example_output_full.tif --gpu 0 --overwrite --resize_factor 2
   ```
 
-**NOTE: Consider using CC-BY FTW Trained Checkpoints from the release file for Commercial Purpose, For Non-Commercial Purpose and Academic purpose you can use the FULL FTW Trained Checkpoints (See the Image below for perfrmance comparison)**
+### Sample Prediction Output (Austria Patch, Red - Fields)
+![Sample Prediction Output](/assets/austria_prediction.png)
+
+### CC-BY(or equivalent) trained models
+
+Consider using CC-BY FTW Trained Checkpoints from the release file for Commercial Purpose, For Non-Commercial Purpose and Academic purpose you can use the FULL FTW Trained Checkpoints (See the Images below for perfrmance comparison)
 
 We have also made FTW model checkpoints available that are pretrained only on CC-BY (or equivalent open licenses) datasets. You can download these checkpoints using the following command: 
   
@@ -387,8 +424,8 @@ We have also made FTW model checkpoints available that are pretrained only on CC
   https://github.com/fieldsoftheworld/ftw-baselines/releases/download/Pretrained-Models/2_Class_CCBY_FTW_Pretrained.ckpt
   ```
 
-![2 Class IoU](/assets/2%20Class%20IoU%20Comparison.png)
 ![3 Class IoU](/assets/3%20Class%20IoU%20Comparison.png)
+![2 Class IoU](/assets/2%20Class%20IoU%20Comparison.png)
 
 ## Notes
 
