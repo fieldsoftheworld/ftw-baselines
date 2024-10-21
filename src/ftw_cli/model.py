@@ -8,6 +8,10 @@ from tqdm import tqdm
 import math
 import rasterio
 from rasterio.enums import ColorInterp
+import rasterio.features
+import shapely.geometry
+import fiona
+import fiona.transform
 from torchmetrics import JaccardIndex, Precision, Recall, MetricCollection
 from lightning.pytorch.cli import ArgsType, LightningCLI
 from ftw.datamodules import preprocess
@@ -211,8 +215,10 @@ def test(checkpoint_fn, root_dir, gpu, countries, postprocess, iou_threshold, ou
 @click.option('--batch_size', type=int, default=2, help="Batch size.")
 @click.option('--padding', type=int, default=64, help="Pixels to discard from each side of the patch.")
 @click.option('--overwrite', is_flag=True, help="Overwrite outputs if they exist.")
+@click.option('--polygonize', is_flag=True, help="Additionally polygonize the output (a GPKG file identical to `output_fn` will be created).")
+@click.option('--simplify', type=float, default=None, help="Simplification factor to use when polygonizing.")
 @click.option('--mps_mode', is_flag=True, help="Run inference in MPS mode (Apple GPUs).")
-def inference(input_fn, model_fn, output_fn, resize_factor, gpu, patch_size, batch_size, padding, overwrite, mps_mode):
+def inference(input_fn, model_fn, output_fn, resize_factor, gpu, patch_size, batch_size, padding, overwrite, polygonize, simplify, mps_mode):
     """Main function for the inference command."""
 
     # Sanity checks
@@ -221,6 +227,7 @@ def inference(input_fn, model_fn, output_fn, resize_factor, gpu, patch_size, bat
     assert os.path.exists(input_fn), f"Input file {input_fn} does not exist."
     assert input_fn.endswith(".tif") or input_fn.endswith(".vrt"), "Input file must be a .tif or .vrt file."
     assert int(math.log(patch_size, 2)) == math.log(patch_size, 2), "Patch size must be a power of 2."
+    assert output_fn.endswith(".tif"), "Output file must be a .tif file."
 
     stride = patch_size - padding * 2
 
@@ -258,6 +265,7 @@ def inference(input_fn, model_fn, output_fn, resize_factor, gpu, patch_size, bat
     # Run inference
     with rasterio.open(input_fn) as f:
         input_height, input_width = f.shape
+        crs = f.crs.to_string()
         profile = f.profile
         transform = profile["transform"]
 
@@ -302,7 +310,35 @@ def inference(input_fn, model_fn, output_fn, resize_factor, gpu, patch_size, bat
         f.write_colormap(1, {1: (255, 0, 0)})
         f.colorinterp = [ColorInterp.palette]
 
-    print(f"Finished inference and saved output to {output_fn}")
+    print(f"Finished inference and saved output to {output_fn} in {time.time() - tic:.2f}s")
+
+    if polygonize:
+        print("Polygonizing output")
+        tic = time.time()
+        rows = []
+        i = 0
+        mask = (output==1).astype(np.uint8)
+
+        mask = mask[:1024, :1024]
+
+        # TODO: this can be very slow if there are many small objects
+        for geom, val in rasterio.features.shapes(mask, transform=transform):
+            if val == 1:
+                rows.append({
+                    "geometry": geom,
+                    "properties": {
+                        "idx": i
+                    }
+                })
+                i += 1
+        schema = {
+            "geometry": "Polygon",
+            "properties": {"idx": "int"}
+        }
+        with fiona.open(output_fn.replace(".tif", ".gpkg"), "w", driver="GPKG", crs=crs, schema=schema) as f:
+            f.writerecords(rows)
+
+        print(f"Finished polygonizing output in {time.time() - tic:.2f}s")
 
 
 
