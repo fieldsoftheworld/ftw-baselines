@@ -25,7 +25,9 @@ from torchgeo.samplers import GridGeoSampler
 from ftw.datasets import SingleRasterDataset
 from ftw.trainers import CustomSemanticSegmentationTask
 import kornia.augmentation as K
-from kornia.constants import Resample   
+from kornia.constants import Resample
+from pyproj import CRS
+from affine import Affine
 
 
 # Define the main click group
@@ -269,6 +271,10 @@ def inference(input_fn, model_fn, output_fn, resize_factor, gpu, patch_size, bat
         profile = f.profile
         transform = profile["transform"]
 
+    is_projected = CRS.from_string(crs).is_projected
+    if polygonize and simplify is not None and not is_projected and simplify > 1:
+        print("WARNING: You are passing a value of `simplify` greater than 1 for a geographic coordinate system. This is probably **not** what you want.")
+
     output = np.zeros((input_height, input_width), dtype=np.uint8)
     dl_enumerator = tqdm(dataloader)
 
@@ -314,23 +320,44 @@ def inference(input_fn, model_fn, output_fn, resize_factor, gpu, patch_size, bat
 
     if polygonize:
         print("Polygonizing output")
+        output_gpkg_fn = output_fn.replace(".tif", ".gpkg")
+        if os.path.exists(output_gpkg_fn) and not overwrite:
+            # TODO: move logic up so we don't do a lot of work then find out we don't want to overwrite
+            print(f"Output file {output_gpkg_fn} already exists. Use --overwrite to overwrite.")
+            return
+        elif os.path.exists(output_gpkg_fn) and overwrite:
+            os.remove(output_gpkg_fn)  # GPKGs are sometimes weird about overwriting in-place
+
         tic = time.time()
         rows = []
         i = 0
         mask = (output==1).astype(np.uint8)
 
-        mask = mask[:1024, :1024]
+        input_height, input_width = mask.shape
+        polygonization_stride = 2048
+        total_iterations = (input_height // polygonization_stride) * (input_width // polygonization_stride)
+        with tqdm(total=total_iterations, desc="Processing mask windows") as pbar:
+            for y in range(0, input_height, polygonization_stride):
+                for x in range(0, input_width, polygonization_stride):
+                    new_transform = transform * Affine.translation(x, y)
+                    mask_window = mask[y:y+polygonization_stride, x:x+polygonization_stride]
+                    for geom, val in rasterio.features.shapes(mask_window, transform=new_transform):
+                        if val == 1:
 
-        # TODO: this can be very slow if there are many small objects
-        for geom, val in rasterio.features.shapes(mask, transform=transform):
-            if val == 1:
-                rows.append({
-                    "geometry": geom,
-                    "properties": {
-                        "idx": i
-                    }
-                })
-                i += 1
+                            if simplify is not None:
+                                geom = shapely.geometry.shape(geom)
+                                geom = geom.simplify(simplify)
+                                geom = shapely.geometry.mapping(geom)
+
+                            rows.append({
+                                "geometry": geom,
+                                "properties": {
+                                    "idx": i
+                                }
+                            })
+                            i += 1
+                    pbar.update(1)
+
         schema = {
             "geometry": "Polygon",
             "properties": {"idx": "int"}
