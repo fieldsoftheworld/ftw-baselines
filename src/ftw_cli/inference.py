@@ -19,10 +19,17 @@ from ftw.trainers import CustomSemanticSegmentationTask
 from torchgeo.samplers import GridGeoSampler
 from torchgeo.datasets import stack_samples
 from ftw.datamodules import preprocess
+import rasterio.features
+import shapely.geometry
+import fiona
+import fiona.transform
+from kornia.constants import Resample
+from pyproj import CRS
+from affine import Affine
 
 @click.group()
 def inference():
-    """Running inference on satellite images plus data prep."""
+    """Inference-related commands."""
     pass
 
 @inference.command(name="download", help="Download 2 Sentinel-2 scenes & stack them in a single file for inference.")
@@ -209,3 +216,67 @@ def run(input_fn, model_fn, output_fn, resize_factor, gpu, patch_size, batch_siz
         f.colorinterp = [ColorInterp.palette]
 
     print(f"Finished inference and saved output to {output_fn} in {time.time() - tic:.2f}s")
+
+@inference.command(name="polygonize", help="Polygonize the output from inference")
+@click.option('--input_fn', type=click.Path(exists=True), required=True, help="Input raster file to polygonize.")
+@click.option('--output_fn', type=str, required=True, help="Output filename for the polygonized data.")
+@click.option('--simplify', type=float, default=None, help="Simplification factor to use when polygonizing.")
+@click.option('--overwrite', is_flag=True, help="Overwrite outputs if they exist.")
+def polygonize(input_fn, output_fn, simplify, overwrite):
+    """Polygonize the output from inference."""
+
+    print(f"Polygonizing input file: {input_fn}")
+
+    # TODO: Get this warning working right, based on the CRS of the input file
+    # if simplify is not None and simplify > 1:
+    #    print("WARNING: You are passing a value of `simplify` greater than 1 for a geographic coordinate system. This is probably **not** what you want.")
+
+    if os.path.exists(output_fn) and not overwrite:
+        print(f"Output file {output_fn} already exists. Use --overwrite to overwrite.")
+        return
+    elif os.path.exists(output_fn) and overwrite:
+        os.remove(output_fn)  # GPKGs are sometimes weird about overwriting in-place
+
+    tic = time.time()
+    rows = []
+    i = 0
+    # read the input file as a mask
+    with rasterio.open(input_fn) as src:
+        input_height, input_width = src.shape
+        crs = src.crs.to_string()
+        profile = src.profile
+        transform = profile["transform"]
+        mask = (src.read(1) == 1).astype(np.uint8)
+        #input_height, input_width = mask.shape
+        polygonization_stride = 2048
+        total_iterations = (input_height // polygonization_stride) * (input_width // polygonization_stride)
+        with tqdm(total=total_iterations, desc="Processing mask windows") as pbar:
+            for y in range(0, input_height, polygonization_stride):
+                for x in range(0, input_width, polygonization_stride):
+                    new_transform = transform * Affine.translation(x, y)
+                    mask_window = mask[y:y+polygonization_stride, x:x+polygonization_stride]
+                    for geom, val in rasterio.features.shapes(mask_window, transform=new_transform):
+                        if val == 1:
+
+                            if simplify is not None:
+                                geom = shapely.geometry.shape(geom)
+                                geom = geom.simplify(simplify)
+                                geom = shapely.geometry.mapping(geom)
+
+                            rows.append({
+                                "geometry": geom,
+                                "properties": {
+                                    "idx": i
+                                }
+                            })
+                            i += 1
+                    pbar.update(1)
+
+    schema = {
+        "geometry": "Polygon",
+        "properties": {"idx": "int"}
+    }
+    with fiona.open(output_fn.replace(".tif", ".gpkg"), "w", driver="GPKG", crs=crs, schema=schema) as f:
+        f.writerecords(rows)
+
+    print(f"Finished polygonizing output at {output_fn} in {time.time() - tic:.2f}s")
