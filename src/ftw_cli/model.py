@@ -206,6 +206,166 @@ def test(checkpoint_fn, root_dir, gpu, countries, postprocess, iou_threshold, ou
             f.write(f"{checkpoint_fn},{countries},{pixel_level_iou},{pixel_level_precision},{pixel_level_recall},{object_precision},{object_recall}\n")
 
 
+# Define the 'inference' command under 'model'
+@click.command(help="Run inference on a satellite image")
+@click.option('--input_fn', type=click.Path(exists=True), required=True, help="Input raster file (Sentinel-2 L2A stack).")
+@click.option('--model_fn', type=click.Path(exists=True), required=True, help="Path to the model checkpoint.")
+@click.option('--output_fn', type=str, required=True, help="Output filename.")
+@click.option('--resize_factor', type=int, default=2, help="Resize factor to use for inference.")
+@click.option('--gpu', type=int, help="GPU ID to use. If not provided, CPU will be used by default.")
+@click.option('--patch_size', type=int, default=1024, help="Size of patch to use for inference.")
+@click.option('--batch_size', type=int, default=2, help="Batch size.")
+@click.option('--padding', type=int, default=64, help="Pixels to discard from each side of the patch.")
+@click.option('--overwrite', is_flag=True, help="Overwrite outputs if they exist.")
+@click.option('--polygonize', is_flag=True, help="Additionally polygonize the output (a GPKG file identical to `output_fn` will be created).")
+@click.option('--simplify', type=float, default=None, help="Simplification factor to use when polygonizing.")
+@click.option('--mps_mode', is_flag=True, help="Run inference in MPS mode (Apple GPUs).")
+def inference(input_fn, model_fn, output_fn, resize_factor, gpu, patch_size, batch_size, padding, overwrite, polygonize, simplify, mps_mode):
+    """Main function for the inference command."""
+
+    # Sanity checks
+    assert os.path.exists(model_fn), f"Model file {model_fn} does not exist."
+    assert model_fn.endswith(".ckpt"), "Model file must be a .ckpt file."
+    assert os.path.exists(input_fn), f"Input file {input_fn} does not exist."
+    assert input_fn.endswith(".tif") or input_fn.endswith(".vrt"), "Input file must be a .tif or .vrt file."
+    assert int(math.log(patch_size, 2)) == math.log(patch_size, 2), "Patch size must be a power of 2."
+    assert output_fn.endswith(".tif"), "Output file must be a .tif file."
+
+    stride = patch_size - padding * 2
+
+    if os.path.exists(output_fn) and not overwrite:
+        print(f"Output file {output_fn} already exists. Use --overwrite to overwrite.")
+        return
+
+    # Determine the device: GPU, MPS, or CPU
+    if mps_mode:
+        assert torch.backends.mps.is_available(), "MPS mode is not available."
+        device = torch.device("mps")
+    elif gpu is not None and torch.cuda.is_available():
+        device = torch.device(f"cuda:{gpu}")
+    else:
+        print("Neither GPU nor MPS mode is enabled, defaulting to CPU.")
+        device = torch.device("cpu")
+
+    # Load task and data
+    tic = time.time()
+    task = CustomSemanticSegmentationTask.load_from_checkpoint(model_fn, map_location="cpu")
+    task.freeze()
+    model = task.model.eval().to(device)
+
+    if mps_mode:
+        up_sample = K.Resize((patch_size * resize_factor, patch_size * resize_factor)).to("cpu")
+        down_sample = K.Resize((patch_size, patch_size), resample=Resample.NEAREST.name).to(device).to("cpu")
+    else:
+        up_sample = K.Resize((patch_size * resize_factor, patch_size * resize_factor)).to(device)
+        down_sample = K.Resize((patch_size, patch_size), resample=Resample.NEAREST.name).to(device)
+
+    dataset = SingleRasterDataset(input_fn, transforms=preprocess)
+    sampler = GridGeoSampler(dataset, size=patch_size, stride=stride)
+    dataloader = DataLoader(dataset, sampler=sampler, batch_size=batch_size, num_workers=6, collate_fn=stack_samples)
+
+    # Run inference
+    with rasterio.open(input_fn) as f:
+        input_height, input_width = f.shape
+        crs = f.crs.to_string()
+        profile = f.profile
+        transform = profile["transform"]
+
+    is_projected = CRS.from_string(crs).is_projected
+    if polygonize and simplify is not None and not is_projected and simplify > 1:
+        print("WARNING: You are passing a value of `simplify` greater than 1 for a geographic coordinate system. This is probably **not** what you want.")
+
+    output = np.zeros((input_height, input_width), dtype=np.uint8)
+    dl_enumerator = tqdm(dataloader)
+
+    for batch in dl_enumerator:
+        images = batch["image"].to(device)
+        images = up_sample(images)
+        bboxes = batch["bbox"]
+
+        with torch.inference_mode():
+            predictions = model(images)
+            predictions = predictions.argmax(axis=1).unsqueeze(0)
+            predictions = down_sample(predictions.float()).int().cpu().numpy()[0]
+
+        for i in range(len(bboxes)):
+            bb = bboxes[i]
+            left, top = ~transform * (bb.minx, bb.maxy)
+            right, bottom = ~transform * (bb.maxx, bb.miny)
+            left, right, top, bottom = int(np.round(left)), int(np.round(right)), int(np.round(top)), int(np.round(bottom))
+            destination_height, destination_width = output[top + padding:bottom - padding, left + padding:right - padding].shape
+
+            inp = predictions[i][padding:padding + destination_height, padding:padding + destination_width]
+            output[top + padding:bottom - padding, left + padding:right - padding] = inp
+
+    # Save predictions
+    profile.update({
+        "driver": "GTiff",
+        "count": 1,
+        "dtype": "uint8",
+        "compress": "lzw",
+        "nodata": 0,
+        "blockxsize": 512,
+        "blockysize": 512,
+        "tiled": True,
+        "interleave": "pixel"
+    })
+
+    with rasterio.open(output_fn, "w", **profile) as f:
+        f.write(output, 1)
+        f.write_colormap(1, {1: (255, 0, 0)})
+        f.colorinterp = [ColorInterp.palette]
+
+    print(f"Finished inference and saved output to {output_fn} in {time.time() - tic:.2f}s")
+
+    if polygonize:
+        print("Polygonizing output")
+        output_gpkg_fn = output_fn.replace(".tif", ".gpkg")
+        if os.path.exists(output_gpkg_fn) and not overwrite:
+            # TODO: move logic up so we don't do a lot of work then find out we don't want to overwrite
+            print(f"Output file {output_gpkg_fn} already exists. Use --overwrite to overwrite.")
+            return
+        elif os.path.exists(output_gpkg_fn) and overwrite:
+            os.remove(output_gpkg_fn)  # GPKGs are sometimes weird about overwriting in-place
+
+        tic = time.time()
+        rows = []
+        i = 0
+        mask = (output==1).astype(np.uint8)
+
+        input_height, input_width = mask.shape
+        polygonization_stride = 2048
+        total_iterations = (input_height // polygonization_stride) * (input_width // polygonization_stride)
+        with tqdm(total=total_iterations, desc="Processing mask windows") as pbar:
+            for y in range(0, input_height, polygonization_stride):
+                for x in range(0, input_width, polygonization_stride):
+                    new_transform = transform * Affine.translation(x, y)
+                    mask_window = mask[y:y+polygonization_stride, x:x+polygonization_stride]
+                    for geom, val in rasterio.features.shapes(mask_window, transform=new_transform):
+                        if val == 1:
+
+                            if simplify is not None:
+                                geom = shapely.geometry.shape(geom)
+                                geom = geom.simplify(simplify)
+                                geom = shapely.geometry.mapping(geom)
+
+                            rows.append({
+                                "geometry": geom,
+                                "properties": {
+                                    "idx": i
+                                }
+                            })
+                            i += 1
+                    pbar.update(1)
+
+        schema = {
+            "geometry": "Polygon",
+            "properties": {"idx": "int"}
+        }
+        with fiona.open(output_fn.replace(".tif", ".gpkg"), "w", driver="GPKG", crs=crs, schema=schema) as f:
+            f.writerecords(rows)
+
+        print(f"Finished polygonizing output in {time.time() - tic:.2f}s")
 
 
 
