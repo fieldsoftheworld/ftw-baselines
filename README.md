@@ -100,9 +100,9 @@ Options:
   --help  Show this message and exit.
 
 Commands:
-  download  Download the FTW dataset.
-  model     Model-related commands.
-  unpack    Unpack the downloaded FTW dataset.
+  data       Downloading, unpacking, and preparing the FTW dataset.
+  inference  Running inference on satellite images plus data prep.
+  model      Training and testing FTW models.
 ```
 
 ## Dataset setup
@@ -110,8 +110,8 @@ Commands:
 Download the dataset using the `FTW Cli`, `root_folder` defaults to `./data` and `clean_download` is to freshly download the entire dataset(deletes default local folder):
 
 ```bash
-ftw download --help
-Usage: ftw download [OPTIONS]
+ftw data download --help
+Usage: ftw data download [OPTIONS]
 
   Download the FTW dataset.
 
@@ -128,8 +128,8 @@ Options:
 Unpack the dataset using the `unpack.py` script, this will create a `ftw` folder under the `data` after unpacking.
 
 ```bash
-ftw unpack --help
-    Usage: ftw unpack [OPTIONS]
+ftw data unpack --help
+    Usage: ftw data unpack [OPTIONS]
 
   Unpack the downloaded FTW dataset.
 
@@ -143,15 +143,15 @@ Options:
 To download and unpack the complete dataset use following commands:
 
 ```bash
-ftw download 
-ftw unpack
+ftw data download 
+ftw data unpack
 ```
 
 To download and unpack the specific set of countries use following commands:
 
 ```bash
-ftw download --countries belgium,kenya,vietnam
-ftw unpack
+ftw data download --countries belgium,kenya,vietnam
+ftw data unpack
 ```
 
 *Note:* Make sure to avoid adding any space in between the list of comma seperated countries.
@@ -236,7 +236,6 @@ Options:
 
 Commands:
   fit        Fit the model
-  inference  Run inference on a satellite image
   test       Test the model
 ```
 
@@ -274,7 +273,7 @@ If training has been interrupted or if you wish to fine-tune a pre-trained model
 ftw model fit --config configs/example_config.yaml --ckpt_path <Checkpoint File Path>
 ```
 
-### VIsuaizing training process
+### Visualizing the training process
 
 Tensorboard is used to log the training and validation steps. The logs are situated in folders specified in the `config.yaml` files. Search for this line in the configuration. 
 
@@ -359,10 +358,49 @@ The script will distribute the experiments across the specified GPUs using a que
 
 ## Inference
 
-We provide two scripts that allow users to run models that have been pre-trained on FTW on any temporal pair of S2 images. First, you need a trained model - either download a pre-trained model (we provide an example pre-trained model in the [Releases](https://github.com/fieldsoftheworld/ftw-baselines/releases) list), or train your own model as explained in the [Training](#training) section. Second, you need to concatenate the bands of two aligned Sentinel-2 scenes that show your area of interest in two seasons (e.g. planting and harvesting seasons) in the following order: B04_t1, BO3_t1, BO2_t1, B08_t1, B04_t2, BO3_t2, BO2_t2, B08_t2 (t1 and t2 represent two different points in time). The `download_imagery.py` script does this automatically given two STAC items. The Microsoft [Planetary Computer Explorer](https://planetarycomputer.microsoft.com/explore?d=sentinel-2-l2a) is a convenient tool for finding relevant scenes and their corresponding STAC items. Finally, `ftw model inference` is a script that will run a given model on overlapping patches of input imagery (i.e. the output of `download_imagery.py`) and stitch the results together in GeoTIFF format.
+We provide the `inference` cli commands to allow users to run models that have been pre-trained on FTW on any temporal pair of S2 images. 
 
 ```bash
-ftw model inference --help
+ftw inference --help
+
+Usage: ftw inference [OPTIONS] COMMAND [ARGS]...
+
+  Inference-related commands.
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  download    Download 2 Sentinel-2 scenes & stack them in a single file...
+  polygonize  Polygonize the output from inference
+  run         Run inference on the stacked satellite images
+```
+
+First, you need a trained model - either download a pre-trained model (we provide an example pre-trained model in the [Releases](https://github.com/fieldsoftheworld/ftw-baselines/releases) list), or train your own model as explained in the [Training](#training) section. 
+
+Second, you need to concatenate the bands of two aligned Sentinel-2 scenes that show your area of interest in two seasons (e.g. planting and harvesting seasons) in the following order: B04_t1, BO3_t1, BO2_t1, B08_t1, B04_t2, BO3_t2, BO2_t2, B08_t2 (t1 and t2 represent two different points in time). The `ftw inference download` command does this automatically given two STAC items. The Microsoft [Planetary Computer Explorer](https://planetarycomputer.microsoft.com/explore?d=sentinel-2-l2a) is a convenient tool for finding relevant scenes and their corresponding STAC items. 
+
+```
+ftw inference download --help
+
+Usage: ftw inference download [OPTIONS]
+
+  Download 2 Sentinel-2 scenes & stack them in a single file for inference.
+
+Options:
+  --win_a TEXT      Path to a Sentinel-2 STAC item for the window A image
+                    [required]
+  --win_b TEXT      Path to a Sentinel-2 STAC item for the window B image
+                    [required]
+  --output_fn TEXT  Filename to save results to  [required]
+  --overwrite       Overwrites the outputs if they exist
+  --help            Show this message and exit.
+```
+
+Then `ftw inference run` is the command that will run a given model on overlapping patches of input imagery (i.e. the output of `ftw inference download`) and stitch the results together in GeoTIFF format. 
+
+```bash
+ftw model inference run --help
 
 Usage: ftw model inference [OPTIONS]
 
@@ -384,7 +422,26 @@ Options:
   --help                   Show this message and exit.
 ```
 
-The following commands show these three steps for a pair of Sentinel-2 scenes over Austria:
+You can then use the `ftw inference polygonize` command to convert the output of the inference into a vector format (initially GeoPackage, GeoParquet/Fiboa coming soon).
+
+```
+ftw inference polygonize --help
+
+Usage: ftw inference polygonize [OPTIONS]
+
+  Polygonize the output from inference
+
+Options:
+  --input_fn PATH   Input raster file to polygonize.  [required]
+  --output_fn TEXT  Output filename for the polygonized data.  [required]
+  --simplify FLOAT  Simplification factor to use when polygonizing.
+  --overwrite       Overwrite outputs if they exist.
+  --help            Show this message and exit
+```
+
+Simplification factor is measured in the units of the coordinate reference system (CRS), and for Sentinel-2 this is meters, so a simplification factor of 15 or 20 is usually sufficient (and recommended, or the vector file will be as large as the raster file).
+
+The following commands show these four steps for a pair of Sentinel-2 scenes over Austria:
 
 - Download pretrained checkpoint from [Pretrained-Models](https://github.com/fieldsoftheworld/ftw-baselines/releases/tag/Pretrained-Models).
   - 3 Class
@@ -398,16 +455,21 @@ The following commands show these three steps for a pair of Sentinel-2 scenes ov
 
 - Download S2 Image scene.
   ```bash
-  python download_imagery.py --win_a "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729" --win_b "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923" --output_fn inference_imagery/austria_example.tif
+  ftw inference download --win_a "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729" --win_b "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923" --output_fn inference_imagery/austria_example.tif
   ```
 
 - Run inference on the entire scene.
   ```bash
-  ftw model inference --input_fn inference_imagery/austria_example.tif --model_fn 3_Class_FULL_FTW_Pretrained.ckpt --output_fn austria_example_output_full.tif --gpu 0 --overwrite --resize_factor 2
+  ftw inference run --input_fn inference_imagery/austria_example.tif --model_fn 3_Class_FULL_FTW_Pretrained.ckpt --output_fn austria_example_output_full.tif --gpu 0 --overwrite --resize_factor 2
   ```
 
 ### Sample Prediction Output (Austria Patch, Red - Fields)
 ![Sample Prediction Output](/assets/austria_prediction.png)
+
+- Polygonize the output.
+  ```bash
+  ftw inference polygonize --input_fn austria_example_output_full.tif --output_fn austria_example_output_full.gpkg --simplify 20
+  ```
 
 ### CC-BY(or equivalent) trained models
 
