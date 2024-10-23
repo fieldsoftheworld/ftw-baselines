@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ftw"
-version = "0.3"
+version = "0.4"
 description = "Fields of The World (FTW) - Codebase"
 authors = [
     { name = "Your Name", email = "your.email@example.com" }
