@@ -220,9 +220,10 @@ def run(input_fn, model_fn, output_fn, resize_factor, gpu, patch_size, batch_siz
 @inference.command(name="polygonize", help="Polygonize the output from inference")
 @click.option('--input_fn', type=click.Path(exists=True), required=True, help="Input raster file to polygonize.")
 @click.option('--output_fn', type=str, required=True, help="Output filename for the polygonized data.")
-@click.option('--simplify', type=float, default=None, help="Simplification factor to use when polygonizing.")
+@click.option('--simplify', type=float, default=15, help="Simplification factor to use when polygonizing.")
+@click.option('--min_size', type=float, default=500, help="Minimum area size in square meters to include in the output.")
 @click.option('--overwrite', is_flag=True, help="Overwrite outputs if they exist.")
-def polygonize(input_fn, output_fn, simplify, overwrite):
+def polygonize(input_fn, output_fn, simplify, min_size, overwrite):
     """Polygonize the output from inference."""
 
     print(f"Polygonizing input file: {input_fn}")
@@ -243,13 +244,15 @@ def polygonize(input_fn, output_fn, simplify, overwrite):
     # read the input file as a mask
     with rasterio.open(input_fn) as src:
         input_height, input_width = src.shape
-        crs = src.crs.to_string()
-        profile = src.profile
-        transform = profile["transform"]
+        original_crs = src.crs.to_string()
+        transform = src.transform 
         mask = (src.read(1) == 1).astype(np.uint8)
-        #input_height, input_width = mask.shape
         polygonization_stride = 2048
         total_iterations = (input_height // polygonization_stride) * (input_width // polygonization_stride)
+        
+        # Define the equal-area projection using EPSG:6933
+        equal_area_crs = CRS.from_epsg(6933)
+
         with tqdm(total=total_iterations, desc="Processing mask windows") as pbar:
             for y in range(0, input_height, polygonization_stride):
                 for x in range(0, input_width, polygonization_stride):
@@ -257,26 +260,36 @@ def polygonize(input_fn, output_fn, simplify, overwrite):
                     mask_window = mask[y:y+polygonization_stride, x:x+polygonization_stride]
                     for geom, val in rasterio.features.shapes(mask_window, transform=new_transform):
                         if val == 1:
-
+                            geom = shapely.geometry.shape(geom)
                             if simplify is not None:
-                                geom = shapely.geometry.shape(geom)
                                 geom = geom.simplify(simplify)
+                            
+                            # Convert the geometry to a GeoJSON-like format for transformation
+                            geom_geojson = shapely.geometry.mapping(geom)
+                            
+                            # Reproject the geometry to the equal-area projection for accurate area calculation
+                            geom_area_proj = fiona.transform.transform_geom(original_crs, equal_area_crs, geom_geojson)
+                            geom_area_proj = shapely.geometry.shape(geom_area_proj)
+                            area = geom_area_proj.area  # Calculate the area of the reprojected geometry
+                            
+                            # Only include geometries that meet the minimum size requirement
+                            if area >= min_size:
+                                # Keep the geometry in the original projection for output
                                 geom = shapely.geometry.mapping(geom)
 
-                            rows.append({
-                                "geometry": geom,
-                                "properties": {
-                                    "idx": i
-                                }
-                            })
-                            i += 1
+                                rows.append({
+                                    "geometry": geom,
+                                    "properties": {
+                                        "idx": i,
+                                        "area": area  # Add the area to the properties
+                                    }
+                                })
+                                i += 1
                     pbar.update(1)
 
-    schema = {
-        "geometry": "Polygon",
-        "properties": {"idx": "int"}
-    }
-    with fiona.open(output_fn.replace(".tif", ".gpkg"), "w", driver="GPKG", crs=crs, schema=schema) as f:
-        f.writerecords(rows)
+    schema = {'geometry': 'Polygon', 'properties': {'idx': 'int', 'area': 'float'}}
+    with fiona.open(output_fn, 'w', 'GPKG', schema=schema, crs=original_crs) as dst:
+        for row in rows:
+            dst.write(row)
 
     print(f"Finished polygonizing output at {output_fn} in {time.time() - tic:.2f}s")
