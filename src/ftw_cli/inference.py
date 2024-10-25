@@ -28,14 +28,32 @@ from ftw.datasets import SingleRasterDataset
 from ftw.trainers import CustomSemanticSegmentationTask
 
 
+MSPC_URL = "https://planetarycomputer.microsoft.com/api/stac/v1"
+COLLECTION_ID = "sentinel-2-l2a"
+
 @click.group()
 def inference():
     """Inference-related commands."""
     pass
 
+def get_item(id):
+    if "/" not in id:
+        uri = MSPC_URL + "/collections/" + COLLECTION_ID + "/items/" + id
+    else:
+        uri = id
+    
+    item = pystac.Item.from_file(uri)
+
+    if uri.startswith(MSPC_URL):
+        item = pc.sign(item)
+
+    return item
+
+WIN_HELP = "URL to or Microsoft Planetary Computer ID of an Sentinel-2 L2A STAC item for the window {x} image"
+
 @inference.command(name="download", help="Download 2 Sentinel-2 scenes & stack them in a single file for inference.")
-@click.option('--win_a', type=str, required=True, help="Path to a Sentinel-2 STAC item for the window A image")
-@click.option('--win_b', type=str, required=True, help="Path to a Sentinel-2 STAC item for the window B image")
+@click.option('--win_a', type=str, required=True, help=WIN_HELP.format(x="A"))
+@click.option('--win_b', type=str, required=True, help=WIN_HELP.format(x="B"))
 @click.option('--output_fn', type=str, required=True, help="Filename to save results to")
 @click.option('--overwrite', is_flag=True, help="Overwrites the outputs if they exist")
 def create_input(win_a, win_b, output_fn, overwrite):
@@ -49,8 +67,8 @@ def create_input(win_a, win_b, output_fn, overwrite):
 
     BANDS_OF_INTEREST = ["B04", "B03", "B02", "B08"]
 
-    item_win_a = pc.sign(pystac.Item.from_file(win_a))
-    item_win_b = pc.sign(pystac.Item.from_file(win_b))
+    item_win_a = get_item(win_a)
+    item_win_b = get_item(win_b)
 
     # TODO: Check that items are spatially aligned, or implement a way to only download the intersection
 
