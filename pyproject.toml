@@ -12,26 +12,23 @@ authors = [
 dependencies = [
     "click",                   # For CLI functionality
     "tqdm",                    # For progress bars
-    "requests",                # For downloading resources
     "geopandas",               # For geospatial data handling
     "rasterio",                # For raster data
     "numpy",                   # For numerical computation
-    "pandas",                  # For data manipulation
     "matplotlib",              # For plotting
-    "seaborn",                 # For statistical data visualization
-    "scikit-learn",            # For machine learning
     "torch",                   # For deep learning
     "torchvision",             # For vision-related tasks in PyTorch
     "pytorch-lightning",       # For high-level PyTorch training loops
     "PyYAML",                  # For parsing YAML config files
-    "flask",                   # For web development (if necessary)
     "wget",                    # For file downloads
-    "cloudpickle",             # For object serialization
-    "docker-py",               # For Docker integration
-    "alembic",                 # For database migrations
-    "azure-storage-blob",      # For Azure storage
-    "cryptography",            # For encryption and security
-    "pyarrow"                  # For in-memory data processing
+    "odc-stac",                # For handling STAC data via Open Data Cube
+    "planetary-computer",      # For accessing Planetary Computer STAC data
+    "pystac",                  # For reading STAC
+    "rioxarray",               # For raster data handling
+    "scipy",                   # For scientific computing
+    "tensorboard",             # For PyTorch logging
+    "torchgeo==0.5.2",         # For geospatial deep learning
+    "fiona",                   # For reading/writing vector data
 ]
 
 [project.optional-dependencies]

@@ -10,7 +10,8 @@ This repository provides the codebase for working with the [FTW dataset](https:/
   - [Table of Contents](#table-of-contents)
   - [Folder structure](#folder-structure)
   - [System setup](#system-setup)
-    - [Create Conda/Mamba environment](#create-condamamba-environment)
+    - [(Ana)conda](#anaconda)
+    - [Mamba](#mamba)
     - [Verify PyTorch installation and CUDA availability](#verify-pytorch-installation-and-cuda-availability)
     - [Setup FTW CLI](#setup-ftw-cli)
   - [Dataset setup](#dataset-setup)
@@ -21,12 +22,13 @@ This repository provides the codebase for working with the [FTW dataset](https:/
   - [Training](#training)
     - [To train a model from scratch:](#to-train-a-model-from-scratch)
     - [To resume training from a checkpoint:](#to-resume-training-from-a-checkpoint)
-    - [Visualizing the training process](#visuaizing-training-process)
+    - [Visualizing the training process](#visualizing-the-training-process)
   - [Testing](#testing)
     - [To test a model:](#to-test-a-model)
   - [Parallel experimentation](#parallel-experimentation)
     - [To run experiments in parallel:](#to-run-experiments-in-parallel)
   - [Inference](#inference)
+    - [Sample Prediction Output (Austria Patch, Red - Fields)](#sample-prediction-output-austria-patch-red---fields)
     - [CC-BY(or equivalent) trained models](#cc-byor-equivalent-trained-models)
   - [Notes](#notes)
   - [Upcoming features](#upcoming-features)
@@ -68,8 +70,19 @@ Fields-of-The-World
 
 ## System setup
 
-### Create Conda/Mamba environment
-To set up the environment using the provided `env.yml` file:
+You need to install Python 3.9 or later and GDAL with libgdal-arrow-parquet.
+
+As a simple way to install the required software you can use Anaconda/Mamba.
+Set up the environment using the provided `env.yml` file:
+
+### (Ana)conda
+
+```bash
+conda env create -f env.yml
+conda activate ftw
+```
+
+### Mamba
 
 ```bash
 mamba env create -f env.yml
