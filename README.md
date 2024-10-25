@@ -314,7 +314,7 @@ Usage: ftw model test [OPTIONS] [CLI_ARGS]...
   Test the model
 
 Options:
-  --checkpoint TEXT           Path to model checkpoint  [required]
+  -m, --model TEXT            Path to model checkpoint  [required]
   --root_dir TEXT             Root directory of dataset
   --gpu INTEGER               GPU to use
   --countries TEXT            Countries to evaluate on  [required]
@@ -336,7 +336,7 @@ Options:
 Using FTW cli commands to test the model, you can pass specific options, such as selecting the GPUs, providing checkpoints, specifying countries for testing, and postprocessing results:
 
 ```bash
-ftw model test --gpu 0 --root_dir /path/to/dataset --checkpoint logs/path_to_model/checkpoints/last.ckpt --countries country_to_test_on --output results.csv
+ftw model test --gpu 0 --root_dir /path/to/dataset --model logs/path_to_model/checkpoints/last.ckpt --countries country_to_test_on --output results.csv
 ```
 
 This will output test results into `results.csv` after running on the selected GPUs and processing the specified countries.

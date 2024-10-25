@@ -19,7 +19,7 @@ if __name__ == "__main__":
             command = [
                 "ftw model test",
                 "--gpu", "0",
-                "--checkpoint", checkpoint,
+                "--model", checkpoint,
                 "--output", "results/experiments-2-1.csv",
                 "--countries", country,
                 "--model_predicts_3_classes", "True"

@@ -54,7 +54,7 @@ if __name__ == "__main__":
             command = [
                 "ftw model test",
                 "--gpu", "0",
-                "--checkpoint", checkpoint,
+                "--model", checkpoint,
                 "--output", "with_prp_all_results_train_all_contries_3_class.csv",
                 "--countries", country,
                 "--model_predicts_3_classes", "True",

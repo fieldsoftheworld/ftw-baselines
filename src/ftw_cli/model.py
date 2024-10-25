@@ -87,7 +87,7 @@ def fit(config, ckpt_path, cli_args):
 
 # Define the 'test' command under 'model'
 @click.command(help="Test the model")
-@click.option('--checkpoint', required=True, type=str, help='Path to model checkpoint')
+@click.option('--model', '-m', required=True, type=str, help='Path to model checkpoint')
 @click.option('--root_dir', type=str, default="data/ftw", help='Root directory of dataset')
 @click.option('--gpu', type=int, default=0, help='GPU to use')
 @click.option('--countries', type=str, multiple=True, required=True, help='Countries to evaluate on')
