@@ -1,9 +1,11 @@
+import multiprocessing
 import os
 import shutil
 import zipfile
-import multiprocessing
-from tqdm import tqdm
+
 import click
+from tqdm import tqdm
+
 
 @click.group()
 def ftw():

@@ -1,20 +1,18 @@
 """FTW dataset."""
 
 import os
+import random
+from pathlib import Path
+from typing import Any, Callable, Optional, Sequence, Union
 
-from typing import Any, Callable, Optional, Union, Sequence
-
+import geopandas as gpd
 import matplotlib.pyplot as plt
 import numpy as np
 import rasterio
 import torch
 from matplotlib.figure import Figure
 from torch import Tensor
-from pathlib import Path
-from torchgeo.datasets import NonGeoDataset
-import geopandas as gpd
-import random
-from torchgeo.datasets import RasterDataset
+from torchgeo.datasets import NonGeoDataset, RasterDataset
 
 from .utils import validate_checksums
 

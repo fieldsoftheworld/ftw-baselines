@@ -4,10 +4,10 @@ from typing import Any, Optional
 
 import kornia.augmentation as K
 import torch
+from matplotlib.figure import Figure
 from torch.utils.data import Subset
 from torchgeo.datamodules import NonGeoDataModule
 from torchgeo.transforms import AugmentationSequential
-from matplotlib.figure import Figure
 
 from .datasets import FTW
 
