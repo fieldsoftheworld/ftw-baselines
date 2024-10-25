@@ -46,7 +46,7 @@ def model():
 
 # Define the 'fit' command under 'model'
 @click.command(help="Fit the model")
-@click.option('--config', required=True, type=click.Path(exists=True), help='Path to the config file (required)')
+@click.option('--config', '-c', required=True, type=click.Path(exists=True), help='Path to the config file (required)')
 @click.option('--ckpt_path', type=click.Path(exists=True), help='Path to a checkpoint file to resume training from')
 @click.argument('cli_args', nargs=-1, type=click.UNPROCESSED)  # Capture all remaining arguments
 def fit(config, ckpt_path, cli_args):

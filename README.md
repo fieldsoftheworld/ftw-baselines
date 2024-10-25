@@ -259,9 +259,9 @@ Usage: ftw model fit [OPTIONS] [CLI_ARGS]...
   Fit the model
 
 Options:
-  --config PATH     Path to the config file (required)  [required]
-  --ckpt_path PATH  Path to a checkpoint file to resume training from
-  --help            Show this message and exit.
+  -c, --config PATH  Path to the config file (required)  [required]
+  --ckpt_path PATH   Path to a checkpoint file to resume training from
+  --help             Show this message and exit.
 ```
 
 You can train your model using a configuration file as follows:
