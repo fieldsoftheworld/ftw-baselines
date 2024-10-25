@@ -48,7 +48,7 @@ if __name__ == "__main__":
                 "ftw model test",
                 "--gpu", "7",
                 "--model", checkpoint,
-                "--output", "results/experiments-1-2.csv",
+                "--out", "results/experiments-1-2.csv",
                 "--countries", country,
                 "--model_predicts_3_classes", "True"
             ]

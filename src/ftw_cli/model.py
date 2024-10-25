@@ -88,17 +88,17 @@ def fit(config, ckpt_path, cli_args):
 # Define the 'test' command under 'model'
 @click.command(help="Test the model")
 @click.option('--model', '-m', required=True, type=str, help='Path to model checkpoint')
-@click.option('--root_dir', type=str, default="data/ftw", help='Root directory of dataset')
+@click.option('--dir', type=str, default="data/ftw", help='Directory of dataset')
 @click.option('--gpu', type=int, default=0, help='GPU to use')
 @click.option('--countries', type=str, multiple=True, required=True, help='Countries to evaluate on')
 @click.option('--postprocess', is_flag=True, help='Apply postprocessing to the model output')
 @click.option('--iou_threshold', type=float, default=0.5, help='IoU threshold for matching predictions to ground truths')
-@click.option('--output', '-o', type=str, default="metrics.json", help='Output file for metrics')
+@click.option('--out', '-o', type=str, default="metrics.json", help='Output file for metrics')
 @click.option('--model_predicts_3_classes', is_flag=True, help='Whether the model predicts 3 classes or 2 classes')
 @click.option('--test_on_3_classes', is_flag=True, help='Whether to test on 3 classes or 2 classes')
 @click.option('--temporal_options', type=str, default="stacked", help='Temporal option (stacked, windowA, windowB, etc.)')
 @click.argument('cli_args', nargs=-1, type=click.UNPROCESSED)  # Capture all remaining arguments
-def test(checkpoint, root_dir, gpu, countries, postprocess, iou_threshold, output, model_predicts_3_classes, test_on_3_classes, temporal_options, cli_args):
+def test(model, dir, gpu, countries, postprocess, iou_threshold, out, model_predicts_3_classes, test_on_3_classes, temporal_options, cli_args):
     """Command to test the model."""
     print("Running test command")
 
@@ -110,7 +110,7 @@ def test(checkpoint, root_dir, gpu, countries, postprocess, iou_threshold, outpu
 
     print("Loading model")
     tic = time.time()
-    trainer = CustomSemanticSegmentationTask.load_from_checkpoint(checkpoint, map_location="cpu")
+    trainer = CustomSemanticSegmentationTask.load_from_checkpoint(model, map_location="cpu")
     model = trainer.model.eval().to(device)
     print(f"Model loaded in {time.time() - tic:.2f}s")
 
@@ -118,7 +118,7 @@ def test(checkpoint, root_dir, gpu, countries, postprocess, iou_threshold, outpu
     tic = time.time()
 
     ds = FTW(
-        root=root_dir,
+        root=dir,
         countries=countries,
         split="test",
         transforms=preprocess,
@@ -167,12 +167,12 @@ def test(checkpoint, root_dir, gpu, countries, postprocess, iou_threshold, outpu
         masks = masks.cpu().numpy().astype(np.uint8)
 
         for i in range(len(outputs)):
-            output = outputs[i]
+            out = outputs[i]
             mask = masks[i]
             if postprocess:
-                post_processed_output = output.copy()
-                output = post_processed_output
-            tps, fps, fns = get_object_level_metrics(mask, output, iou_threshold=iou_threshold)
+                post_processed_output = out.copy()
+                out = post_processed_output
+            tps, fps, fns = get_object_level_metrics(mask, out, iou_threshold=iou_threshold)
             all_tps += tps
             all_fps += fps
             all_fns += fns
@@ -198,12 +198,12 @@ def test(checkpoint, root_dir, gpu, countries, postprocess, iou_threshold, outpu
     print(f"Object level precision: {object_precision:.4f}")
     print(f"Object level recall: {object_recall:.4f}")
 
-    if output is not None:
-        if not os.path.exists(output):
-            with open(output, "w") as f:
+    if out is not None:
+        if not os.path.exists(out):
+            with open(out, "w") as f:
                 f.write("train_checkpoint,test_countries,pixel_level_iou,pixel_level_precision,pixel_level_recall,object_level_precision,object_level_recall\n")
-        with open(output, "a") as f:
-            f.write(f"{checkpoint},{countries},{pixel_level_iou},{pixel_level_precision},{pixel_level_recall},{object_precision},{object_recall}\n")
+        with open(out, "a") as f:
+            f.write(f"{model},{countries},{pixel_level_iou},{pixel_level_precision},{pixel_level_recall},{object_precision},{object_recall}\n")
 
 
 # Add 'fit' and 'test' commands under the 'model' group

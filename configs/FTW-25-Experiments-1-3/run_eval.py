@@ -55,7 +55,7 @@ if __name__ == "__main__":
                 "ftw model test",
                 "--gpu", "0",
                 "--model", checkpoint,
-                "--output", "with_prp_all_results_train_all_contries_3_class.csv",
+                "--out", "with_prp_all_results_train_all_contries_3_class.csv",
                 "--countries", country,
                 "--model_predicts_3_classes", "True",
                 "--temporal_options", str(temporal_op),

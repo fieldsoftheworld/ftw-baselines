@@ -111,7 +111,8 @@ Commands:
 
 ## Dataset setup
 
-Download the dataset using the `FTW Cli`, `root_folder` defaults to `./data` and `clean_download` is to freshly download the entire dataset(deletes default local folder):
+Download the dataset using the `FTW Cli`.
+`--out` defaults to `./data` and `--clean_download` is to freshly download the entire dataset (deletes local folder).
 
 ```
 ftw data download --help
@@ -120,27 +121,26 @@ Usage: ftw data download [OPTIONS]
   Download the FTW dataset.
 
 Options:
+  -o, --out TEXT        Folder where the files will be downloaded to. Defaults
+                        to './data'.
   -f, --clean_download  If set, the script will delete the root folder before
                         downloading.
-  --root_folder TEXT    Root folder where the files will be downloaded.
-                        Defaults to './data'.
   --countries TEXT      Comma-separated list of countries to download. If
-                        'all' is passed, downloads all available countries.
+                        'all' (default) is passed, downloads all available
+                        countries.
   --help                Show this message and exit.
 ```
 
-Unpack the dataset using the `unpack.py` script, this will create a `ftw` folder under the `data` after unpacking.
+Unpack the dataset using the `unpack` command, this will create a `ftw` folder under the `data` after unpacking.
 
 ```
-ftw data unpack --help
-    Usage: ftw data unpack [OPTIONS]
+Usage: ftw data unpack [OPTIONS] [INPUT]
 
-  Unpack the downloaded FTW dataset.
+  Unpack the downloaded FTW dataset. Specify the folder where the data is
+  located via INPUT. Defaults to './data'.
 
 Options:
-  --root_folder TEXT  Root folder where the .zip files are located. Defaults
-                      to './data'.
-  --help              Show this message and exit.
+  --help  Show this message and exit.
 ```
 
 ### Examples
@@ -321,7 +321,7 @@ Options:
   --postprocess               Apply postprocessing to the model output
   --iou_threshold FLOAT       IoU threshold for matching predictions to ground
                               truths
- -o, --output TEXT            Output file for metrics
+ -o, --out TEXT               Output file for metrics
   --model_predicts_3_classes  Whether the model predicts 3 classes or 2
                               classes
   --test_on_3_classes         Whether to test on 3 classes or 2 classes
@@ -336,7 +336,7 @@ Options:
 Using FTW cli commands to test the model, you can pass specific options, such as selecting the GPUs, providing checkpoints, specifying countries for testing, and postprocessing results:
 
 ```bash
-ftw model test --gpu 0 --root_dir /path/to/dataset --model logs/path_to_model/checkpoints/last.ckpt --countries country_to_test_on --output results.csv
+ftw model test --gpu 0 --root_dir /path/to/dataset --model logs/path_to_model/checkpoints/last.ckpt --countries country_to_test_on --out results.csv
 ```
 
 This will output test results into `results.csv` after running on the selected GPUs and processing the specified countries.
@@ -397,7 +397,7 @@ Options:
                      [required]
   --win_b TEXT       Path to a Sentinel-2 STAC item for the window B image
                      [required]
-  -o, --output TEXT  Filename to save results to  [required]
+  -o, --out TEXT     Filename to save results to  [required]
   -f, --overwrite    Overwrites the outputs if they exist
   --help             Show this message and exit.
 ```
@@ -414,7 +414,7 @@ Usage: ftw inference run [OPTIONS] INPUT
 
 Options:
   -m, --model PATH         Path to the model checkpoint.  [required]
-  -o, --output TEXT        Output filename.  [required]
+  -o, --out TEXT           Output filename.  [required]
   --resize_factor INTEGER  Resize factor to use for inference.
   --gpu INTEGER            GPU ID to use. If not provided, CPU will be used by
                            default.
@@ -436,7 +436,7 @@ Usage: ftw inference polygonize [OPTIONS] INPUT
   Polygonize the output from inference for the raster image given via INPUT.
 
 Options:
-  -o, --output TEXT  Output filename for the polygonized data.  [required]
+  -o, --out TEXT     Output filename for the polygonized data.  [required]
   --simplify FLOAT   Simplification factor to use when polygonizing.
   -f, --overwrite    Overwrite outputs if they exist.
   --help             Show this message and exit.
@@ -458,12 +458,12 @@ The following commands show these four steps for a pair of Sentinel-2 scenes ove
 
 - Download S2 Image scene.
   ```bash
-  ftw inference download --win_a "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729" --win_b "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923" --output inference_imagery/austria_example.tif
+  ftw inference download --win_a "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729" --win_b "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923" --out inference_imagery/austria_example.tif
   ```
 
 - Run inference on the entire scene.
   ```bash
-  ftw inference run inference_imagery/austria_example.tif --model 3_Class_FULL_FTW_Pretrained.ckpt --output austria_example_output_full.tif --gpu 0 --overwrite --resize_factor 2
+  ftw inference run inference_imagery/austria_example.tif --model 3_Class_FULL_FTW_Pretrained.ckpt --out austria_example_output_full.tif --gpu 0 --overwrite --resize_factor 2
   ```
 
 ### Sample Prediction Output (Austria Patch, Red - Fields)
@@ -472,7 +472,7 @@ The following commands show these four steps for a pair of Sentinel-2 scenes ove
 
 - Polygonize the output.
   ```bash
-  ftw inference polygonize austria_example_output_full.tif --output austria_example_output_full.gpkg --simplify 20
+  ftw inference polygonize austria_example_output_full.tif --out austria_example_output_full.gpkg --simplify 20
   ```
 
 ### CC-BY(or equivalent) trained models

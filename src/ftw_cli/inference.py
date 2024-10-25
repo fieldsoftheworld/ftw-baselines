@@ -36,16 +36,16 @@ def inference():
 @inference.command(name="download", help="Download 2 Sentinel-2 scenes & stack them in a single file for inference.")
 @click.option('--win_a', type=str, required=True, help="Path to a Sentinel-2 STAC item for the window A image")
 @click.option('--win_b', type=str, required=True, help="Path to a Sentinel-2 STAC item for the window B image")
-@click.option('--output', '-o', type=str, required=True, help="Filename to save results to")
+@click.option('--out', '-o', type=str, required=True, help="Filename to save results to")
 @click.option('--overwrite', '-f', is_flag=True, help="Overwrites the outputs if they exist")
-def create_input(win_a, win_b, output, overwrite):
+def create_input(win_a, win_b, out, overwrite):
     """Main function for creating input for inference."""
-    if os.path.exists(output) and not overwrite:
+    if os.path.exists(out) and not overwrite:
         print("Output file already exists, use -f to overwrite them. Exiting.")
         return
 
     # Ensure that the base directory exists
-    os.makedirs(os.path.dirname(output), exist_ok=True)
+    os.makedirs(os.path.dirname(out), exist_ok=True)
 
     BANDS_OF_INTEREST = ["B04", "B03", "B02", "B08"]
 
@@ -113,14 +113,14 @@ def create_input(win_a, win_b, output, overwrite):
         profile["blockysize"] = 256
         profile["BIGTIFF"] = "YES"
 
-        with rasterio.open(output, "w", **profile) as f:
+        with rasterio.open(out, "w", **profile) as f:
             f.write(data)
         print(f"Finished merging and writing output in {time.time()-tic:0.2f} seconds")
 
 @inference.command(name="run", help="Run inference on the stacked Sentinel-2 L2A satellite images specified via INPUT.")
 @click.argument('input', type=click.Path(exists=True), required=True)
 @click.option('--model', '-m', type=click.Path(exists=True), required=True, help="Path to the model checkpoint.")
-@click.option('--output', '-o', type=str, required=True, help="Output filename.")
+@click.option('--out', '-o', type=str, required=True, help="Output filename.")
 @click.option('--resize_factor', type=int, default=2, help="Resize factor to use for inference.")
 @click.option('--gpu', type=int, help="GPU ID to use. If not provided, CPU will be used by default.")
 @click.option('--patch_size', type=int, default=1024, help="Size of patch to use for inference.")
@@ -128,7 +128,7 @@ def create_input(win_a, win_b, output, overwrite):
 @click.option('--padding', type=int, default=64, help="Pixels to discard from each side of the patch.")
 @click.option('--overwrite', '-f', is_flag=True, help="Overwrite outputs if they exist.")
 @click.option('--mps_mode', is_flag=True, help="Run inference in MPS mode (Apple GPUs).")
-def run(input, model, output, resize_factor, gpu, patch_size, batch_size, padding, overwrite, mps_mode):
+def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, overwrite, mps_mode):
     # Sanity checks
     assert os.path.exists(model), f"Model file {model} does not exist."
     assert model.endswith(".ckpt"), "Model file must be a .ckpt file."
@@ -138,8 +138,8 @@ def run(input, model, output, resize_factor, gpu, patch_size, batch_size, paddin
 
     stride = patch_size - padding * 2
 
-    if os.path.exists(output) and not overwrite:
-        print(f"Output file {output} already exists. Use -f to overwrite.")
+    if os.path.exists(out) and not overwrite:
+        print(f"Output file {out} already exists. Use -f to overwrite.")
         return
 
     # Determine the device: GPU, MPS, or CPU
@@ -175,7 +175,7 @@ def run(input, model, output, resize_factor, gpu, patch_size, batch_size, paddin
         profile = f.profile
         transform = profile["transform"]
 
-    output = np.zeros((input_height, input_width), dtype=np.uint8)
+    out = np.zeros((input_height, input_width), dtype=np.uint8)
     dl_enumerator = tqdm(dataloader)
 
     for batch in dl_enumerator:
@@ -193,10 +193,10 @@ def run(input, model, output, resize_factor, gpu, patch_size, batch_size, paddin
             left, top = ~transform * (bb.minx, bb.maxy)
             right, bottom = ~transform * (bb.maxx, bb.miny)
             left, right, top, bottom = int(np.round(left)), int(np.round(right)), int(np.round(top)), int(np.round(bottom))
-            destination_height, destination_width = output[top + padding:bottom - padding, left + padding:right - padding].shape
+            destination_height, destination_width = out[top + padding:bottom - padding, left + padding:right - padding].shape
 
             inp = predictions[i][padding:padding + destination_height, padding:padding + destination_width]
-            output[top + padding:bottom - padding, left + padding:right - padding] = inp
+            out[top + padding:bottom - padding, left + padding:right - padding] = inp
 
     # Save predictions
     profile.update({
@@ -211,19 +211,19 @@ def run(input, model, output, resize_factor, gpu, patch_size, batch_size, paddin
         "interleave": "pixel"
     })
 
-    with rasterio.open(output, "w", **profile) as f:
-        f.write(output, 1)
+    with rasterio.open(out, "w", **profile) as f:
+        f.write(out, 1)
         f.write_colormap(1, {1: (255, 0, 0)})
         f.colorinterp = [ColorInterp.palette]
 
-    print(f"Finished inference and saved output to {output} in {time.time() - tic:.2f}s")
+    print(f"Finished inference and saved output to {out} in {time.time() - tic:.2f}s")
 
 @inference.command(name="polygonize", help="Polygonize the output from inference for the raster image given via INPUT.")
 @click.argument('input', type=click.Path(exists=True), required=True)
-@click.option('--output', '-o', type=str, required=True, help="Output filename for the polygonized data.")
+@click.option('--out', '-o', type=str, required=True, help="Output filename for the polygonized data.")
 @click.option('--simplify', type=float, default=None, help="Simplification factor to use when polygonizing.")
 @click.option('--overwrite', '-f', is_flag=True, help="Overwrite outputs if they exist.")
-def polygonize(input, output, simplify, overwrite):
+def polygonize(input, out, simplify, overwrite):
     """Polygonize the output from inference."""
 
     print(f"Polygonizing input file: {input}")
@@ -232,11 +232,11 @@ def polygonize(input, output, simplify, overwrite):
     # if simplify is not None and simplify > 1:
     #    print("WARNING: You are passing a value of `simplify` greater than 1 for a geographic coordinate system. This is probably **not** what you want.")
 
-    if os.path.exists(output) and not overwrite:
-        print(f"Output file {output} already exists. Use -f to overwrite.")
+    if os.path.exists(out) and not overwrite:
+        print(f"Output file {out} already exists. Use -f to overwrite.")
         return
-    elif os.path.exists(output) and overwrite:
-        os.remove(output)  # GPKGs are sometimes weird about overwriting in-place
+    elif os.path.exists(out) and overwrite:
+        os.remove(out)  # GPKGs are sometimes weird about overwriting in-place
 
     tic = time.time()
     rows = []
@@ -277,7 +277,7 @@ def polygonize(input, output, simplify, overwrite):
         "geometry": "Polygon",
         "properties": {"idx": "int"}
     }
-    with fiona.open(output.replace(".tif", ".gpkg"), "w", driver="GPKG", crs=crs, schema=schema) as f:
+    with fiona.open(out.replace(".tif", ".gpkg"), "w", driver="GPKG", crs=crs, schema=schema) as f:
         f.writerecords(rows)
 
-    print(f"Finished polygonizing output at {output} in {time.time() - tic:.2f}s")
+    print(f"Finished polygonizing output at {out} in {time.time() - tic:.2f}s")
