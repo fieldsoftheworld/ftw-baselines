@@ -36,16 +36,16 @@ def inference():
 @inference.command(name="download", help="Download 2 Sentinel-2 scenes & stack them in a single file for inference.")
 @click.option('--win_a', type=str, required=True, help="Path to a Sentinel-2 STAC item for the window A image")
 @click.option('--win_b', type=str, required=True, help="Path to a Sentinel-2 STAC item for the window B image")
-@click.option('--output_fn', type=str, required=True, help="Filename to save results to")
-@click.option('--overwrite', is_flag=True, help="Overwrites the outputs if they exist")
-def create_input(win_a, win_b, output_fn, overwrite):
+@click.option('--output', '-o', type=str, required=True, help="Filename to save results to")
+@click.option('--overwrite', '-f', is_flag=True, help="Overwrites the outputs if they exist")
+def create_input(win_a, win_b, output, overwrite):
     """Main function for creating input for inference."""
-    if os.path.exists(output_fn) and not overwrite:
-        print("Output file already exists, use --overwrite to overwrite them. Exiting.")
+    if os.path.exists(output) and not overwrite:
+        print("Output file already exists, use -f to overwrite them. Exiting.")
         return
 
     # Ensure that the base directory exists
-    os.makedirs(os.path.dirname(output_fn), exist_ok=True)
+    os.makedirs(os.path.dirname(output), exist_ok=True)
 
     BANDS_OF_INTEREST = ["B04", "B03", "B02", "B08"]
 
@@ -113,33 +113,33 @@ def create_input(win_a, win_b, output_fn, overwrite):
         profile["blockysize"] = 256
         profile["BIGTIFF"] = "YES"
 
-        with rasterio.open(output_fn, "w", **profile) as f:
+        with rasterio.open(output, "w", **profile) as f:
             f.write(data)
         print(f"Finished merging and writing output in {time.time()-tic:0.2f} seconds")
 
-@inference.command(name="run", help="Run inference on the stacked satellite images")
-@click.option('--input_fn', type=click.Path(exists=True), required=True, help="Input raster file (Sentinel-2 L2A stack).")
-@click.option('--model_fn', type=click.Path(exists=True), required=True, help="Path to the model checkpoint.")
-@click.option('--output_fn', type=str, required=True, help="Output filename.")
+@inference.command(name="run", help="Run inference on the stacked Sentinel-2 L2A satellite images specified via INPUT.")
+@click.argument('input', type=click.Path(exists=True), required=True)
+@click.option('--model', '-m', type=click.Path(exists=True), required=True, help="Path to the model checkpoint.")
+@click.option('--output', '-o', type=str, required=True, help="Output filename.")
 @click.option('--resize_factor', type=int, default=2, help="Resize factor to use for inference.")
 @click.option('--gpu', type=int, help="GPU ID to use. If not provided, CPU will be used by default.")
 @click.option('--patch_size', type=int, default=1024, help="Size of patch to use for inference.")
 @click.option('--batch_size', type=int, default=2, help="Batch size.")
 @click.option('--padding', type=int, default=64, help="Pixels to discard from each side of the patch.")
-@click.option('--overwrite', is_flag=True, help="Overwrite outputs if they exist.")
+@click.option('--overwrite', '-f', is_flag=True, help="Overwrite outputs if they exist.")
 @click.option('--mps_mode', is_flag=True, help="Run inference in MPS mode (Apple GPUs).")
-def run(input_fn, model_fn, output_fn, resize_factor, gpu, patch_size, batch_size, padding, overwrite, mps_mode):
+def run(input, model, output, resize_factor, gpu, patch_size, batch_size, padding, overwrite, mps_mode):
     # Sanity checks
-    assert os.path.exists(model_fn), f"Model file {model_fn} does not exist."
-    assert model_fn.endswith(".ckpt"), "Model file must be a .ckpt file."
-    assert os.path.exists(input_fn), f"Input file {input_fn} does not exist."
-    assert input_fn.endswith(".tif") or input_fn.endswith(".vrt"), "Input file must be a .tif or .vrt file."
+    assert os.path.exists(model), f"Model file {model} does not exist."
+    assert model.endswith(".ckpt"), "Model file must be a .ckpt file."
+    assert os.path.exists(input), f"Input file {input} does not exist."
+    assert input.endswith(".tif") or input.endswith(".vrt"), "Input file must be a .tif or .vrt file."
     assert int(math.log(patch_size, 2)) == math.log(patch_size, 2), "Patch size must be a power of 2."
 
     stride = patch_size - padding * 2
 
-    if os.path.exists(output_fn) and not overwrite:
-        print(f"Output file {output_fn} already exists. Use --overwrite to overwrite.")
+    if os.path.exists(output) and not overwrite:
+        print(f"Output file {output} already exists. Use -f to overwrite.")
         return
 
     # Determine the device: GPU, MPS, or CPU
@@ -154,7 +154,7 @@ def run(input_fn, model_fn, output_fn, resize_factor, gpu, patch_size, batch_siz
 
     # Load task and data
     tic = time.time()
-    task = CustomSemanticSegmentationTask.load_from_checkpoint(model_fn, map_location="cpu")
+    task = CustomSemanticSegmentationTask.load_from_checkpoint(model, map_location="cpu")
     task.freeze()
     model = task.model.eval().to(device)
 
@@ -165,12 +165,12 @@ def run(input_fn, model_fn, output_fn, resize_factor, gpu, patch_size, batch_siz
         up_sample = K.Resize((patch_size * resize_factor, patch_size * resize_factor)).to(device)
         down_sample = K.Resize((patch_size, patch_size), resample=Resample.NEAREST.name).to(device)
 
-    dataset = SingleRasterDataset(input_fn, transforms=preprocess)
+    dataset = SingleRasterDataset(input, transforms=preprocess)
     sampler = GridGeoSampler(dataset, size=patch_size, stride=stride)
     dataloader = DataLoader(dataset, sampler=sampler, batch_size=batch_size, num_workers=6, collate_fn=stack_samples)
 
     # Run inference
-    with rasterio.open(input_fn) as f:
+    with rasterio.open(input) as f:
         input_height, input_width = f.shape
         profile = f.profile
         transform = profile["transform"]
@@ -211,38 +211,38 @@ def run(input_fn, model_fn, output_fn, resize_factor, gpu, patch_size, batch_siz
         "interleave": "pixel"
     })
 
-    with rasterio.open(output_fn, "w", **profile) as f:
+    with rasterio.open(output, "w", **profile) as f:
         f.write(output, 1)
         f.write_colormap(1, {1: (255, 0, 0)})
         f.colorinterp = [ColorInterp.palette]
 
-    print(f"Finished inference and saved output to {output_fn} in {time.time() - tic:.2f}s")
+    print(f"Finished inference and saved output to {output} in {time.time() - tic:.2f}s")
 
-@inference.command(name="polygonize", help="Polygonize the output from inference")
-@click.option('--input_fn', type=click.Path(exists=True), required=True, help="Input raster file to polygonize.")
-@click.option('--output_fn', type=str, required=True, help="Output filename for the polygonized data.")
+@inference.command(name="polygonize", help="Polygonize the output from inference for the raster image given via INPUT.")
+@click.argument('input', type=click.Path(exists=True), required=True)
+@click.option('--output', '-o', type=str, required=True, help="Output filename for the polygonized data.")
 @click.option('--simplify', type=float, default=None, help="Simplification factor to use when polygonizing.")
-@click.option('--overwrite', is_flag=True, help="Overwrite outputs if they exist.")
-def polygonize(input_fn, output_fn, simplify, overwrite):
+@click.option('--overwrite', '-f', is_flag=True, help="Overwrite outputs if they exist.")
+def polygonize(input, output, simplify, overwrite):
     """Polygonize the output from inference."""
 
-    print(f"Polygonizing input file: {input_fn}")
+    print(f"Polygonizing input file: {input}")
 
     # TODO: Get this warning working right, based on the CRS of the input file
     # if simplify is not None and simplify > 1:
     #    print("WARNING: You are passing a value of `simplify` greater than 1 for a geographic coordinate system. This is probably **not** what you want.")
 
-    if os.path.exists(output_fn) and not overwrite:
-        print(f"Output file {output_fn} already exists. Use --overwrite to overwrite.")
+    if os.path.exists(output) and not overwrite:
+        print(f"Output file {output} already exists. Use -f to overwrite.")
         return
-    elif os.path.exists(output_fn) and overwrite:
-        os.remove(output_fn)  # GPKGs are sometimes weird about overwriting in-place
+    elif os.path.exists(output) and overwrite:
+        os.remove(output)  # GPKGs are sometimes weird about overwriting in-place
 
     tic = time.time()
     rows = []
     i = 0
     # read the input file as a mask
-    with rasterio.open(input_fn) as src:
+    with rasterio.open(input) as src:
         input_height, input_width = src.shape
         crs = src.crs.to_string()
         profile = src.profile
@@ -277,7 +277,7 @@ def polygonize(input_fn, output_fn, simplify, overwrite):
         "geometry": "Polygon",
         "properties": {"idx": "int"}
     }
-    with fiona.open(output_fn.replace(".tif", ".gpkg"), "w", driver="GPKG", crs=crs, schema=schema) as f:
+    with fiona.open(output.replace(".tif", ".gpkg"), "w", driver="GPKG", crs=crs, schema=schema) as f:
         f.writerecords(rows)
 
-    print(f"Finished polygonizing output at {output_fn} in {time.time() - tic:.2f}s")
+    print(f"Finished polygonizing output at {output} in {time.time() - tic:.2f}s")

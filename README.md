@@ -6,6 +6,7 @@
 This repository provides the codebase for working with the [FTW dataset](https://beta.source.coop/repositories/kerner-lab/fields-of-the-world/description/), including tools for data pre-processing, model training, and evaluation.
 
 ## Table of Contents
+
 - [Fields of The World (FTW) - Baselines Codebase](#fields-of-the-world-ftw---baselines-codebase)
   - [Table of Contents](#table-of-contents)
   - [Folder structure](#folder-structure)
@@ -14,19 +15,20 @@ This repository provides the codebase for working with the [FTW dataset](https:/
     - [Verify PyTorch installation and CUDA availability](#verify-pytorch-installation-and-cuda-availability)
     - [Setup FTW CLI](#setup-ftw-cli)
   - [Dataset setup](#dataset-setup)
-      - [Examples:](#examples)
+    - [Examples](#examples)
   - [Dataset visualization](#dataset-visualization)
   - [Pre-requisites for experimentation](#pre-requisites-for-experimentation)
 - [Experimentation](#experimentation)
   - [Training](#training)
-    - [To train a model from scratch:](#to-train-a-model-from-scratch)
-    - [To resume training from a checkpoint:](#to-resume-training-from-a-checkpoint)
-    - [Visualizing the training process](#visuaizing-training-process)
+    - [Train a model from scratch](#train-a-model-from-scratch)
+    - [Resume training from a checkpoint](#resume-training-from-a-checkpoint)
+    - [Visualizing the training process](#visualizing-the-training-process)
   - [Testing](#testing)
-    - [To test a model:](#to-test-a-model)
+    - [Test a model](#test-a-model)
   - [Parallel experimentation](#parallel-experimentation)
-    - [To run experiments in parallel:](#to-run-experiments-in-parallel)
+    - [Run experiments in parallel](#run-experiments-in-parallel)
   - [Inference](#inference)
+    - [Sample Prediction Output (Austria Patch, Red - Fields)](#sample-prediction-output-austria-patch-red---fields)
     - [CC-BY(or equivalent) trained models](#cc-byor-equivalent-trained-models)
   - [Notes](#notes)
   - [Upcoming features](#upcoming-features)
@@ -69,6 +71,7 @@ Fields-of-The-World
 ## System setup
 
 ### Create Conda/Mamba environment
+
 To set up the environment using the provided `env.yml` file:
 
 ```bash
@@ -77,6 +80,7 @@ mamba activate ftw
 ```
 
 ### Verify PyTorch installation and CUDA availability
+
 Verify that PyTorch and CUDA are installed correctly (if using a GPU):
 
 ```bash
@@ -91,7 +95,7 @@ This creates the `ftw` command-line tool, which is used to download and unpack t
 pip install -e .
 ```
 
-```bash
+```
 Usage: ftw [OPTIONS] COMMAND [ARGS]...
 
   Fields of The World (FTW) - Command Line Interface
@@ -109,25 +113,25 @@ Commands:
 
 Download the dataset using the `FTW Cli`, `root_folder` defaults to `./data` and `clean_download` is to freshly download the entire dataset(deletes default local folder):
 
-```bash
+```
 ftw data download --help
 Usage: ftw data download [OPTIONS]
 
   Download the FTW dataset.
 
 Options:
-  --clean_download    If set, the script will delete the root folder before
-                      downloading.
-  --root_folder TEXT  Root folder where the files will be downloaded. Defaults
-                      to './data'.
-  --countries TEXT    Comma-separated list of countries to download. If 'all'
-                      is passed, downloads all available countries.
-  --help              Show this message and exit.
+  -f, --clean_download  If set, the script will delete the root folder before
+                        downloading.
+  --root_folder TEXT    Root folder where the files will be downloaded.
+                        Defaults to './data'.
+  --countries TEXT      Comma-separated list of countries to download. If
+                        'all' is passed, downloads all available countries.
+  --help                Show this message and exit.
 ```
 
 Unpack the dataset using the `unpack.py` script, this will create a `ftw` folder under the `data` after unpacking.
 
-```bash
+```
 ftw data unpack --help
     Usage: ftw data unpack [OPTIONS]
 
@@ -139,7 +143,8 @@ Options:
   --help              Show this message and exit.
 ```
 
-#### Examples:
+### Examples
+
 To download and unpack the complete dataset use following commands:
 
 ```bash
@@ -162,7 +167,6 @@ Explore `visualize_dataset.ipynb` to know more about the dataset.
 
 ![Sample 1](/assets/sample1.png)
 ![Sample 2](/assets/sample2.png)
-
 
 ## Pre-requisites for experimentation
 
@@ -225,7 +229,7 @@ seed_everything: <SEED VALUE>
 
 This section provides guidelines for running model training, testing, and experimentation using multiple GPUs and configuration files.
 
-```bash
+```
 ftw model --help
   Usage: ftw model [OPTIONS] COMMAND [ARGS]...
 
@@ -245,9 +249,9 @@ Commands:
 
 We use [LightningCLI](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.cli.LightningCLI.html) to streamline the training process, leveraging configuration files to define the model architecture, dataset, and training parameters.
 
-### To train a model from scratch:
+### Train a model from scratch
 
-```bash
+```
 ftw model fit --help
 
 Usage: ftw model fit [OPTIONS] [CLI_ARGS]...
@@ -255,8 +259,9 @@ Usage: ftw model fit [OPTIONS] [CLI_ARGS]...
   Fit the model
 
 Options:
-  --config PATH  Path to the config file (required)  [required]
-  --help         Show this message and exit.
+  --config PATH     Path to the config file (required)  [required]
+  --ckpt_path PATH  Path to a checkpoint file to resume training from
+  --help            Show this message and exit.
 ```
 
 You can train your model using a configuration file as follows:
@@ -265,7 +270,7 @@ You can train your model using a configuration file as follows:
 ftw model fit --config configs/example_config.yaml
 ```
 
-### To resume training from a checkpoint:
+### Resume training from a checkpoint
 
 If training has been interrupted or if you wish to fine-tune a pre-trained model, you can resume training from a checkpoint:
 
@@ -301,7 +306,7 @@ Currently logged informations are:
 
 Once your model has been trained, you can evaluate it on the test set specified in your datamodule. This can be done using the same configuration file used for training.
 
-```bash
+```
 ftw model test --help
 
 Usage: ftw model test [OPTIONS] [CLI_ARGS]...
@@ -309,14 +314,14 @@ Usage: ftw model test [OPTIONS] [CLI_ARGS]...
   Test the model
 
 Options:
-  --checkpoint_fn TEXT        Path to model checkpoint  [required]
+  --checkpoint TEXT           Path to model checkpoint  [required]
   --root_dir TEXT             Root directory of dataset
   --gpu INTEGER               GPU to use
   --countries TEXT            Countries to evaluate on  [required]
   --postprocess               Apply postprocessing to the model output
   --iou_threshold FLOAT       IoU threshold for matching predictions to ground
                               truths
-  --output_fn TEXT            Output file for metrics
+ -o, --output TEXT            Output file for metrics
   --model_predicts_3_classes  Whether the model predicts 3 classes or 2
                               classes
   --test_on_3_classes         Whether to test on 3 classes or 2 classes
@@ -326,12 +331,12 @@ Options:
 ```
 
 
-### To test a model:
+### Test a model
 
 Using FTW cli commands to test the model, you can pass specific options, such as selecting the GPUs, providing checkpoints, specifying countries for testing, and postprocessing results:
 
 ```bash
-ftw model test --gpu 0 --root_dir /path/to/dataset --checkpoint_fn logs/path_to_model/checkpoints/last.ckpt --countries country_to_test_on --output_fn results.csv
+ftw model test --gpu 0 --root_dir /path/to/dataset --checkpoint logs/path_to_model/checkpoints/last.ckpt --countries country_to_test_on --output results.csv
 ```
 
 This will output test results into `results.csv` after running on the selected GPUs and processing the specified countries.
@@ -342,7 +347,7 @@ Note: If data directory path is custom (not default ./data/) then make sure to p
 
 For running multiple experiments across different GPUs in parallel, the provided Python script `run_experiments.py` can be used. It efficiently manages and distributes training tasks across available GPUs by using multiprocessing and queuing mechanisms.
 
-### To run experiments in parallel:
+### Run experiments in parallel
 
 1. Define the list of experiment configuration files in the `experiment_configs` list.
 2. Specify the list of GPUs in the `GPUS` variable (e.g., `[0,1,2,3]`).
@@ -360,7 +365,7 @@ The script will distribute the experiments across the specified GPUs using a que
 
 We provide the `inference` cli commands to allow users to run models that have been pre-trained on FTW on any temporal pair of S2 images. 
 
-```bash
+```
 ftw inference --help
 
 Usage: ftw inference [OPTIONS] COMMAND [ARGS]...
@@ -388,36 +393,35 @@ Usage: ftw inference download [OPTIONS]
   Download 2 Sentinel-2 scenes & stack them in a single file for inference.
 
 Options:
-  --win_a TEXT      Path to a Sentinel-2 STAC item for the window A image
-                    [required]
-  --win_b TEXT      Path to a Sentinel-2 STAC item for the window B image
-                    [required]
-  --output_fn TEXT  Filename to save results to  [required]
-  --overwrite       Overwrites the outputs if they exist
-  --help            Show this message and exit.
+  --win_a TEXT       Path to a Sentinel-2 STAC item for the window A image
+                     [required]
+  --win_b TEXT       Path to a Sentinel-2 STAC item for the window B image
+                     [required]
+  -o, --output TEXT  Filename to save results to  [required]
+  -f, --overwrite    Overwrites the outputs if they exist
+  --help             Show this message and exit.
 ```
 
 Then `ftw inference run` is the command that will run a given model on overlapping patches of input imagery (i.e. the output of `ftw inference download`) and stitch the results together in GeoTIFF format. 
 
-```bash
-ftw model inference run --help
+```
+ftw inference run --help
 
-Usage: ftw model inference [OPTIONS]
+Usage: ftw inference run [OPTIONS] INPUT
 
-  Run inference on a satellite image
+  Run inference on the stacked Sentinel-2 L2A satellite images specified in
+  INPUT.
 
 Options:
-  --input_fn PATH          Input raster file (Sentinel-2 L2A stack).
-                           [required]
-  --model_fn PATH          Path to the model checkpoint.  [required]
-  --output_fn TEXT         Output filename.  [required]
+  -m, --model PATH         Path to the model checkpoint.  [required]
+  -o, --output TEXT        Output filename.  [required]
   --resize_factor INTEGER  Resize factor to use for inference.
   --gpu INTEGER            GPU ID to use. If not provided, CPU will be used by
                            default.
   --patch_size INTEGER     Size of patch to use for inference.
   --batch_size INTEGER     Batch size.
   --padding INTEGER        Pixels to discard from each side of the patch.
-  --overwrite              Overwrite outputs if they exist.
+  -f, --overwrite          Overwrite outputs if they exist.
   --mps_mode               Run inference in MPS mode (Apple GPUs).
   --help                   Show this message and exit.
 ```
@@ -427,16 +431,15 @@ You can then use the `ftw inference polygonize` command to convert the output of
 ```
 ftw inference polygonize --help
 
-Usage: ftw inference polygonize [OPTIONS]
+Usage: ftw inference polygonize [OPTIONS] INPUT
 
-  Polygonize the output from inference
+  Polygonize the output from inference for the raster image given via INPUT.
 
 Options:
-  --input_fn PATH   Input raster file to polygonize.  [required]
-  --output_fn TEXT  Output filename for the polygonized data.  [required]
-  --simplify FLOAT  Simplification factor to use when polygonizing.
-  --overwrite       Overwrite outputs if they exist.
-  --help            Show this message and exit
+  -o, --output TEXT  Output filename for the polygonized data.  [required]
+  --simplify FLOAT   Simplification factor to use when polygonizing.
+  -f, --overwrite    Overwrite outputs if they exist.
+  --help             Show this message and exit.
 ```
 
 Simplification factor is measured in the units of the coordinate reference system (CRS), and for Sentinel-2 this is meters, so a simplification factor of 15 or 20 is usually sufficient (and recommended, or the vector file will be as large as the raster file).
@@ -455,20 +458,21 @@ The following commands show these four steps for a pair of Sentinel-2 scenes ove
 
 - Download S2 Image scene.
   ```bash
-  ftw inference download --win_a "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729" --win_b "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923" --output_fn inference_imagery/austria_example.tif
+  ftw inference download --win_a "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729" --win_b "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923" --output inference_imagery/austria_example.tif
   ```
 
 - Run inference on the entire scene.
   ```bash
-  ftw inference run --input_fn inference_imagery/austria_example.tif --model_fn 3_Class_FULL_FTW_Pretrained.ckpt --output_fn austria_example_output_full.tif --gpu 0 --overwrite --resize_factor 2
+  ftw inference run inference_imagery/austria_example.tif --model 3_Class_FULL_FTW_Pretrained.ckpt --output austria_example_output_full.tif --gpu 0 --overwrite --resize_factor 2
   ```
 
 ### Sample Prediction Output (Austria Patch, Red - Fields)
+
 ![Sample Prediction Output](/assets/austria_prediction.png)
 
 - Polygonize the output.
   ```bash
-  ftw inference polygonize --input_fn austria_example_output_full.tif --output_fn austria_example_output_full.gpkg --simplify 20
+  ftw inference polygonize austria_example_output_full.tif --output austria_example_output_full.gpkg --simplify 20
   ```
 
 ### CC-BY(or equivalent) trained models
@@ -511,7 +515,7 @@ pip install git+https://github.com/Microsoft/torchgeo.git  # to get version 0.7 
 ```python
 from torchgeo.datasets import FieldsOfTheWorld
 ds = FieldsOfTheWorld("dataset/", countries="austria", split="train", download=True)
-````
+```
 
 ## Contributing
 

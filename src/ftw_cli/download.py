@@ -14,7 +14,7 @@ def ftw():
     pass
 
 @click.command(help="Download the FTW dataset.")
-@click.option('--clean_download', is_flag=True, help="If set, the script will delete the root folder before downloading.")
+@click.option('--clean_download', '-f', is_flag=True, help="If set, the script will delete the root folder before downloading.")
 @click.option('--root_folder', type=str, default="./data", help="Root folder where the files will be downloaded. Defaults to './data'.")
 @click.option('--countries', type=str, default="all", help="Comma-separated list of countries to download. If 'all' is passed, downloads all available countries.")
 def download(clean_download, root_folder, countries):
