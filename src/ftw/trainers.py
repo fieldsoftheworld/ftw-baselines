@@ -1,26 +1,24 @@
 """Trainer for semantic segmentation."""
 
-import os
 import warnings
 from typing import Any, Optional, Union
 
+import lightning
 import matplotlib.pyplot as plt
 import segmentation_models_pytorch as smp
-import torch.nn as nn
-from matplotlib.figure import Figure
 import torch
+import torch.nn as nn
+import torchvision.models as models
+from matplotlib.figure import Figure
 from torch import Tensor
+from torch.optim import AdamW
+from torch.optim.lr_scheduler import CosineAnnealingLR
+from torchgeo.datasets import unbind_samples
+from torchgeo.models import FCN
+from torchgeo.trainers.base import BaseTask
 from torchmetrics import MetricCollection
 from torchmetrics.classification import MulticlassAccuracy, MulticlassJaccardIndex
 from torchvision.models._api import WeightsEnum
-import torchvision.models as models
-from torch.optim import AdamW
-from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingLR
-import lightning
-from torchgeo.datasets import unbind_samples
-from torchgeo.models import FCN, get_weight
-from torchgeo.trainers import utils
-from torchgeo.trainers.base import BaseTask
 
 
 class CustomSemanticSegmentationTask(BaseTask):

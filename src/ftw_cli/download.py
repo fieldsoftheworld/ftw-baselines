@@ -1,11 +1,13 @@
-import os
 import hashlib
 import logging
+import os
+import shutil
+import time
+
+import click
 import wget
 from tqdm import tqdm
-import click
-import time
-import shutil
+
 
 @click.group()
 def ftw():

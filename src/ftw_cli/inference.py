@@ -1,31 +1,32 @@
-import os
-import time
-import tempfile
-import click
-import pystac
-import planetary_computer as pc
-import odc.stac
-import rasterio
-import numpy as np
-import rioxarray
-import torch
-from torch.utils.data import DataLoader
-from tqdm import tqdm
 import math
-import kornia.augmentation as K
-from kornia.constants import Resample
-from ftw.datasets import SingleRasterDataset
-from ftw.trainers import CustomSemanticSegmentationTask
-from torchgeo.samplers import GridGeoSampler
-from torchgeo.datasets import stack_samples
-from ftw.datamodules import preprocess
-import rasterio.features
-import shapely.geometry
+import os
+import tempfile
+import time
+
+import click
 import fiona
 import fiona.transform
-from kornia.constants import Resample
-from pyproj import CRS
+import kornia.augmentation as K
+import numpy as np
+import odc.stac
+import planetary_computer as pc
+import pystac
+import rasterio
+import rasterio.features
+import rioxarray # seems unused but is needed
+import shapely.geometry
+import torch
 from affine import Affine
+from kornia.constants import Resample
+from torch.utils.data import DataLoader
+from torchgeo.datasets import stack_samples
+from torchgeo.samplers import GridGeoSampler
+from tqdm import tqdm
+
+from ftw.datamodules import preprocess
+from ftw.datasets import SingleRasterDataset
+from ftw.trainers import CustomSemanticSegmentationTask
+
 
 @click.group()
 def inference():
