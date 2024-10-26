@@ -21,12 +21,13 @@ This repository provides the codebase for working with the [FTW dataset](https:/
   - [Training](#training)
     - [To train a model from scratch:](#to-train-a-model-from-scratch)
     - [To resume training from a checkpoint:](#to-resume-training-from-a-checkpoint)
-    - [Visualizing the training process](#visuaizing-training-process)
+    - [Visualizing the training process](#visualizing-the-training-process)
   - [Testing](#testing)
     - [To test a model:](#to-test-a-model)
   - [Parallel experimentation](#parallel-experimentation)
     - [To run experiments in parallel:](#to-run-experiments-in-parallel)
   - [Inference](#inference)
+    - [Sample Prediction Output (Austria Patch, Red - Fields)](#sample-prediction-output-austria-patch-red---fields)
     - [CC-BY(or equivalent) trained models](#cc-byor-equivalent-trained-models)
   - [Notes](#notes)
   - [Upcoming features](#upcoming-features)
@@ -71,9 +72,16 @@ Fields-of-The-World
 ### Create Conda/Mamba environment
 To set up the environment using the provided `env.yml` file:
 
+For Mamba:
 ```bash
 mamba env create -f env.yml
 mamba activate ftw
+```
+
+For Anaconda:
+```bash
+conda env create -f env.yml
+conda activate ftw
 ```
 
 ### Verify PyTorch installation and CUDA availability
@@ -388,10 +396,10 @@ Usage: ftw inference download [OPTIONS]
   Download 2 Sentinel-2 scenes & stack them in a single file for inference.
 
 Options:
-  --win_a TEXT      Path to a Sentinel-2 STAC item for the window A image
-                    [required]
-  --win_b TEXT      Path to a Sentinel-2 STAC item for the window B image
-                    [required]
+  --win_a TEXT      URL to or Microsoft Planetary Computer ID of an Sentinel-2
+                    L2A STAC item for the window A image  [required]
+  --win_b TEXT      URL to or Microsoft Planetary Computer ID of an Sentinel-2
+                    L2A STAC item for the window B image  [required]
   --output_fn TEXT  Filename to save results to  [required]
   --overwrite       Overwrites the outputs if they exist
   --help            Show this message and exit.
@@ -455,7 +463,7 @@ The following commands show these four steps for a pair of Sentinel-2 scenes ove
 
 - Download S2 Image scene.
   ```bash
-  ftw inference download --win_a "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729" --win_b "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923" --output_fn inference_imagery/austria_example.tif
+  ftw inference download --win_a S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729 --win_b S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923 --output_fn inference_imagery/austria_example.tif
   ```
 
 - Run inference on the entire scene.
