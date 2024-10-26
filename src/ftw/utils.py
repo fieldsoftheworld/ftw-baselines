@@ -1,8 +1,8 @@
-import numpy as np
-import scipy.spatial.distance
 import hashlib
 import os
-import torch.nn as nn
+
+import numpy as np
+import scipy.spatial.distance
 
 
 def compute_md5(file_path):

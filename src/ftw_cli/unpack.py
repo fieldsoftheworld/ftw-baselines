@@ -1,21 +1,23 @@
+import multiprocessing
 import os
 import shutil
 import zipfile
-import multiprocessing
-from tqdm import tqdm
+
 import click
+from tqdm import tqdm
+
 
 @click.group()
 def ftw():
     pass
 
-@click.command(help="Unpack the downloaded FTW dataset.")
-@click.option('--root_folder', type=str, default="./data", help="Root folder where the .zip files are located. Defaults to './data'.")
-def unpack(root_folder):
-    ftw_folder_path = os.path.join(root_folder, 'ftw')
+@click.command(help="Unpack the downloaded FTW dataset. Specify the folder where the data is located via INPUT. Defaults to './data'.")
+@click.argument('input', type=str, default="./data")
+def unpack(input):
+    ftw_folder_path = os.path.join(input, 'ftw')
 
     clean_and_create_ftw_folder(ftw_folder_path)
-    unpack_zip_files(root_folder, ftw_folder_path)
+    unpack_zip_files(input, ftw_folder_path)
 
 def clean_and_create_ftw_folder(ftw_folder_path):
     """

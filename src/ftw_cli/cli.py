@@ -1,8 +1,10 @@
 import click
+
 from ftw_cli.download import download
-from ftw_cli.unpack import unpack
-from ftw_cli.model import model
 from ftw_cli.inference import inference
+from ftw_cli.model import model
+from ftw_cli.unpack import unpack
+
 
 @click.group()
 def ftw():

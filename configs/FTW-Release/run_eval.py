@@ -55,8 +55,8 @@ if __name__ == "__main__":
                     "ftw", "model", "test",
                     "--gpu", "0",
                     "--root_dir", "data/ftw",
-                    "--checkpoint_fn", checkpoint,
-                    "--output_fn", "results/experiments-ftw_release-2_classes.csv",
+                    "--model", checkpoint,
+                    "--out", "results/experiments-ftw_release-2_classes.csv",
                     "--countries", country
                 ]
                 subprocess.call(command)
@@ -66,8 +66,8 @@ if __name__ == "__main__":
                     "ftw", "model", "test",
                     "--gpu", "0",
                     "--root_dir", "data/ftw",
-                    "--checkpoint_fn", checkpoint,
-                    "--output_fn", "results/experiments-ftw_release-3_classes.csv",
+                    "--model", checkpoint,
+                    "--out", "results/experiments-ftw_release-3_classes.csv",
                     "--countries", country,
                     "--model_predicts_3_classes", "True"
                 ]
