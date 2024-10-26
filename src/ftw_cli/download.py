@@ -14,22 +14,11 @@ def ftw():
     pass
 
 @click.command(help="Download the FTW dataset.")
-@click.option('--clean_download', is_flag=True, help="If set, the script will delete the root folder before downloading.")
-@click.option('--root_folder', type=str, default="./data", help="Root folder where the files will be downloaded. Defaults to './data'.")
-@click.option('--countries', type=str, default="all", help="Comma-separated list of countries to download. If 'all' is passed, downloads all available countries.")
-def download(clean_download, root_folder, countries):
-    # Use the provided root_folder or prompt the user for it
-    if root_folder is None:
-        root_folder = click.prompt(
-            "Please enter the root folder for downloaded files",
-            default=os.path.abspath('./data'),
-            show_default=True
-        )
-    else:
-        root_folder = os.path.abspath(root_folder)
-
-    # Root folder where the files will be downloaded
-    root_folder_path = root_folder
+@click.option('--out', '-o', type=str, default="./data", help="Folder where the files will be downloaded to. Defaults to './data'.")
+@click.option('--clean_download', '-f', is_flag=True, help="If set, the script will delete the root folder before downloading.")
+@click.option('--countries', type=str, default="all", help="Comma-separated list of countries to download. If 'all' (default) is passed, downloads all available countries.")
+def download(clean_download, out, countries):
+    root_folder_path = os.path.abspath(out)
 
     # Ensure the root folder exists
     os.makedirs(root_folder_path, exist_ok=True)
