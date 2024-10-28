@@ -11,7 +11,8 @@ This repository provides the codebase for working with the [FTW dataset](https:/
   - [Table of Contents](#table-of-contents)
   - [Folder structure](#folder-structure)
   - [System setup](#system-setup)
-    - [Create Conda/Mamba environment](#create-condamamba-environment)
+    - [(Ana)conda](#anaconda)
+    - [Mamba](#mamba)
     - [Verify PyTorch installation and CUDA availability](#verify-pytorch-installation-and-cuda-availability)
     - [Setup FTW CLI](#setup-ftw-cli)
   - [Dataset setup](#dataset-setup)
@@ -70,20 +71,23 @@ Fields-of-The-World
 
 ## System setup
 
-### Create Conda/Mamba environment
+You need to install Python 3.9 or later and GDAL with libgdal-arrow-parquet.
 
-To set up the environment using the provided `env.yml` file:
+As a simple way to install the required software you can use Anaconda/Mamba.
+Set up the environment using the provided `env.yml` file:
 
-For Mamba:
-```bash
-mamba env create -f env.yml
-mamba activate ftw
-```
+### (Ana)conda
 
-For Anaconda:
 ```bash
 conda env create -f env.yml
 conda activate ftw
+```
+
+### Mamba
+
+```bash
+mamba env create -f env.yml
+mamba activate ftw
 ```
 
 ### Verify PyTorch installation and CUDA availability
