@@ -300,7 +300,7 @@ def polygonize(input, out, simplify, min_size, overwrite):
                                     "geometry": geom,
                                     "properties": {
                                         "idx": i,
-                                        "area": area  # Add the area to the properties
+                                        "area": area  # Add the area in m² to the properties
                                     }
                                 })
                                 i += 1
