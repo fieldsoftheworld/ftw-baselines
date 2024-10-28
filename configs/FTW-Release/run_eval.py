@@ -54,7 +54,7 @@ if __name__ == "__main__":
                 command = [
                     "ftw", "model", "test",
                     "--gpu", "0",
-                    "--root_dir", "data/ftw",
+                    "--dir", "data/ftw",
                     "--model", checkpoint,
                     "--out", "results/experiments-ftw_release-2_classes.csv",
                     "--countries", country
@@ -65,7 +65,7 @@ if __name__ == "__main__":
                 command = [
                     "ftw", "model", "test",
                     "--gpu", "0",
-                    "--root_dir", "data/ftw",
+                    "--dir", "data/ftw",
                     "--model", checkpoint,
                     "--out", "results/experiments-ftw_release-3_classes.csv",
                     "--countries", country,

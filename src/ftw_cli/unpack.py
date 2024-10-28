@@ -1,6 +1,7 @@
 import multiprocessing
 import os
 import shutil
+import sys
 import zipfile
 
 import click
@@ -15,6 +16,11 @@ def ftw():
 @click.argument('input', type=str, default="./data")
 def unpack(input):
     ftw_folder_path = os.path.join(input, 'ftw')
+
+    # Ensure the input folder exists
+    if not os.path.exists(input):
+        print(f"Folder {input} does not exist.")
+        sys.exit(1)
 
     clean_and_create_ftw_folder(ftw_folder_path)
     unpack_zip_files(input, ftw_folder_path)
@@ -50,11 +56,6 @@ def unpack_zip_files(root_folder_path, ftw_folder_path):
     :param root_folder_path: Path to the root folder where the .zip files are located.
     :param ftw_folder_path: Path to the ftw folder where unpacked files will be placed.
     """
-    # Ensure the root folder exists
-    if not os.path.exists(root_folder_path):
-        print(f"Error: Folder {root_folder_path} does not exist.")
-        return
-
     # Find all .zip files in the root folder
     zip_files = [f for f in os.listdir(root_folder_path) if f.endswith('.zip')]
 

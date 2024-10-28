@@ -1,31 +1,19 @@
-import math
 import os
 import time
 
 import click
-import fiona
-import fiona.transform
-import kornia.augmentation as K
 import numpy as np
-import rasterio
-import rasterio.features
-import shapely.geometry
 import torch
-from affine import Affine
-from kornia.constants import Resample
 from lightning.pytorch.cli import LightningCLI
 from pyproj import CRS
-from rasterio.enums import ColorInterp
 from torch.utils.data import DataLoader
 from torchgeo.datamodules import BaseDataModule
-from torchgeo.datasets import stack_samples
-from torchgeo.samplers import GridGeoSampler
 from torchgeo.trainers import BaseTask
 from torchmetrics import JaccardIndex, MetricCollection, Precision, Recall
 from tqdm import tqdm
 
 from ftw.datamodules import preprocess
-from ftw.datasets import FTW, SingleRasterDataset
+from ftw.datasets import FTW
 from ftw.metrics import get_object_level_metrics
 from ftw.trainers import CustomSemanticSegmentationTask
 

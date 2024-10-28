@@ -106,6 +106,12 @@ This creates the `ftw` command-line tool, which is used to download and unpack t
 pip install -e .
 ```
 
+or for development purposes:
+
+```bash
+pip install -e .[dev]
+```
+
 ```
 Usage: ftw [OPTIONS] COMMAND [ARGS]...
 
@@ -326,7 +332,7 @@ Usage: ftw model test [OPTIONS] [CLI_ARGS]...
 
 Options:
   -m, --model TEXT            Path to model checkpoint  [required]
-  --root_dir TEXT             Root directory of dataset
+  --dir TEXT                  Root directory of dataset
   --gpu INTEGER               GPU to use
   --countries TEXT            Countries to evaluate on  [required]
   --postprocess               Apply postprocessing to the model output
@@ -347,12 +353,12 @@ Options:
 Using FTW cli commands to test the model, you can pass specific options, such as selecting the GPUs, providing checkpoints, specifying countries for testing, and postprocessing results:
 
 ```bash
-ftw model test --gpu 0 --root_dir /path/to/dataset --model logs/path_to_model/checkpoints/last.ckpt --countries country_to_test_on --out results.csv
+ftw model test --gpu 0 --dir /path/to/dataset --model logs/path_to_model/checkpoints/last.ckpt --countries country_to_test_on --out results.csv
 ```
 
 This will output test results into `results.csv` after running on the selected GPUs and processing the specified countries.
 
-Note: If data directory path is custom (not default ./data/) then make sure to pass custom data directory path in testing using ```--root_dir custom_dir/ftw```.
+Note: If data directory path is custom (not default ./data/) then make sure to pass custom data directory path in testing using ```--dir custom_dir/ftw```.
 
 ## Parallel experimentation
 

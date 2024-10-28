@@ -17,6 +17,7 @@ dependencies = [
     "numpy",                   # For numerical computation
     "matplotlib",              # For plotting
     "torch",                   # For deep learning
+    "kornia",                  # For computer vision
     "torchvision",             # For vision-related tasks in PyTorch
     "pytorch-lightning",       # For high-level PyTorch training loops
     "PyYAML",                  # For parsing YAML config files
@@ -38,7 +39,8 @@ dev = [
     "isort",       # Import sorting tool
     "mypy",        # Static type checker
     "pydocstyle",  # Python docstring style checker
-    "flake8"       # Linter for Python
+    "flake8",      # Linter for Python
+    "pytest",      # Testing framework
 ]
 
 [project.scripts]
@@ -82,3 +84,8 @@ strict_equality = true
 [tool.pydocstyle]
 convention = "google"
 match_dir = "(ftw)"
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "src",
+]
