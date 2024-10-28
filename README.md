@@ -19,18 +19,6 @@ This repository provides the codebase for working with the [FTW dataset](https:/
     - [Examples](#examples)
   - [Dataset visualization](#dataset-visualization)
 - [Experimentation](#experimentation)
-<!-- - [Experimentation](#experimentation)
-  - [Training](#training)
-    - [Train a model from scratch](#train-a-model-from-scratch)
-    - [Resume training from a checkpoint](#resume-training-from-a-checkpoint)
-    - [Visualizing the training process](#visualizing-the-training-process)
-  - [Testing](#testing)
-    - [Test a model](#test-a-model)
-  - [Parallel experimentation](#parallel-experimentation)
-    - [Run experiments in parallel](#run-experiments-in-parallel)
-  - [Inference](#inference)
-    - [Sample Prediction Output (Austria Patch, Red - Fields)](#sample-prediction-output-austria-patch-red---fields)
-    - [CC-BY(or equivalent) trained models](#cc-byor-equivalent-trained-models) -->
   - [Notes](#notes)
   - [Upcoming features](#upcoming-features)
   - [Contributing](#contributing)
@@ -187,7 +175,7 @@ Explore `visualize_dataset.ipynb` to know more about the dataset.
 
 
 # Experimentation
-For details on the experimentation process, see [Experimentation.md](./Experimentation.md).
+For details on the experimentation process, see [Experimentation] section(./EXPERIMENTS.md).
 
 
 ## Notes
