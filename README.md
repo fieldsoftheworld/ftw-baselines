@@ -83,14 +83,14 @@ Commands:
 
 ## Dataset setup
 
-Download the dataset using the `FTW Cli`.
-`--out` defaults to `./data` and `--clean_download` is to freshly download the entire dataset (deletes local folder).
+Download and unpack the dataset using the FTW CLI.
+This will create a `ftw` folder under the given folder after unpacking.
 
 ```text
 ftw data download --help
 Usage: ftw data download [OPTIONS]
 
-  Download the FTW dataset.
+  Download and unpack the FTW dataset.
 
 Options:
   -o, --out TEXT        Folder where the files will be downloaded to. Defaults
@@ -100,10 +100,13 @@ Options:
   --countries TEXT      Comma-separated list of countries to download. If
                         'all' (default) is passed, downloads all available
                         countries.
+  --no-unpack           If set, the script will NOT unpack the downloaded
+                        files.
   --help                Show this message and exit.
 ```
 
-Unpack the dataset using the `unpack` command, this will create a `ftw` folder under the `data` after unpacking.
+If you had `--no-unpack` enabled during download, you can manually unpack the downloaded files using the `unpack` command.
+This will create a `ftw` folder under the given folder after unpacking.
 
 ```text
 Usage: ftw data unpack [OPTIONS] [INPUT]
@@ -120,15 +123,13 @@ Options:
 To download and unpack the complete dataset use following commands:
 
 ```bash
-ftw data download 
-ftw data unpack
+ftw data download
 ```
 
 To download and unpack the specific set of countries use following commands:
 
 ```bash
 ftw data download --countries belgium,kenya,vietnam
-ftw data unpack
 ```
 
 *Note:* Make sure to avoid adding any space in between the list of comma seperated countries.
@@ -140,160 +141,21 @@ Explore `visualize_dataset.ipynb` to know more about the dataset.
 ![Sample 1](/assets/sample1.png)
 ![Sample 2](/assets/sample2.png)
 
-## Inference
-
-We provide the `inference` cli commands to allow users to run models that have been pre-trained on FTW on any temporal pair of S2 images.
-
-```text
-ftw inference --help
-
-Usage: ftw inference [OPTIONS] COMMAND [ARGS]...
-
-  Inference-related commands.
-
-Options:
-  --help  Show this message and exit.
-
-Commands:
-  download    Download 2 Sentinel-2 scenes & stack them in a single file...
-  polygonize  Polygonize the output from inference
-  run         Run inference on the stacked satellite images
-```
-
-First, you need a trained model - either download a pre-trained model (we provide an example pre-trained model in the [Releases](https://github.com/fieldsoftheworld/ftw-baselines/releases) list), or train your own model as explained in the [Training](./EXPERIMENTS.md#training) section.
-
-Second, you need to concatenate the bands of two aligned Sentinel-2 scenes that show your area of interest in two seasons (e.g. planting and harvesting seasons) in the following order: B04_t1, BO3_t1, BO2_t1, B08_t1, B04_t2, BO3_t2, BO2_t2, B08_t2 (t1 and t2 represent two different points in time). The `ftw inference download` command does this automatically given two STAC items. The Microsoft [Planetary Computer Explorer](https://planetarycomputer.microsoft.com/explore?d=sentinel-2-l2a) is a convenient tool for finding relevant scenes and their corresponding STAC items.
-
-```text
-ftw inference download --help
-
-Usage: ftw inference download [OPTIONS]
-
-  Download 2 Sentinel-2 scenes & stack them in a single file for inference.
-
-Options:
-  --win_a TEXT       URL to or Microsoft Planetary Computer ID of an Sentinel-2
-                     L2A STAC item for the window A image  [required]
-  --win_b TEXT       URL to or Microsoft Planetary Computer ID of an Sentinel-2
-                     L2A STAC item for the window B image  [required]
-  -o, --out TEXT     Filename to save results to  [required]
-  -f, --overwrite    Overwrites the outputs if they exist
-  --help             Show this message and exit.
-```
-
-Then `ftw inference run` is the command that will run a given model on overlapping patches of input imagery (i.e. the output of `ftw inference download`) and stitch the results together in GeoTIFF format.
-
-```text
-ftw inference run --help
-
-Usage: ftw inference run [OPTIONS] INPUT
-
-  Run inference on the stacked Sentinel-2 L2A satellite images specified in
-  INPUT.
-
-Options:
-  -m, --model PATH         Path to the model checkpoint.  [required]
-  -o, --out TEXT           Output filename.  [required]
-  --resize_factor INTEGER  Resize factor to use for inference.
-  --gpu INTEGER            GPU ID to use. If not provided, CPU will be used by
-                           default.
-  --patch_size INTEGER     Size of patch to use for inference.
-  --batch_size INTEGER     Batch size.
-  --padding INTEGER        Pixels to discard from each side of the patch.
-  -f, --overwrite          Overwrite outputs if they exist.
-  --mps_mode               Run inference in MPS mode (Apple GPUs).
-  --help                   Show this message and exit.
-```
-
-You can then use the `ftw inference polygonize` command to convert the output of the inference into a vector format (initially GeoPackage, GeoParquet/Fiboa coming soon).
-
-```text
-ftw inference polygonize --help
-
-Usage: ftw inference polygonize [OPTIONS] INPUT
-
-  Polygonize the output from inference for the raster image given via INPUT.
-
-Options:
-  -o, --out TEXT     Output filename for the polygonized data.  [required]
-  --simplify FLOAT   Simplification factor to use when polygonizing.
-  -f, --overwrite    Overwrite outputs if they exist.
-  --help             Show this message and exit.
-```
-
-Simplification factor is measured in the units of the coordinate reference system (CRS), and for Sentinel-2 this is meters, so a simplification factor of 15 or 20 is usually sufficient (and recommended, or the vector file will be as large as the raster file).
-
-The following commands show these four steps for a pair of Sentinel-2 scenes over Austria:
-
-- Download pretrained checkpoint from [Pretrained-Models](https://github.com/fieldsoftheworld/ftw-baselines/releases/tag/Pretrained-Models).
-  - 3 Class
-    ```bash
-    wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/Pretrained-Models/3_Class_FULL_FTW_Pretrained.ckpt
-    ```
-
-  - 2 Class
-    ```bash
-    wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/Pretrained-Models/2_Class_FULL_FTW_Pretrained.ckpt
-    ```
-
-- Download S2 Image scene.
-  
-  ```bash
-  ftw inference download --win_a S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729 --win_b S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923 --out inference_imagery/austria_example.tif
-  ```
-
-- Run inference on the entire scene.
-  
-  ```bash
-  ftw inference run inference_imagery/austria_example.tif --model 3_Class_FULL_FTW_Pretrained.ckpt --out austria_example_output_full.tif --gpu 0 --overwrite --resize_factor 2
-  ```
-
-### Sample Prediction Output (Austria Patch, Red - Fields)
-
-![Sample Prediction Output](/assets/austria_prediction.png)
-
-- Polygonize the output.
-  
-  ```bash
-  ftw inference polygonize austria_example_output_full.tif --out austria_example_output_full.gpkg --simplify 20
-  ```
-
-### CC-BY (or equivalent) trained models
-
-Consider using CC-BY FTW Trained Checkpoints from the release file for Commercial Purpose, For Non-Commercial Purpose and Academic purpose you can use the FULL FTW Trained Checkpoints (See the Images below for perfrmance comparison)
-
-We have also made FTW model checkpoints available that are pretrained only on CC-BY (or equivalent open licenses) datasets. You can download these checkpoints using the following command:
-  
-- 3 Class
-  
-  ```bash
-  wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/Pretrained-Models/3_Class_CCBY_FTW_Pretrained.ckpt
-  ```
-
-- 2 Class
-  
-  ```bash
-  https://github.com/fieldsoftheworld/ftw-baselines/releases/download/Pretrained-Models/2_Class_CCBY_FTW_Pretrained.ckpt
-  ```
-
-![3 Class IoU](/assets/3%20Class%20IoU%20Comparison.png)
-![2 Class IoU](/assets/2%20Class%20IoU%20Comparison.png)
-
-## Experimentation
+# Experimentation
 
 For details on the experimentation process, see [Experimentation section](./EXPERIMENTS.md).
 
-
 ## Notes
 
-If you see any warnings in this format,
+If you see any warnings in this format:
 
 ```bash
 /home/byteboogie/miniforge3/envs/ftw/lib/python3.12/site-packages/kornia/feature/lightglue.py:44: FutureWarning: `torch.cuda.amp.custom_fwd(args...)` is deprecated. Please use `torch.amp.custom_fwd(args..., device_type='cuda')` instead.
   @torch.cuda.amp.custom_fwd(cast_inputs=torch.float32)
 ```
 
-this is due to a PR in official PyTorch `PyTorch 2.4 deprecated the use of torch.cuda.amp.autocast in favor of torch.amp.autocast("cuda", ...), but this change has missed updating internal uses in PyTorch` [Link](https://github.com/pytorch/pytorch/issues/130659), rest assured `ftw` won't face any issue in experimentation and dataset exploration.
+This is due to outdated libraries that rely on an older version of pytorch.
+Rest assured `ftw` won't face any issue in experimentation and dataset exploration.
 
 ## Upcoming features
 
