@@ -175,7 +175,7 @@ Explore `visualize_dataset.ipynb` to know more about the dataset.
 
 
 # Experimentation
-For details on the experimentation process, see [Experimentation] section(./EXPERIMENTS.md).
+For details on the experimentation process, see [Experimentation section](./EXPERIMENTS.md).
 
 
 ## Notes
