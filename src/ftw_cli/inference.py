@@ -193,13 +193,18 @@ def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, 
         profile = f.profile
         transform = profile["transform"]
 
-    out = np.zeros((input_height, input_width), dtype=np.uint8)
+    output_mask = np.zeros((input_height, input_width), dtype=np.uint8)
     dl_enumerator = tqdm(dataloader)
 
     for batch in dl_enumerator:
         images = batch["image"].to(device)
         images = up_sample(images)
-        bboxes = batch["bbox"]
+
+        # torchgeo>=0.6 refers to the bounding box as "bounds" instead of "bbox"
+        if "bounds" in batch and batch["bounds"] is not None:
+            bboxes = batch["bounds"]
+        else:
+            bboxes = batch["bbox"]
 
         with torch.inference_mode():
             predictions = model(images)
@@ -211,10 +216,10 @@ def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, 
             left, top = ~transform * (bb.minx, bb.maxy)
             right, bottom = ~transform * (bb.maxx, bb.miny)
             left, right, top, bottom = int(np.round(left)), int(np.round(right)), int(np.round(top)), int(np.round(bottom))
-            destination_height, destination_width = out[top + padding:bottom - padding, left + padding:right - padding].shape
+            destination_height, destination_width = output_mask[top + padding:bottom - padding, left + padding:right - padding].shape
 
             inp = predictions[i][padding:padding + destination_height, padding:padding + destination_width]
-            out[top + padding:bottom - padding, left + padding:right - padding] = inp
+            output_mask[top + padding:bottom - padding, left + padding:right - padding] = inp
 
     # Save predictions
     profile.update({
@@ -230,9 +235,7 @@ def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, 
     })
 
     with rasterio.open(out, "w", **profile) as f:
-        f.write(out, 1)
-        f.write_colormap(1, {1: (255, 0, 0)})
-        f.colorinterp = [ColorInterp.palette]
+        f.write(output_mask, 1)
 
     print(f"Finished inference and saved output to {out} in {time.time() - tic:.2f}s")
 
