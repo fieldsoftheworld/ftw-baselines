@@ -29,7 +29,7 @@ dependencies = [
     "rioxarray",               # For raster data handling
     "scipy",                   # For scientific computing
     "tensorboard",             # For PyTorch logging
-    "torchgeo==0.5.2",         # For geospatial deep learning
+    "torchgeo",                # For geospatial deep learning
     "fiona",                   # For reading/writing vector data
 ]
 
