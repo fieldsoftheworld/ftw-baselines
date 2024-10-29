@@ -12,3 +12,4 @@ src/ftw.egg-info/
 *.tif
 .pytest_cache/
 /results.csv
+/austria_example_output_full.gpkg
