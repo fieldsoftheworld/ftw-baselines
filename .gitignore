@@ -10,3 +10,4 @@ inference_imagery/
 src/ftw.egg-info/
 *.ckpt
 *.tif
+.pytest_cache/

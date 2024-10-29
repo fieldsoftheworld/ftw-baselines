@@ -4,19 +4,9 @@ import os
 import shutil
 import time
 
-import click
 import wget
 from tqdm import tqdm
 
-
-@click.group()
-def ftw():
-    pass
-
-@click.command(help="Download the FTW dataset.")
-@click.option('--out', '-o', type=str, default="./data", help="Folder where the files will be downloaded to. Defaults to './data'.")
-@click.option('--clean_download', '-f', is_flag=True, help="If set, the script will delete the root folder before downloading.")
-@click.option('--countries', type=str, default="all", help="Comma-separated list of countries to download. If 'all' (default) is passed, downloads all available countries.")
 def download(out, clean_download, countries):
     root_folder_path = os.path.abspath(out)
 
@@ -223,9 +213,3 @@ def download(out, clean_download, countries):
 
     else:
         print("Failed to download checksum.md5 file.")
-
-# Add the download command to the ftw click group
-ftw.add_command(download)
-
-if __name__ == "__main__":
-    ftw()

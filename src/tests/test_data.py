@@ -1,7 +1,9 @@
-from ftw_cli.download import download
-from ftw_cli.unpack import unpack
-from click.testing import CliRunner
 import pytest
+from click.testing import CliRunner
+
+from ftw_cli.cli import data_download as download
+from ftw_cli.cli import data_unpack as unpack
+
 
 @pytest.mark.filterwarnings('ignore::FutureWarning')
 def test_data_download():
