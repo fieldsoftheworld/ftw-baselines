@@ -3,7 +3,6 @@ import os
 import tempfile
 import time
 
-import click
 import fiona
 import fiona.transform
 import kornia.augmentation as K
@@ -13,7 +12,7 @@ import planetary_computer as pc
 import pystac
 import rasterio
 import rasterio.features
-import rioxarray # seems unused but is needed
+import rioxarray  # seems unused but is needed
 import shapely.geometry
 import torch
 from affine import Affine
@@ -27,14 +26,8 @@ from ftw.datamodules import preprocess
 from ftw.datasets import SingleRasterDataset
 from ftw.trainers import CustomSemanticSegmentationTask
 
-
 MSPC_URL = "https://planetarycomputer.microsoft.com/api/stac/v1"
 COLLECTION_ID = "sentinel-2-l2a"
-
-@click.group()
-def inference():
-    """Inference-related commands."""
-    pass
 
 def get_item(id):
     if "/" not in id:
@@ -49,13 +42,7 @@ def get_item(id):
 
     return item
 
-WIN_HELP = "URL to or Microsoft Planetary Computer ID of an Sentinel-2 L2A STAC item for the window {x} image"
 
-@inference.command(name="download", help="Download 2 Sentinel-2 scenes & stack them in a single file for inference.")
-@click.option('--win_a', type=str, required=True, help=WIN_HELP.format(x="A"))
-@click.option('--win_b', type=str, required=True, help=WIN_HELP.format(x="B"))
-@click.option('--out', '-o', type=str, required=True, help="Filename to save results to")
-@click.option('--overwrite', '-f', is_flag=True, help="Overwrites the outputs if they exist")
 def create_input(win_a, win_b, out, overwrite):
     """Main function for creating input for inference."""
     if os.path.exists(out) and not overwrite:
@@ -135,17 +122,7 @@ def create_input(win_a, win_b, out, overwrite):
             f.write(data)
         print(f"Finished merging and writing output in {time.time()-tic:0.2f} seconds")
 
-@inference.command(name="run", help="Run inference on the stacked Sentinel-2 L2A satellite images specified via INPUT.")
-@click.argument('input', type=click.Path(exists=True), required=True)
-@click.option('--model', '-m', type=click.Path(exists=True), required=True, help="Path to the model checkpoint.")
-@click.option('--out', '-o', type=str, required=True, help="Output filename.")
-@click.option('--resize_factor', type=int, default=2, help="Resize factor to use for inference.")
-@click.option('--gpu', type=int, help="GPU ID to use. If not provided, CPU will be used by default.")
-@click.option('--patch_size', type=int, default=1024, help="Size of patch to use for inference.")
-@click.option('--batch_size', type=int, default=2, help="Batch size.")
-@click.option('--padding', type=int, default=64, help="Pixels to discard from each side of the patch.")
-@click.option('--overwrite', '-f', is_flag=True, help="Overwrite outputs if they exist.")
-@click.option('--mps_mode', is_flag=True, help="Run inference in MPS mode (Apple GPUs).")
+
 def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, overwrite, mps_mode):
     # Sanity checks
     assert os.path.exists(model), f"Model file {model} does not exist."
@@ -239,12 +216,7 @@ def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, 
 
     print(f"Finished inference and saved output to {out} in {time.time() - tic:.2f}s")
 
-@inference.command(name="polygonize", help="Polygonize the output from inference for the raster image given via INPUT.")
-@click.argument('input', type=click.Path(exists=True), required=True)
-@click.option('--out', '-o', type=str, required=True, help="Output filename for the polygonized data.")
-@click.option('--simplify', type=float, default=None, help="Simplification factor to use when polygonizing.")
-@click.option('--min_size', type=float, default=500, help="Minimum area size in square meters to include in the output.")
-@click.option('--overwrite', '-f', is_flag=True, help="Overwrite outputs if they exist.")
+
 def polygonize(input, out, simplify, min_size, overwrite):
     """Polygonize the output from inference."""
 

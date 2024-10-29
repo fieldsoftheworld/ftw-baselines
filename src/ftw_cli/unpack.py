@@ -4,16 +4,8 @@ import shutil
 import sys
 import zipfile
 
-import click
 from tqdm import tqdm
 
-
-@click.group()
-def ftw():
-    pass
-
-@click.command(help="Unpack the downloaded FTW dataset. Specify the folder where the data is located via INPUT. Defaults to './data'.")
-@click.argument('input', type=str, default="./data")
 def unpack(input):
     ftw_folder_path = os.path.join(input, 'ftw')
 
@@ -86,6 +78,3 @@ def unpack_zip_files(root_folder_path, ftw_folder_path):
     with multiprocessing.Pool(cpu_count) as pool:
         for _ in tqdm(pool.starmap(unpack_zip_file, tasks), total=len(tasks), desc="Unpacking files"):
             pass
-
-if __name__ == "__main__":
-    ftw()

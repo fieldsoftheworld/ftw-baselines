@@ -1,11 +1,9 @@
 import os
 import time
 
-import click
 import numpy as np
 import torch
 from lightning.pytorch.cli import LightningCLI
-from pyproj import CRS
 from torch.utils.data import DataLoader
 from torchgeo.datamodules import BaseDataModule
 from torchgeo.trainers import BaseTask
@@ -18,25 +16,6 @@ from ftw.metrics import get_object_level_metrics
 from ftw.trainers import CustomSemanticSegmentationTask
 
 
-# Define the main click group
-@click.group()
-def ftw():
-    """CLI group for FTW commands."""
-    pass
-
-
-# Define the 'model' click group
-@click.group()
-def model():
-    """Training and testing FTW models."""
-    pass
-
-
-# Define the 'fit' command under 'model'
-@click.command(help="Fit the model")
-@click.option('--config', '-c', required=True, type=click.Path(exists=True), help='Path to the config file (required)')
-@click.option('--ckpt_path', type=click.Path(exists=True), help='Path to a checkpoint file to resume training from')
-@click.argument('cli_args', nargs=-1, type=click.UNPROCESSED)  # Capture all remaining arguments
 def fit(config, ckpt_path, cli_args):
     """Command to fit the model."""
     print("Running fit command")
@@ -72,20 +51,6 @@ def fit(config, ckpt_path, cli_args):
     )
 
 
-
-# Define the 'test' command under 'model'
-@click.command(help="Test the model")
-@click.option('--model', '-m', required=True, type=str, help='Path to model checkpoint')
-@click.option('--dir', type=str, default="data/ftw", help='Directory of dataset')
-@click.option('--gpu', type=int, default=0, help='GPU to use')
-@click.option('--countries', type=str, multiple=True, required=True, help='Countries to evaluate on')
-@click.option('--postprocess', is_flag=True, help='Apply postprocessing to the model output')
-@click.option('--iou_threshold', type=float, default=0.5, help='IoU threshold for matching predictions to ground truths')
-@click.option('--out', '-o', type=str, default="metrics.json", help='Output file for metrics')
-@click.option('--model_predicts_3_classes', is_flag=True, help='Whether the model predicts 3 classes or 2 classes')
-@click.option('--test_on_3_classes', is_flag=True, help='Whether to test on 3 classes or 2 classes')
-@click.option('--temporal_options', type=str, default="stacked", help='Temporal option (stacked, windowA, windowB, etc.)')
-@click.argument('cli_args', nargs=-1, type=click.UNPROCESSED)  # Capture all remaining arguments
 def test(model, dir, gpu, countries, postprocess, iou_threshold, out, model_predicts_3_classes, test_on_3_classes, temporal_options, cli_args):
     """Command to test the model."""
     print("Running test command")
@@ -192,15 +157,3 @@ def test(model, dir, gpu, countries, postprocess, iou_threshold, out, model_pred
                 f.write("train_checkpoint,test_countries,pixel_level_iou,pixel_level_precision,pixel_level_recall,object_level_precision,object_level_recall\n")
         with open(out, "a") as f:
             f.write(f"{model},{countries},{pixel_level_iou},{pixel_level_precision},{pixel_level_recall},{object_precision},{object_recall}\n")
-
-
-# Add 'fit' and 'test' commands under the 'model' group
-model.add_command(fit)
-model.add_command(test)
-
-# Add the 'model' group under the 'ftw' group
-ftw.add_command(model)
-
-
-if __name__ == "__main__":
-    ftw()
