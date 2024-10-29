@@ -33,6 +33,7 @@ dependencies = [
     "tensorboard",             # For PyTorch logging
     "torchgeo",                # For geospatial deep learning
     "fiona",                   # For reading/writing vector data
+    "pyproj",                  # For projections and CRSes
 ]
 
 [project.optional-dependencies]

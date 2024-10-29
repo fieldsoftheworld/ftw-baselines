@@ -17,6 +17,7 @@ import shapely.geometry
 import torch
 from affine import Affine
 from kornia.constants import Resample
+from pyproj import CRS
 from torch.utils.data import DataLoader
 from torchgeo.datasets import stack_samples
 from torchgeo.samplers import GridGeoSampler
