@@ -15,7 +15,6 @@ import rasterio.features
 import rioxarray  # seems unused but is needed
 import shapely.geometry
 import torch
-from affine import Affine
 from kornia.constants import Resample
 from pyproj import CRS
 from torch.utils.data import DataLoader
@@ -232,59 +231,63 @@ def polygonize(input, out, simplify, min_size, overwrite):
         return
     elif os.path.exists(out) and overwrite:
         os.remove(out)  # GPKGs are sometimes weird about overwriting in-place
-
-    tic = time.time()
-    rows = []
-    i = 0
-    # read the input file as a mask
-    with rasterio.open(input) as src:
-        input_height, input_width = src.shape
-        original_crs = src.crs.to_string()
-        transform = src.transform 
-        mask = (src.read(1) == 1).astype(np.uint8)
-        polygonization_stride = 2048
-        total_iterations = (input_height // polygonization_stride) * (input_width // polygonization_stride)
-        
-        # Define the equal-area projection using EPSG:6933
-        equal_area_crs = CRS.from_epsg(6933)
-
-        with tqdm(total=total_iterations, desc="Processing mask windows") as pbar:
-            for y in range(0, input_height, polygonization_stride):
-                for x in range(0, input_width, polygonization_stride):
-                    new_transform = transform * Affine.translation(x, y)
-                    mask_window = mask[y:y+polygonization_stride, x:x+polygonization_stride]
-                    for geom, val in rasterio.features.shapes(mask_window, transform=new_transform):
-                        if val == 1:
-                            geom = shapely.geometry.shape(geom)
-                            if simplify is not None:
-                                geom = geom.simplify(simplify)
-                            
-                            # Convert the geometry to a GeoJSON-like format for transformation
-                            geom_geojson = shapely.geometry.mapping(geom)
-                            
-                            # Reproject the geometry to the equal-area projection for accurate area calculation
-                            geom_area_proj = fiona.transform.transform_geom(original_crs, equal_area_crs, geom_geojson)
-                            geom_area_proj = shapely.geometry.shape(geom_area_proj)
-                            area = geom_area_proj.area  # Calculate the area of the reprojected geometry
-                            
-                            # Only include geometries that meet the minimum size requirement
-                            if area >= min_size:
-                                # Keep the geometry in the original projection for output
-                                geom = shapely.geometry.mapping(geom)
-
-                                rows.append({
-                                    "geometry": geom,
-                                    "properties": {
-                                        "idx": i,
-                                        "area": area  # Add the area in m² to the properties
-                                    }
-                                })
-                                i += 1
-                    pbar.update(1)
-
+    
+    # Define the equal-area projection using EPSG:6933
+    equal_area_crs = CRS.from_epsg(6933)
+    # Define the schema for the geometries in the output file
     schema = {'geometry': 'Polygon', 'properties': {'idx': 'int', 'area': 'float'}}
-    with fiona.open(out, 'w', 'GPKG', schema=schema, crs=original_crs) as dst:
-        for row in rows:
-            dst.write(row)
+    # Start the timer
+    tic = time.time()
+    # Read the input file as a mask
+    with (
+        rasterio.open(input) as src,
+        fiona.open(out, 'w', 'GPKG', schema=schema, crs=src.crs.to_string()) as dst,
+        tqdm() as pbar
+    ):
+        mask = (src.read(1) == 1).astype(np.uint8)
+
+        print("Starting polygonization, this may take a couple of minutes until a progress bar appears...")
+
+        i = 0
+        rows = []
+        # Replace shapes with https://github.com/rasterio/rasterio/issues/1501 ?
+        for geojson, val in rasterio.features.shapes(mask, transform=src.transform):
+            if val != 1:
+                continue
+            
+            if i % 1000 == 0:
+                if len(rows) > 0:
+                    dst.writerecords(rows)
+                pbar.update(1000)
+                rows = []
+            i += 1
+
+            geom = shapely.geometry.shape(geojson)
+            if simplify is not None:
+                geom = geom.simplify(simplify)
+            
+            if src.crs.linear_units == "m":
+                area = geom.area
+            else:
+                # Reproject the geometry to the equal-area projection for accurate area calculation
+                geom_area_proj = shapely.geometry.shape(
+                    fiona.transform.transform_geom(src.crs.to_string(), equal_area_crs, geojson)
+                )
+                area = geom_area_proj.area
+            
+            # Only include geometries that meet the minimum size requirement
+            if area < min_size:
+                continue
+            
+            rows.append({
+                "geometry": geom,
+                "properties": {
+                    "idx": i,
+                    "area": area  # Add the area in m² to the properties
+                }
+            })
+        
+        # Write remaining features
+        dst.writerecords(rows)
 
     print(f"Finished polygonizing output at {out} in {time.time() - tic:.2f}s")
