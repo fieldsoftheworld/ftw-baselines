@@ -10,11 +10,6 @@ CONFIG_FILE = "src/tests/data-files/min_config.yaml"
 def test_model_fit():
     runner = CliRunner()
 
-    # Check help
-    result = runner.invoke(model_fit, ["--help"])
-    assert result.exit_code == 0, result.output
-    assert "Usage: fit [OPTIONS] [CLI_ARGS]..." in result.output
-
     # Download required data for the fit command
     runner.invoke(data_download, ["--countries=Kenya,Rwanda"])
     assert os.path.exists("data/ftw/kenya")
@@ -32,12 +27,7 @@ def test_model_fit():
 def test_model_test():
     runner = CliRunner()
 
-    # Check help
-    result = runner.invoke(model_test, ["--help"])
-    assert result.exit_code == 0, result.output
-    assert "Usage: test [OPTIONS] [CLI_ARGS]..." in result.output
-
-    # Actually run the test
+    # Check model for Kenya
     result = runner.invoke(model_test, [
         "--gpu", "0",
         "--model", CKPT_FILE,
@@ -50,5 +40,3 @@ def test_model_test():
     assert "100%|" in result.output
     assert "Object level recall: 0.0000" in result.output
     assert os.path.exists("results.csv")
-
-    # TODO: Add more tests

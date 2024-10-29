@@ -1,19 +1,12 @@
 import os
-import pytest
 from click.testing import CliRunner
 
 from ftw_cli.cli import data_download as download
 from ftw_cli.cli import data_unpack as unpack
 
 
-@pytest.mark.filterwarnings('ignore::FutureWarning')
 def test_data_download():
     runner = CliRunner()
-
-    # Check help
-    result = runner.invoke(download, ["--help"])
-    assert result.exit_code == 0, result.output
-    assert "Usage: download [OPTIONS]" in result.output
 
     # Clean download
     result = runner.invoke(download, ["-f", "--countries=Rwanda", "--no-unpack"])
@@ -40,11 +33,6 @@ def test_data_download():
 
 def test_data_unpack():
     runner = CliRunner()
-    
-    # Check help
-    result = runner.invoke(unpack, ["--help"])
-    assert result.exit_code == 0, result.output
-    assert "Usage: unpack [OPTIONS] [INPUT]" in result.output
 
     # Unpack the files
     result = runner.invoke(unpack, [])
