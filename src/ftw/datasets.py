@@ -102,6 +102,7 @@ class FTW(NonGeoDataset):
         
         if isinstance(countries, str):
             countries = [countries]
+        countries = [country.lower() for country in countries]
         for country in countries:
             assert country in self.valid_countries, f"Invalid country {country}"
         

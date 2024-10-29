@@ -120,12 +120,12 @@ def test(model, dir, gpu, countries, postprocess, iou_threshold, out, model_pred
         masks = masks.cpu().numpy().astype(np.uint8)
 
         for i in range(len(outputs)):
-            out = outputs[i]
+            output = outputs[i]
             mask = masks[i]
             if postprocess:
                 post_processed_output = out.copy()
-                out = post_processed_output
-            tps, fps, fns = get_object_level_metrics(mask, out, iou_threshold=iou_threshold)
+                output = post_processed_output
+            tps, fps, fns = get_object_level_metrics(mask, output, iou_threshold=iou_threshold)
             all_tps += tps
             all_fps += fps
             all_fns += fns
