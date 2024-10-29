@@ -55,9 +55,6 @@ def unpack_zip_files(root_folder_path, ftw_folder_path):
         print(f"No .zip files found in {root_folder_path}")
         return
 
-    # Clean and create the ftw folder
-    clean_and_create_ftw_folder(ftw_folder_path)
-
     # Prepare for multiprocessing
     cpu_count = multiprocessing.cpu_count()
     print(f"Using {cpu_count} CPUs for unpacking.")

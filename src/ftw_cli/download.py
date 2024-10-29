@@ -59,24 +59,16 @@ def calculate_md5(file_path):
     return hash_md5.hexdigest()
 
 
-def clean_root_folder(root_folder_path):
-    """
-    Deletes all files and directories in the root folder.
-    """
-    if os.path.exists(root_folder_path):
-        for filename in os.listdir(root_folder_path):
-            file_path = os.path.join(root_folder_path, filename)
-            try:
-                if os.path.isfile(file_path) or os.path.islink(file_path):
-                    os.unlink(file_path)
-                elif os.path.isdir(file_path):
-                    os.rmdir(file_path)
-            except Exception as e:
-                print(f"Failed to delete {file_path}. Reason: {e}")
-
-
 def download(out, clean_download, countries):
     root_folder_path = os.path.abspath(out)
+
+    # Deletes all files and directories in the root folder.
+    if clean_download and os.path.exists(root_folder_path):
+        try:
+            shutil.rmtree(root_folder_path)
+            print(f"Deleted old data from {root_folder_path}")
+        except Exception as e:
+            print(f"Failed to delete {root_folder_path}. Reason: {e}")
 
     # Ensure the root folder exists
     os.makedirs(root_folder_path, exist_ok=True)
@@ -187,31 +179,26 @@ def download(out, clean_download, countries):
         overall_progress.close()
 
     # Main script
-    # Step 1: Clean the dataset folder if --clean_download is specified
-    if clean_download:
-        print(f"Performing a clean download. Deleting contents of {root_folder_path}...")
-        clean_root_folder(root_folder_path)
-
-    # Step 2: Download the checksum.md5 file
+    # Step 1: Download the checksum.md5 file
     local_md5_file_path = os.path.join(root_folder_path, 'checksum.md5')
     md5_file_url = 'https://data.source.coop/kerner-lab/fields-of-the-world-archive/checksum.md5'
 
-    if download_file(md5_file_url, local_md5_file_path):
-        print(f"Downloaded checksum.md5 to {local_md5_file_path}")
-
-        # Step 3: Load the checksum data
-        checksum_data = load_checksums(local_md5_file_path)
-
-        # Step 4: Handle country selection (all or specific countries)
-        if countries == 'all':
-            country_names = ALL_COUNTRIES
-            print("Downloading all available countries...")
-        else:
-            country_names = [country.lower().strip() for country in countries.split(',') if country.lower().strip() in ALL_COUNTRIES]
-            print(f"Downloading selected countries: {country_names}")
-
-        # Step 5: Download all .zip files for the specified countries and verify their checksums
-        download_all_country_files(root_folder_path, country_names, checksum_data)
-
-    else:
+    if not download_file(md5_file_url, local_md5_file_path):
         print("Failed to download checksum.md5 file.")
+        return
+    
+    print(f"Downloaded checksum.md5 to {local_md5_file_path}")
+
+    # Step 2: Load the checksum data
+    checksum_data = load_checksums(local_md5_file_path)
+
+    # Step 3: Handle country selection (all or specific countries)
+    if countries == 'all':
+        country_names = ALL_COUNTRIES
+        print("Downloading all available countries...")
+    else:
+        country_names = [country.lower().strip() for country in countries.split(',') if country.lower().strip() in ALL_COUNTRIES]
+        print(f"Downloading selected countries: {country_names}")
+
+    # Step 4: Download all .zip files for the specified countries and verify their checksums
+    download_all_country_files(root_folder_path, country_names, checksum_data)

@@ -11,3 +11,4 @@ src/ftw.egg-info/
 *.ckpt
 *.tif
 .pytest_cache/
+/results.csv

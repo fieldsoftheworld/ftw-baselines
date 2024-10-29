@@ -22,7 +22,9 @@ dependencies = [
     "pytorch-lightning",       # For high-level PyTorch training loops
     "PyYAML",                  # For parsing YAML config files
     "wget",                    # For file downloads
-    "pyarrow",                 # For in-memory data processing
+    # pyarrow or later lead to an filesystem error in the fit function:
+    # Error: Attempted to register factory for scheme 'file' but that scheme is already registered.
+    "pyarrow==16.0.0",         # For in-memory data processing
     "odc-stac",                # For handling STAC data via Open Data Cube
     "planetary-computer",      # For accessing Planetary Computer STAC data
     "pystac",                  # For reading STAC

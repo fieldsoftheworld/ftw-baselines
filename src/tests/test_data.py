@@ -1,3 +1,4 @@
+import os
 import pytest
 from click.testing import CliRunner
 
@@ -15,23 +16,27 @@ def test_data_download():
     assert "Usage: download [OPTIONS]" in result.output
 
     # Clean download
-    result = runner.invoke(download, ["-f", "--countries=Rwanda"])
+    result = runner.invoke(download, ["-f", "--countries=Rwanda", "--no-unpack"])
     assert result.exit_code == 0, result.output
     assert "Downloading selected countries: ['rwanda']" in result.output
     assert "Overall Download Progress: 100%" in result.output
-    assert "Unpacking files: 100%" in result.output
+    assert "Unpacking files:" not in result.output
+    assert os.path.exists("data/rwanda.zip")
+    assert not os.path.exists("data/ftw/rwanda")
 
-    # Try again and expect to skip the download
+    # Try again and expect to skip the download, but unpack files
     result = runner.invoke(download, ["--countries=Rwanda"])
     assert result.exit_code == 0, result.output
     assert "already exists, skipping download." in result.output
     assert "Unpacking files: 100%" in result.output
+    assert os.path.exists("data/rwanda.zip")
+    assert os.path.exists("data/ftw/rwanda")
 
     # Try again and expect to skip the download and not unpack
-    result = runner.invoke(download, ["--countries=Rwanda", "--no-unpack"])
+    result = runner.invoke(download, ["--countries=Rwanda"])
     assert result.exit_code == 0, result.output
     assert "already exists, skipping download." in result.output
-    assert "Unpacking files:" not in result.output
+    assert "Unpacking files:" in result.output
 
 def test_data_unpack():
     runner = CliRunner()

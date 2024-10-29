@@ -24,4 +24,4 @@ jobs:
       - name: Install Python dependencies
         run: pip install -e .[dev]
       - name: Execute test suites
-        run: pytest
+        run: pytest src/tests
