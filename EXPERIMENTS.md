@@ -1,25 +1,21 @@
-## Table of Contents
+# Experiments <!-- omit in toc -->
 
-- [Experimentation](#experimentation)
-  - [Pre-requisites for experimentation](#pre-requisites-for-experimentation)
-  - [Model Weights](#model-weights)
-  - [Training](#training)
-    - [Train a model from scratch](#train-a-model-from-scratch)
-    - [Resume training from a checkpoint](#resume-training-from-a-checkpoint)
-    - [Visualizing the training process](#visualizing-the-training-process)
-  - [Testing](#testing)
-    - [Test a model](#test-a-model)
-  - [Parallel experimentation](#parallel-experimentation)
-    - [Run experiments in parallel](#run-experiments-in-parallel)
-  - [Inference](#inference)
-    - [Sample Prediction Output (Austria Patch, Red - Fields)](#sample-prediction-output-austria-patch-red---fields)
-    - [CC-BY(or equivalent) trained models](#cc-byor-equivalent-trained-models)
+## Table of Contents <!-- omit in toc -->
 
-
+- [Pre-requisites for experimentation](#pre-requisites-for-experimentation)
+- [Model Weights](#model-weights)
+- [Training](#training)
+  - [Train a model from scratch](#train-a-model-from-scratch)
+  - [Resume training from a checkpoint](#resume-training-from-a-checkpoint)
+  - [Visualizing the training process](#visualizing-the-training-process)
+- [Testing](#testing)
+  - [Test a model](#test-a-model)
+- [Parallel experimentation](#parallel-experimentation)
+  - [Run experiments in parallel](#run-experiments-in-parallel)
 
 This experimentation section provides guidelines for running model training, testing, and experimentation using multiple GPUs and configuration files.
 
-```
+```text
 ftw model --help
   Usage: ftw model [OPTIONS] COMMAND [ARGS]...
 
@@ -34,7 +30,6 @@ Commands:
 ```
 
 **Our current best model architecture comprises `unet` with `efficientnet-b3` backbone trained with weighted `cross-entropy` loss. Please see the config files under `configs/FTW-Release` folder for more information.**
-
 
 ## Pre-requisites for experimentation
 
@@ -95,9 +90,7 @@ seed_everything: <SEED VALUE>
 
 ## Model Weights
 
-For the training and experimentation, we utilize pre-trained model weights available on Hugging Face. You can download these weights directly from the [Hugging Face Model Hub](https://huggingface.co/torchgeo/fields-of-the-worl). 
-
-
+For the training and experimentation, we utilize pre-trained model weights available on Hugging Face. You can download these weights directly from the [Hugging Face Model Hub](https://huggingface.co/torchgeo/fields-of-the-worl).
 
 ## Training
 
@@ -105,7 +98,7 @@ We use [LightningCLI](https://lightning.ai/docs/pytorch/stable/api/lightning.pyt
 
 ### Train a model from scratch
 
-```
+```text
 ftw model fit --help
 
 Usage: ftw model fit [OPTIONS] [CLI_ARGS]...
@@ -134,19 +127,20 @@ ftw model fit --config configs/example_config.yaml --ckpt_path <Checkpoint File 
 
 ### Visualizing the training process
 
-Tensorboard is used to log the training and validation steps. The logs are situated in folders specified in the `config.yaml` files. Search for this line in the configuration. 
+Tensorboard is used to log the training and validation steps. The logs are situated in folders specified in the `config.yaml` files. Search for this line in the configuration.
 
-```
+```yaml
 default_root_dir: logs/<experiment name>
 ```
 
-To visualize the the logs run:
+To visualize the the logs run pass the log directory of the experiments in the `--logdir` argument:
 
-```
-tensorboard --logdir=<log directory of experiments>
+```bash
+tensorboard --logdir=YOUR_DIR
 ```
 
 Currently logged informations are:
+
 - Train multi class accuracy
 - Train multi class jaccard index
 - Train loss
@@ -160,7 +154,7 @@ Currently logged informations are:
 
 Once your model has been trained, you can evaluate it on the test set specified in your datamodule. This can be done using the same configuration file used for training.
 
-```
+```text
 ftw model test --help
 
 Usage: ftw model test [OPTIONS] [CLI_ARGS]...
@@ -183,7 +177,6 @@ Options:
                               etc.)
   --help                      Show this message and exit.
 ```
-
 
 ### Test a model
 
@@ -214,135 +207,3 @@ python run_experiments.py
 ```
 
 The script will distribute the experiments across the specified GPUs using a queue, with each experiment running on the corresponding GPU.
-
-## Inference
-
-We provide the `inference` cli commands to allow users to run models that have been pre-trained on FTW on any temporal pair of S2 images. 
-
-```
-ftw inference --help
-
-Usage: ftw inference [OPTIONS] COMMAND [ARGS]...
-
-  Inference-related commands.
-
-Options:
-  --help  Show this message and exit.
-
-Commands:
-  download    Download 2 Sentinel-2 scenes & stack them in a single file...
-  polygonize  Polygonize the output from inference
-  run         Run inference on the stacked satellite images
-```
-
-First, you need a trained model - either download a pre-trained model (we provide an example pre-trained model in the [Releases](https://github.com/fieldsoftheworld/ftw-baselines/releases) list), or train your own model as explained in the [Training](#training) section. 
-
-Second, you need to concatenate the bands of two aligned Sentinel-2 scenes that show your area of interest in two seasons (e.g. planting and harvesting seasons) in the following order: B04_t1, BO3_t1, BO2_t1, B08_t1, B04_t2, BO3_t2, BO2_t2, B08_t2 (t1 and t2 represent two different points in time). The `ftw inference download` command does this automatically given two STAC items. The Microsoft [Planetary Computer Explorer](https://planetarycomputer.microsoft.com/explore?d=sentinel-2-l2a) is a convenient tool for finding relevant scenes and their corresponding STAC items. 
-
-```
-ftw inference download --help
-
-Usage: ftw inference download [OPTIONS]
-
-  Download 2 Sentinel-2 scenes & stack them in a single file for inference.
-
-Options:
-  --win_a TEXT       URL to or Microsoft Planetary Computer ID of an Sentinel-2
-                     L2A STAC item for the window A image  [required]
-  --win_b TEXT       URL to or Microsoft Planetary Computer ID of an Sentinel-2
-                     L2A STAC item for the window B image  [required]
-  -o, --out TEXT     Filename to save results to  [required]
-  -f, --overwrite    Overwrites the outputs if they exist
-  --help             Show this message and exit.
-```
-
-Then `ftw inference run` is the command that will run a given model on overlapping patches of input imagery (i.e. the output of `ftw inference download`) and stitch the results together in GeoTIFF format. 
-
-```
-ftw inference run --help
-
-Usage: ftw inference run [OPTIONS] INPUT
-
-  Run inference on the stacked Sentinel-2 L2A satellite images specified in
-  INPUT.
-
-Options:
-  -m, --model PATH         Path to the model checkpoint.  [required]
-  -o, --out TEXT           Output filename.  [required]
-  --resize_factor INTEGER  Resize factor to use for inference.
-  --gpu INTEGER            GPU ID to use. If not provided, CPU will be used by
-                           default.
-  --patch_size INTEGER     Size of patch to use for inference.
-  --batch_size INTEGER     Batch size.
-  --padding INTEGER        Pixels to discard from each side of the patch.
-  -f, --overwrite          Overwrite outputs if they exist.
-  --mps_mode               Run inference in MPS mode (Apple GPUs).
-  --help                   Show this message and exit.
-```
-
-You can then use the `ftw inference polygonize` command to convert the output of the inference into a vector format (initially GeoPackage, GeoParquet/Fiboa coming soon).
-
-```
-ftw inference polygonize --help
-
-Usage: ftw inference polygonize [OPTIONS] INPUT
-
-  Polygonize the output from inference for the raster image given via INPUT.
-
-Options:
-  -o, --out TEXT     Output filename for the polygonized data.  [required]
-  --simplify FLOAT   Simplification factor to use when polygonizing.
-  -f, --overwrite    Overwrite outputs if they exist.
-  --help             Show this message and exit.
-```
-
-Simplification factor is measured in the units of the coordinate reference system (CRS), and for Sentinel-2 this is meters, so a simplification factor of 15 or 20 is usually sufficient (and recommended, or the vector file will be as large as the raster file).
-
-The following commands show these four steps for a pair of Sentinel-2 scenes over Austria:
-
-- Download pretrained checkpoint from [Pretrained-Models](https://github.com/fieldsoftheworld/ftw-baselines/releases/tag/Pretrained-Models).
-  - 3 Class
-    ```bash
-    wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/Pretrained-Models/3_Class_FULL_FTW_Pretrained.ckpt
-    ```
-  - 2 Class
-    ```bash
-    wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/Pretrained-Models/2_Class_FULL_FTW_Pretrained.ckpt
-    ```
-
-- Download S2 Image scene.
-  ```bash
-  ftw inference download --win_a S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729 --win_b S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923 --out inference_imagery/austria_example.tif
-  ```
-
-- Run inference on the entire scene.
-  ```bash
-  ftw inference run inference_imagery/austria_example.tif --model 3_Class_FULL_FTW_Pretrained.ckpt --out austria_example_output_full.tif --gpu 0 --overwrite --resize_factor 2
-  ```
-
-### Sample Prediction Output (Austria Patch, Red - Fields)
-
-![Sample Prediction Output](/assets/austria_prediction.png)
-
-- Polygonize the output.
-  ```bash
-  ftw inference polygonize austria_example_output_full.tif --out austria_example_output_full.gpkg --simplify 20
-  ```
-
-### CC-BY(or equivalent) trained models
-
-Consider using CC-BY FTW Trained Checkpoints from the release file for Commercial Purpose, For Non-Commercial Purpose and Academic purpose you can use the FULL FTW Trained Checkpoints (See the Images below for perfrmance comparison)
-
-We have also made FTW model checkpoints available that are pretrained only on CC-BY (or equivalent open licenses) datasets. You can download these checkpoints using the following command: 
-  
-- 3 Class
-  ```bash
-  wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/Pretrained-Models/3_Class_CCBY_FTW_Pretrained.ckpt
-  ```
-- 2 Class
-  ```bash
-  https://github.com/fieldsoftheworld/ftw-baselines/releases/download/Pretrained-Models/2_Class_CCBY_FTW_Pretrained.ckpt
-  ```
-
-![3 Class IoU](/assets/3%20Class%20IoU%20Comparison.png)
-![2 Class IoU](/assets/2%20Class%20IoU%20Comparison.png)
