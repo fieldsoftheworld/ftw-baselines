@@ -16,19 +16,23 @@ def data():
     """Downloading, unpacking, and preparing the FTW dataset."""
     pass
 
-@data.command("download", help="Download the FTW dataset.")
+@data.command("download", help="Download and unpack the FTW dataset.")
 @click.option('--out', '-o', type=str, default="./data", help="Folder where the files will be downloaded to. Defaults to './data'.")
 @click.option('--clean_download', '-f', is_flag=True, help="If set, the script will delete the root folder before downloading.")
 @click.option('--countries', type=str, default="all", help="Comma-separated list of countries to download. If 'all' (default) is passed, downloads all available countries.")
-def data_download(out, clean_download, countries):
-    from ftw_cli.download import download as fn
-    fn(out, clean_download, countries)
+@click.option('--no-unpack', is_flag=True, help="If set, the script will NOT unpack the downloaded files.")
+def data_download(out, clean_download, countries, no_unpack):
+    from ftw_cli.download import download
+    from ftw_cli.unpack import unpack
+    download(out, clean_download, countries)
+    if not no_unpack:
+        unpack(out)
 
 @data.command("unpack", help="Unpack the downloaded FTW dataset. Specify the folder where the data is located via INPUT. Defaults to './data'.")
 @click.argument('input', type=str, default="./data")
 def data_unpack(input):
-    from ftw_cli.unpack import unpack as fn
-    fn(input)
+    from ftw_cli.unpack import unpack
+    unpack(input)
 
 data.add_command(data_download)
 data.add_command(data_unpack)

@@ -7,6 +7,74 @@ import time
 import wget
 from tqdm import tqdm
 
+# List of all available countries
+ALL_COUNTRIES = [
+    "belgium", 
+    "cambodia", 
+    "croatia", 
+    "estonia", 
+    "portugal", 
+    "slovakia", 
+    "south_africa", 
+    "sweden", 
+    "austria", 
+    "brazil", 
+    "corsica", 
+    "denmark", 
+    "france", 
+    "india", 
+    "latvia", 
+    "luxembourg", 
+    "finland", 
+    "germany", 
+    "kenya", 
+    "lithuania", 
+    "netherlands", 
+    "rwanda", 
+    "slovenia", 
+    "spain", 
+    "vietnam"
+]
+
+def load_checksums(local_md5_file_path):
+    """
+    Load the checksum data from a local md5 file.
+
+    :param local_md5_file_path: Path to the local checksum.md5 file
+    :return: Dictionary with country name as key and checksum hash as value
+    """
+    checksum_data = {}
+    with open(local_md5_file_path, 'r') as file:
+        for line in file:
+            country, checksum = line.strip().split(',')
+            checksum_data[country.lower()] = checksum
+    return checksum_data
+
+def calculate_md5(file_path):
+    """Calculate the MD5 checksum of a file."""
+    hash_md5 = hashlib.md5()
+    with open(file_path, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
+
+
+def clean_root_folder(root_folder_path):
+    """
+    Deletes all files and directories in the root folder.
+    """
+    if os.path.exists(root_folder_path):
+        for filename in os.listdir(root_folder_path):
+            file_path = os.path.join(root_folder_path, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    os.rmdir(file_path)
+            except Exception as e:
+                print(f"Failed to delete {file_path}. Reason: {e}")
+
+
 def download(out, clean_download, countries):
     root_folder_path = os.path.abspath(out)
 
@@ -19,14 +87,6 @@ def download(out, clean_download, countries):
     # Initialize logging
     logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
     logger = logging.getLogger()
-
-    def calculate_md5(file_path):
-        """Calculate the MD5 checksum of a file."""
-        hash_md5 = hashlib.md5()
-        with open(file_path, "rb") as f:
-            for chunk in iter(lambda: f.read(4096), b""):
-                hash_md5.update(chunk)
-        return hash_md5.hexdigest()
 
     def custom_progress_bar(file_name):
         start_time = time.time()
@@ -94,35 +154,6 @@ def download(out, clean_download, countries):
             logger.error(f"Checksum verification failed for {zip_file_path}")
             return False
 
-    def load_checksums(local_md5_file_path):
-        """
-        Load the checksum data from a local md5 file.
-
-        :param local_md5_file_path: Path to the local checksum.md5 file
-        :return: Dictionary with country name as key and checksum hash as value
-        """
-        checksum_data = {}
-        with open(local_md5_file_path, 'r') as file:
-            for line in file:
-                country, checksum = line.strip().split(',')
-                checksum_data[country.lower()] = checksum
-        return checksum_data
-
-    def clean_root_folder(root_folder_path):
-        """
-        Deletes all files and directories in the root folder.
-        """
-        if os.path.exists(root_folder_path):
-            for filename in os.listdir(root_folder_path):
-                file_path = os.path.join(root_folder_path, filename)
-                try:
-                    if os.path.isfile(file_path) or os.path.islink(file_path):
-                        os.unlink(file_path)
-                    elif os.path.isdir(file_path):
-                        os.rmdir(file_path)
-                except Exception as e:
-                    print(f"Failed to delete {file_path}. Reason: {e}")
-
     def download_all_country_files(root_folder, country_names, checksum_data):
         """
         Download all .zip files for the specified countries and verify their checksums using basic URL downloads.
@@ -155,35 +186,6 @@ def download(out, clean_download, countries):
 
         overall_progress.close()
 
-    # List of all available countries
-    all_countries = [
-        "belgium", 
-        "cambodia", 
-        "croatia", 
-        "estonia", 
-        "portugal", 
-        "slovakia", 
-        "south_africa", 
-        "sweden", 
-        "austria", 
-        "brazil", 
-        "corsica", 
-        "denmark", 
-        "france", 
-        "india", 
-        "latvia", 
-        "luxembourg", 
-        "finland", 
-        "germany", 
-        "kenya", 
-        "lithuania", 
-        "netherlands", 
-        "rwanda", 
-        "slovenia", 
-        "spain", 
-        "vietnam"
-    ]
-
     # Main script
     # Step 1: Clean the dataset folder if --clean_download is specified
     if clean_download:
@@ -202,10 +204,10 @@ def download(out, clean_download, countries):
 
         # Step 4: Handle country selection (all or specific countries)
         if countries == 'all':
-            country_names = all_countries
+            country_names = ALL_COUNTRIES
             print("Downloading all available countries...")
         else:
-            country_names = [country.lower().strip() for country in countries.split(',') if country.lower().strip() in all_countries]
+            country_names = [country.lower().strip() for country in countries.split(',') if country.lower().strip() in ALL_COUNTRIES]
             print(f"Downloading selected countries: {country_names}")
 
         # Step 5: Download all .zip files for the specified countries and verify their checksums

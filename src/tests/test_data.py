@@ -19,11 +19,19 @@ def test_data_download():
     assert result.exit_code == 0, result.output
     assert "Downloading selected countries: ['rwanda']" in result.output
     assert "Overall Download Progress: 100%" in result.output
+    assert "Unpacking files: 100%" in result.output
 
     # Try again and expect to skip the download
     result = runner.invoke(download, ["--countries=Rwanda"])
     assert result.exit_code == 0, result.output
     assert "already exists, skipping download." in result.output
+    assert "Unpacking files: 100%" in result.output
+
+    # Try again and expect to skip the download and not unpack
+    result = runner.invoke(download, ["--countries=Rwanda", "--no-unpack"])
+    assert result.exit_code == 0, result.output
+    assert "already exists, skipping download." in result.output
+    assert "Unpacking files:" not in result.output
 
 def test_data_unpack():
     runner = CliRunner()
