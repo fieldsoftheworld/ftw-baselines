@@ -23,5 +23,7 @@ jobs:
           auto-activate-base: false
       - name: Install Python dependencies
         run: pip install -e .[dev]
+      - name: Download model
+        run: wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/Pretrained-Models/3_Class_FULL_FTW_Pretrained.ckpt
       - name: Execute test suites
         run: pytest src/tests
