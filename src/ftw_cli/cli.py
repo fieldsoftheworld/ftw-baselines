@@ -1,5 +1,7 @@
 import click
 
+from .cfg import ALL_COUNTRIES, SUPPORTED_POLY_FORMATS_TXT
+
 # Imports are in the functions below to speed-up CLI startup time
 # Some of the ML related imports (presumable torch) are very slow
 # See https://github.com/fieldsoftheworld/ftw-baselines/issues/40
@@ -19,7 +21,7 @@ def data():
 @data.command("download", help="Download and unpack the FTW dataset.")
 @click.option('--out', '-o', type=str, default="./data", help="Folder where the files will be downloaded to. Defaults to './data'.")
 @click.option('--clean_download', '-f', is_flag=True, help="If set, the script will delete the root folder before downloading.")
-@click.option('--countries', type=str, default="all", help="Comma-separated list of countries to download. If 'all' (default) is passed, downloads all available countries.")
+@click.option('--countries', type=str, default="all", help="Comma-separated list of countries to download. If 'all' (default) is passed, downloads all available countries. Available countries: " + ", ".join(ALL_COUNTRIES))
 @click.option('--no-unpack', is_flag=True, help="If set, the script will NOT unpack the downloaded files.")
 def data_download(out, clean_download, countries, no_unpack):
     from ftw_cli.download import download
@@ -106,13 +108,14 @@ def inference_run(input, model, out, resize_factor, gpu, patch_size, batch_size,
 
 @inference.command("polygonize", help="Polygonize the output from inference for the raster image given via INPUT.")
 @click.argument('input', type=click.Path(exists=True), required=True)
-@click.option('--out', '-o', type=str, required=True, help="Output filename for the polygonized data.")
-@click.option('--simplify', type=float, default=None, help="Simplification factor to use when polygonizing.")
-@click.option('--min_size', type=float, default=500, help="Minimum area size in square meters to include in the output.")
+@click.option('--out', '-o', type=str, required=True, help="Output filename for the polygonized data. " + SUPPORTED_POLY_FORMATS_TXT)
+@click.option('--simplify', type=float, default=15, show_default=True, help="Simplification factor to use when polygonizing in the unit of the CRS, e.g. meters for Sentinel-2 imagery in UTM. Set to 0 to disable simplification.")
+@click.option('--min_size', type=float, default=500, show_default=True, help="Minimum area size in square meters to include in the output.")
 @click.option('--overwrite', '-f', is_flag=True, help="Overwrite outputs if they exist.")
-def inference_polygonize(input, out, simplify, min_size, overwrite):
+@click.option('--close_interiors', is_flag=True, help="Remove the interiors holes in the polygons.")
+def inference_polygonize(input, out, simplify, min_size, overwrite, close_interiors):
     from ftw_cli.inference import polygonize
-    polygonize(input, out, simplify, min_size, overwrite)
+    polygonize(input, out, simplify, min_size, overwrite, close_interiors)
 
 inference.add_command(inference_download)
 inference.add_command(inference_polygonize)

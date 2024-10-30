@@ -27,8 +27,8 @@ from ftw.datamodules import preprocess
 from ftw.datasets import SingleRasterDataset
 from ftw.trainers import CustomSemanticSegmentationTask
 
-MSPC_URL = "https://planetarycomputer.microsoft.com/api/stac/v1"
-COLLECTION_ID = "sentinel-2-l2a"
+from .cfg import BANDS_OF_INTEREST, COLLECTION_ID, MSPC_URL, SUPPORTED_POLY_FORMATS_TXT
+
 
 def get_item(id):
     if "/" not in id:
@@ -52,8 +52,6 @@ def create_input(win_a, win_b, out, overwrite):
 
     # Ensure that the base directory exists
     os.makedirs(os.path.dirname(out), exist_ok=True)
-
-    BANDS_OF_INTEREST = ["B04", "B03", "B02", "B08"]
 
     item_win_a = get_item(win_a)
     item_win_b = get_item(win_b)
@@ -218,7 +216,7 @@ def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, 
     print(f"Finished inference and saved output to {out} in {time.time() - tic:.2f}s")
 
 
-def polygonize(input, out, simplify, min_size, overwrite):
+def polygonize(input, out, simplify, min_size, overwrite, close_interiors):
     """Polygonize the output from inference."""
 
     print(f"Polygonizing input file: {input}")
@@ -235,8 +233,8 @@ def polygonize(input, out, simplify, min_size, overwrite):
 
     tic = time.time()
     rows = []
-    schema = {'geometry': 'Polygon', 'properties': {'idx': 'int', 'area': 'float'}}
-    i = 0
+    schema = {'geometry': 'Polygon', 'properties': {'id': 'str', 'area': 'float'}}
+    i = 1
     # read the input file as a mask
     with rasterio.open(input) as src:
         input_height, input_width = src.shape
@@ -250,8 +248,19 @@ def polygonize(input, out, simplify, min_size, overwrite):
         # Define the equal-area projection using EPSG:6933
         equal_area_crs = CRS.from_epsg(6933)
 
+        if out.endswith(".gpkg"):
+            format = "GPKG"
+        elif out.endswith(".parquet"):
+            format = "Parquet"
+        elif out.endswith(".fgb"):
+            format = "FlatGeobuf"
+        elif out.endswith(".geojson") or out.endswith(".json"):
+            format = "GeoJSON"
+        else:
+            raise ValueError("Output format not supported. " + SUPPORTED_POLY_FORMATS_TXT)
+
         with (
-            fiona.open(out, 'w', 'GPKG', schema=schema, crs=original_crs) as dst,
+            fiona.open(out, 'w', format, schema=schema, crs=original_crs) as dst,
             tqdm(total=total_iterations, desc="Processing mask windows") as pbar
         ):
             for y in range(0, input_height, polygonization_stride):
@@ -264,7 +273,10 @@ def polygonize(input, out, simplify, min_size, overwrite):
                             continue
                             
                         geom = shapely.geometry.shape(geom_geojson)
-                        if simplify is not None:
+
+                        if close_interiors:
+                            geom = shapely.geometry.Polygon(geom.exterior)
+                        if simplify > 0:
                             geom = geom.simplify(simplify)
                         
                         # Calculate the area of the reprojected geometry
@@ -288,7 +300,7 @@ def polygonize(input, out, simplify, min_size, overwrite):
                         rows.append({
                             "geometry": geom,
                             "properties": {
-                                "idx": i,
+                                "id": str(i),
                                 "area": area  # Add the area in m² to the properties
                             }
                         })
