@@ -109,7 +109,7 @@ def inference_run(input, model, out, resize_factor, gpu, patch_size, batch_size,
 @inference.command("polygonize", help="Polygonize the output from inference for the raster image given via INPUT.")
 @click.argument('input', type=click.Path(exists=True), required=True)
 @click.option('--out', '-o', type=str, required=True, help="Output filename for the polygonized data. " + SUPPORTED_POLY_FORMATS_TXT)
-@click.option('--simplify', type=float, default=None, help="Simplification factor to use when polygonizing.")
+@click.option('--simplify', type=float, default=15, show_default=True, help="Simplification factor to use when polygonizing in the unit of the CRS, e.g. meters for Sentinel-2 imagery in UTM. Set to 0 to disable simplification.")
 @click.option('--min_size', type=float, default=500, show_default=True, help="Minimum area size in square meters to include in the output.")
 @click.option('--overwrite', '-f', is_flag=True, help="Overwrite outputs if they exist.")
 @click.option('--close_interiors', is_flag=True, help="Remove the interiors holes in the polygons.")

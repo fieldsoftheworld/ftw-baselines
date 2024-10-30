@@ -276,7 +276,7 @@ def polygonize(input, out, simplify, min_size, overwrite, close_interiors):
 
                         if close_interiors:
                             geom = shapely.geometry.Polygon(geom.exterior)
-                        if simplify is not None:
+                        if simplify > 0:
                             geom = geom.simplify(simplify)
                         
                         # Calculate the area of the reprojected geometry
