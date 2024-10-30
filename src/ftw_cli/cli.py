@@ -112,9 +112,10 @@ def inference_run(input, model, out, resize_factor, gpu, patch_size, batch_size,
 @click.option('--simplify', type=float, default=None, help="Simplification factor to use when polygonizing.")
 @click.option('--min_size', type=float, default=500, help="Minimum area size in square meters to include in the output.")
 @click.option('--overwrite', '-f', is_flag=True, help="Overwrite outputs if they exist.")
-def inference_polygonize(input, out, simplify, min_size, overwrite):
+@click.option('--close_interiors', is_flag=True, help="Remove the interiors holes in the polygons.")
+def inference_polygonize(input, out, simplify, min_size, overwrite, close_interiors):
     from ftw_cli.inference import polygonize
-    polygonize(input, out, simplify, min_size, overwrite)
+    polygonize(input, out, simplify, min_size, overwrite, close_interiors)
 
 inference.add_command(inference_download)
 inference.add_command(inference_polygonize)

@@ -216,7 +216,7 @@ def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, 
     print(f"Finished inference and saved output to {out} in {time.time() - tic:.2f}s")
 
 
-def polygonize(input, out, simplify, min_size, overwrite):
+def polygonize(input, out, simplify, min_size, overwrite, close_interiors):
     """Polygonize the output from inference."""
 
     print(f"Polygonizing input file: {input}")
@@ -273,6 +273,9 @@ def polygonize(input, out, simplify, min_size, overwrite):
                             continue
                             
                         geom = shapely.geometry.shape(geom_geojson)
+
+                        if close_interiors:
+                            geom = shapely.geometry.Polygon(geom.exterior)
                         if simplify is not None:
                             geom = geom.simplify(simplify)
                         
