@@ -39,6 +39,9 @@ def create_input(win_a, win_b, out, overwrite):
     item_win_a = get_item(win_a)
     item_win_b = get_item(win_b)
 
+    timestamps = list(filter(lambda x: x is not None, [item_win_a.datetime, item_win_b.datetime]))
+    timestamp = max(timestamps) if len(timestamps) > 0 else None
+
     # TODO: Check that items are spatially aligned, or implement a way to only download the intersection
 
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -101,5 +104,8 @@ def create_input(win_a, win_b, out, overwrite):
         profile["BIGTIFF"] = "YES"
 
         with rasterio.open(out, "w", **profile) as f:
+            if timestamp is not None:
+                tiff_tags = {"TIFFTAG_DATETIME": timestamp.strftime("%Y:%m:%d %H:%M:%S")}
+                f.update_tags(**tiff_tags)
             f.write(data)
         print(f"Finished merging and writing output in {time.time()-tic:0.2f} seconds")
