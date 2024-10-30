@@ -233,8 +233,8 @@ def polygonize(input, out, simplify, min_size, overwrite, close_interiors):
 
     tic = time.time()
     rows = []
-    schema = {'geometry': 'Polygon', 'properties': {'idx': 'int', 'area': 'float'}}
-    i = 0
+    schema = {'geometry': 'Polygon', 'properties': {'id': 'str', 'area': 'float'}}
+    i = 1
     # read the input file as a mask
     with rasterio.open(input) as src:
         input_height, input_width = src.shape
@@ -300,7 +300,7 @@ def polygonize(input, out, simplify, min_size, overwrite, close_interiors):
                         rows.append({
                             "geometry": geom,
                             "properties": {
-                                "idx": i,
+                                "id": str(i),
                                 "area": area  # Add the area in m² to the properties
                             }
                         })
