@@ -24,7 +24,7 @@ def data():
 @click.option('--countries', type=str, default="all", help="Comma-separated list of countries to download. If 'all' (default) is passed, downloads all available countries. Available countries: " + ", ".join(ALL_COUNTRIES))
 @click.option('--no-unpack', is_flag=True, help="If set, the script will NOT unpack the downloaded files.")
 def data_download(out, clean_download, countries, no_unpack):
-    from ftw_cli.download import download
+    from ftw_cli.download_ftw import download
     from ftw_cli.unpack import unpack
     download(out, clean_download, countries)
     if not no_unpack:
@@ -88,7 +88,7 @@ def inference():
 @click.option('--out', '-o', type=str, required=True, help="Filename to save results to")
 @click.option('--overwrite', '-f', is_flag=True, help="Overwrites the outputs if they exist")
 def inference_download(win_a, win_b, out, overwrite):
-    from ftw_cli.inference import create_input
+    from ftw_cli.download_img import create_input
     create_input(win_a, win_b, out, overwrite)
 
 @inference.command("run", help="Run inference on the stacked Sentinel-2 L2A satellite images specified via INPUT.")
@@ -106,7 +106,7 @@ def inference_run(input, model, out, resize_factor, gpu, patch_size, batch_size,
     from ftw_cli.inference import run
     run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, overwrite, mps_mode)
 
-@inference.command("polygonize", help="Polygonize the output from inference for the raster image given via INPUT.")
+@inference.command("polygonize", help="Polygonize the output from inference for the raster image given via INPUT. Results are in the CRS of the given raster image.")
 @click.argument('input', type=click.Path(exists=True), required=True)
 @click.option('--out', '-o', type=str, required=True, help="Output filename for the polygonized data. " + SUPPORTED_POLY_FORMATS_TXT)
 @click.option('--simplify', type=float, default=15, show_default=True, help="Simplification factor to use when polygonizing in the unit of the CRS, e.g. meters for Sentinel-2 imagery in UTM. Set to 0 to disable simplification.")
@@ -114,7 +114,7 @@ def inference_run(input, model, out, resize_factor, gpu, patch_size, batch_size,
 @click.option('--overwrite', '-f', is_flag=True, help="Overwrite outputs if they exist.")
 @click.option('--close_interiors', is_flag=True, help="Remove the interiors holes in the polygons.")
 def inference_polygonize(input, out, simplify, min_size, overwrite, close_interiors):
-    from ftw_cli.inference import polygonize
+    from ftw_cli.polygonize import polygonize
     polygonize(input, out, simplify, min_size, overwrite, close_interiors)
 
 inference.add_command(inference_download)
