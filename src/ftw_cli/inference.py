@@ -235,56 +235,66 @@ def polygonize(input, out, simplify, min_size, overwrite):
 
     tic = time.time()
     rows = []
+    schema = {'geometry': 'Polygon', 'properties': {'idx': 'int', 'area': 'float'}}
     i = 0
     # read the input file as a mask
     with rasterio.open(input) as src:
         input_height, input_width = src.shape
         original_crs = src.crs.to_string()
+        is_meters = src.crs.linear_units in ["m", "metre", "meter"]
         transform = src.transform 
         mask = (src.read(1) == 1).astype(np.uint8)
         polygonization_stride = 2048
-        total_iterations = (input_height // polygonization_stride) * (input_width // polygonization_stride)
+        total_iterations = math.ceil(input_height / polygonization_stride) * math.ceil(input_width / polygonization_stride)
         
         # Define the equal-area projection using EPSG:6933
         equal_area_crs = CRS.from_epsg(6933)
 
-        with tqdm(total=total_iterations, desc="Processing mask windows") as pbar:
+        with (
+            fiona.open(out, 'w', 'GPKG', schema=schema, crs=original_crs) as dst,
+            tqdm(total=total_iterations, desc="Processing mask windows") as pbar
+        ):
             for y in range(0, input_height, polygonization_stride):
                 for x in range(0, input_width, polygonization_stride):
                     new_transform = transform * Affine.translation(x, y)
                     mask_window = mask[y:y+polygonization_stride, x:x+polygonization_stride]
-                    for geom, val in rasterio.features.shapes(mask_window, transform=new_transform):
-                        if val == 1:
-                            geom = shapely.geometry.shape(geom)
-                            if simplify is not None:
-                                geom = geom.simplify(simplify)
+                    rows = []
+                    for geom_geojson, val in rasterio.features.shapes(mask_window, transform=new_transform):
+                        if val != 1:
+                            continue
                             
-                            # Convert the geometry to a GeoJSON-like format for transformation
-                            geom_geojson = shapely.geometry.mapping(geom)
-                            
-                            # Reproject the geometry to the equal-area projection for accurate area calculation
-                            geom_area_proj = fiona.transform.transform_geom(original_crs, equal_area_crs, geom_geojson)
-                            geom_area_proj = shapely.geometry.shape(geom_area_proj)
-                            area = geom_area_proj.area  # Calculate the area of the reprojected geometry
-                            
-                            # Only include geometries that meet the minimum size requirement
-                            if area >= min_size:
-                                # Keep the geometry in the original projection for output
-                                geom = shapely.geometry.mapping(geom)
+                        geom = shapely.geometry.shape(geom_geojson)
+                        if simplify is not None:
+                            geom = geom.simplify(simplify)
+                        
+                        # Calculate the area of the reprojected geometry
+                        if is_meters:
+                            area = geom.area
+                        else:
+                            # Reproject the geometry to the equal-area projection
+                            # if the CRS is not in meters
+                            geom_area_proj = fiona.transform.transform_geom(
+                                original_crs, equal_area_crs, geom_geojson
+                            )
+                            area = shapely.geometry.shape(geom_area_proj).area  
+                        
+                        # Only include geometries that meet the minimum size requirement
+                        if area < min_size:
+                            continue
 
-                                rows.append({
-                                    "geometry": geom,
-                                    "properties": {
-                                        "idx": i,
-                                        "area": area  # Add the area in m² to the properties
-                                    }
-                                })
-                                i += 1
+                        # Keep the geometry in the original projection for output
+                        geom = shapely.geometry.mapping(geom)
+
+                        rows.append({
+                            "geometry": geom,
+                            "properties": {
+                                "idx": i,
+                                "area": area  # Add the area in m² to the properties
+                            }
+                        })
+                        i += 1
+                    
+                    dst.writerecords(rows)
                     pbar.update(1)
-
-    schema = {'geometry': 'Polygon', 'properties': {'idx': 'int', 'area': 'float'}}
-    with fiona.open(out, 'w', 'GPKG', schema=schema, crs=original_crs) as dst:
-        for row in rows:
-            dst.write(row)
 
     print(f"Finished polygonizing output at {out} in {time.time() - tic:.2f}s")
