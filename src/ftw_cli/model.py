@@ -50,6 +50,8 @@ def fit(config, ckpt_path, cli_args):
         args=cli_args,  # Pass the constructed cli_args
     )
 
+    print("Finished")
+
 
 def test(model, dir, gpu, countries, postprocess, iou_threshold, out, model_predicts_3_classes, test_on_3_classes, temporal_options, cli_args):
     """Command to test the model."""
