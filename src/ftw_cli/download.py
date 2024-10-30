@@ -183,11 +183,12 @@ def download(out, clean_download, countries):
     local_md5_file_path = os.path.join(root_folder_path, 'checksum.md5')
     md5_file_url = 'https://data.source.coop/kerner-lab/fields-of-the-world-archive/checksum.md5'
 
-    if not download_file(md5_file_url, local_md5_file_path):
-        print("Failed to download checksum.md5 file.")
-        return
-    
-    print(f"Downloaded checksum.md5 to {local_md5_file_path}")
+    if not os.path.exists(local_md5_file_path):
+        if not download_file(md5_file_url, local_md5_file_path):
+            print("Failed to download checksum.md5 file.")
+            return
+        else:
+            print(f"Downloaded checksum.md5 to {local_md5_file_path}")
 
     # Step 2: Load the checksum data
     checksum_data = load_checksums(local_md5_file_path)
