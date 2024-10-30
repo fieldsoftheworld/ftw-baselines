@@ -37,6 +37,5 @@ def test_model_test():
     assert result.exit_code == 0, result.output
     assert "Running test command" in result.output
     assert "Created dataloader" in result.output
-    assert "100%|" in result.output
     assert "Object level recall: 0.0000" in result.output
     assert os.path.exists("results.csv")

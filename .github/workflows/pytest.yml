@@ -23,8 +23,8 @@ jobs:
           auto-activate-base: false
       - name: Install Python dependencies
         run: pip install -e .[dev]
-      # - name: Download model
-      #   run: wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/Pretrained-Models/3_Class_FULL_FTW_Pretrained.ckpt
+      - name: Download model
+        run: wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/Pretrained-Models/3_Class_FULL_FTW_Pretrained.ckpt
       - name: Execute help tests
         run: pytest src/tests/test_help.py
       - name: Execute data tests
@@ -32,6 +32,6 @@ jobs:
       # Seem to be too heavy to run in the CI
       # - name: Execute model tests
       #   run: pytest src/tests/test_model.py
-      # - name: Execute inference tests
-      #   run: pytest src/tests/test_inference.py
+      - name: Execute inference tests
+        run: pytest src/tests/test_inference.py
       

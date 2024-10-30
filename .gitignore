@@ -9,7 +9,9 @@ build/
 inference_imagery/
 src/ftw.egg-info/
 *.ckpt
-*.tif
+*.aux.xml
+*.gpkg
 .pytest_cache/
 /results.csv
 /austria_example_output_full.gpkg
+/austria_example_output_full.tif
