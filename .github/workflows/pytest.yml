@@ -29,9 +29,8 @@ jobs:
         run: pytest src/tests/test_help.py
       - name: Execute data tests
         run: pytest src/tests/test_data.py
-      # Seem to be too heavy to run in the CI
-      # - name: Execute model tests
-      #   run: pytest src/tests/test_model.py
+      - name: Execute model tests
+        run: pytest src/tests/test_model.py
       - name: Execute inference tests
         run: pytest src/tests/test_inference.py
       
