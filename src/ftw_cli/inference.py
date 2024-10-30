@@ -242,7 +242,7 @@ def polygonize(input, out, simplify, min_size, overwrite, close_interiors):
         is_meters = src.crs.linear_units in ["m", "metre", "meter"]
         transform = src.transform 
         mask = (src.read(1) == 1).astype(np.uint8)
-        polygonization_stride = 10980
+        polygonization_stride = 2048
         total_iterations = math.ceil(input_height / polygonization_stride) * math.ceil(input_width / polygonization_stride)
         
         # Define the equal-area projection using EPSG:6933
