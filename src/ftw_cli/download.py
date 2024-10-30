@@ -7,34 +7,8 @@ import time
 import wget
 from tqdm import tqdm
 
-# List of all available countries
-ALL_COUNTRIES = [
-    "belgium", 
-    "cambodia", 
-    "croatia", 
-    "estonia", 
-    "portugal", 
-    "slovakia", 
-    "south_africa", 
-    "sweden", 
-    "austria", 
-    "brazil", 
-    "corsica", 
-    "denmark", 
-    "france", 
-    "india", 
-    "latvia", 
-    "luxembourg", 
-    "finland", 
-    "germany", 
-    "kenya", 
-    "lithuania", 
-    "netherlands", 
-    "rwanda", 
-    "slovenia", 
-    "spain", 
-    "vietnam"
-]
+from .cfg import ALL_COUNTRIES
+
 
 def load_checksums(local_md5_file_path):
     """

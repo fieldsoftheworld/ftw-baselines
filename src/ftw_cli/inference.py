@@ -27,8 +27,8 @@ from ftw.datamodules import preprocess
 from ftw.datasets import SingleRasterDataset
 from ftw.trainers import CustomSemanticSegmentationTask
 
-MSPC_URL = "https://planetarycomputer.microsoft.com/api/stac/v1"
-COLLECTION_ID = "sentinel-2-l2a"
+from .cfg import BANDS_OF_INTEREST, COLLECTION_ID, MSPC_URL, SUPPORTED_POLY_FORMATS_TXT
+
 
 def get_item(id):
     if "/" not in id:
@@ -52,8 +52,6 @@ def create_input(win_a, win_b, out, overwrite):
 
     # Ensure that the base directory exists
     os.makedirs(os.path.dirname(out), exist_ok=True)
-
-    BANDS_OF_INTEREST = ["B04", "B03", "B02", "B08"]
 
     item_win_a = get_item(win_a)
     item_win_b = get_item(win_b)
@@ -244,14 +242,25 @@ def polygonize(input, out, simplify, min_size, overwrite):
         is_meters = src.crs.linear_units in ["m", "metre", "meter"]
         transform = src.transform 
         mask = (src.read(1) == 1).astype(np.uint8)
-        polygonization_stride = 2048
+        polygonization_stride = 10980
         total_iterations = math.ceil(input_height / polygonization_stride) * math.ceil(input_width / polygonization_stride)
         
         # Define the equal-area projection using EPSG:6933
         equal_area_crs = CRS.from_epsg(6933)
 
+        if out.endswith(".gpkg"):
+            format = "GPKG"
+        elif out.endswith(".parquet"):
+            format = "Parquet"
+        elif out.endswith(".fgb"):
+            format = "FlatGeobuf"
+        elif out.endswith(".geojson") or out.endswith(".json"):
+            format = "GeoJSON"
+        else:
+            raise ValueError("Output format not supported. " + SUPPORTED_POLY_FORMATS_TXT)
+
         with (
-            fiona.open(out, 'w', 'GPKG', schema=schema, crs=original_crs) as dst,
+            fiona.open(out, 'w', format, schema=schema, crs=original_crs) as dst,
             tqdm(total=total_iterations, desc="Processing mask windows") as pbar
         ):
             for y in range(0, input_height, polygonization_stride):
