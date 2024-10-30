@@ -28,8 +28,9 @@ class SingleRasterDataset(RasterDataset):
             transforms (Optional[Callable], optional): The transforms to apply to the
                 raster file. Defaults to None.
         """
-        self.filename_regex = os.path.basename(fn)
-        super().__init__(paths=os.path.dirname(fn), transforms=transforms)
+        path = os.path.abspath(fn)
+        self.filename_regex = os.path.basename(path)
+        super().__init__(paths=os.path.dirname(path), transforms=transforms)
 
 
 class FTW(NonGeoDataset):
