@@ -60,10 +60,11 @@ def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, 
     dataloader = DataLoader(dataset, sampler=sampler, batch_size=batch_size, num_workers=6, collate_fn=stack_samples)
 
     # Run inference
-    with rasterio.open(input) as f:
-        input_height, input_width = f.shape
-        profile = f.profile
+    with rasterio.open(input) as src:
+        input_height, input_width = src.shape
+        profile = src.profile
         transform = profile["transform"]
+        tags = src.tags()
 
     output_mask = np.zeros((input_height, input_width), dtype=np.uint8)
     dl_enumerator = tqdm(dataloader)
@@ -106,7 +107,8 @@ def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, 
         "interleave": "pixel"
     })
 
-    with rasterio.open(out, "w", **profile) as f:
-        f.write(output_mask, 1)
+    with rasterio.open(out, "w", **profile) as dst:
+        dst.update_tags(**tags)
+        dst.write(output_mask, 1)
 
     print(f"Finished inference and saved output to {out} in {time.time() - tic:.2f}s")

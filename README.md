@@ -256,8 +256,10 @@ The following commands show these four steps for a pair of Sentinel-2 scenes ove
 - Polygonize the output.
   
   ```bash
-  ftw inference polygonize austria_example_output_full.tif --out austria_example_output_full.gpkg --simplify 20
+  ftw inference polygonize austria_example_output_full.tif --simplify 20
   ```
+
+This results in a fiboa-compliant file named `austria_example_output_full.parquet`.
 
 ### CC-BY (or equivalent) trained models
 
