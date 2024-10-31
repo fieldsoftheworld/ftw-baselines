@@ -26,6 +26,9 @@ def polygonize(input, out, simplify, min_size, overwrite, close_interiors):
     # if simplify is not None and simplify > 1:
     #    print("WARNING: You are passing a value of `simplify` greater than 1 for a geographic coordinate system. This is probably **not** what you want.")
 
+    if not out:
+        out = os.path.splitext(input)[0] + ".parquet"
+
     if os.path.exists(out) and not overwrite:
         print(f"Output file {out} already exists. Use -f to overwrite.")
         return
@@ -136,6 +139,7 @@ def polygonize(input, out, simplify, min_size, overwrite, close_interiors):
         
         create_parquet(gdf, columns, collection, out, config, compression = "brotli")
     else:
+        print("WARNING: The fiboa-compliant GeoParquet output format is recommended for field boundaries.")
         with fiona.open(out, 'w', format, schema=schema, crs=original_crs) as dst:
             dst.writerecords(rows)
 
