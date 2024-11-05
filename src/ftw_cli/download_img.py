@@ -28,6 +28,7 @@ def get_item(id):
 
 def create_input(win_a, win_b, out, overwrite, bbox = None):
     """Main function for creating input for inference."""
+    out = os.path.abspath(out)
     if os.path.exists(out) and not overwrite:
         print("Output file already exists, use -f to overwrite them. Exiting.")
         return
