@@ -210,7 +210,7 @@ Options:
   --help                   Show this message and exit.
 ```
 
-You can then use the `ftw inference polygonize` command to convert the output of the inference into a vector format (initially GeoPackage, GeoParquet/Fiboa coming soon).
+You can then use the `ftw inference polygonize` command to convert the output of the inference into a vector format (defaults to GeoParquet/[Fiboa](https://github.com/fiboa/), with GeoPackage, FlatGeobuf and GeoJSON as other options).
 
 ```text
 ftw inference polygonize --help
