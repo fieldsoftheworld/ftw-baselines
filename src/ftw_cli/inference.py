@@ -67,6 +67,10 @@ def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, 
         transform = profile["transform"]
         tags = src.tags()
 
+    if input_height < patch_size or input_width < patch_size:
+        print(f"Input image is too small for the patch size of {patch_size}. Exiting.")
+        return
+
     output_mask = np.zeros((input_height, input_width), dtype=np.uint8)
     dl_enumerator = tqdm(dataloader)
 
@@ -90,10 +94,13 @@ def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, 
             left, top = ~transform * (bb.minx, bb.maxy)
             right, bottom = ~transform * (bb.maxx, bb.miny)
             left, right, top, bottom = int(np.round(left)), int(np.round(right)), int(np.round(top)), int(np.round(bottom))
-            destination_height, destination_width = output_mask[top + padding:bottom - padding, left + padding:right - padding].shape
-
+            pleft = left + padding
+            pright = right - padding
+            ptop = top + padding
+            pbottom = bottom - padding
+            destination_height, destination_width = output_mask[ptop:pbottom, pleft:pright].shape
             inp = predictions[i][padding:padding + destination_height, padding:padding + destination_width]
-            output_mask[top + padding:bottom - padding, left + padding:right - padding] = inp
+            output_mask[ptop:pbottom, pleft:pright] = inp
 
     # Save predictions
     profile.update({
