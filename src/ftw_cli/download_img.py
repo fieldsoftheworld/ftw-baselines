@@ -1,14 +1,12 @@
 import os
-import tempfile
 import time
 
-import numpy as np
 import odc.stac
 import planetary_computer as pc
 import pystac
-import rasterio
-import rasterio.features
 import rioxarray  # seems unused but is needed
+import xarray as xr
+from tqdm.auto import tqdm
 
 from .cfg import BANDS_OF_INTEREST, COLLECTION_ID, MSPC_URL
 
@@ -27,7 +25,7 @@ def get_item(id):
     return item
 
 
-def create_input(win_a, win_b, out, overwrite):
+def create_input(win_a, win_b, out, overwrite, bbox = None):
     """Main function for creating input for inference."""
     if os.path.exists(out) and not overwrite:
         print("Output file already exists, use -f to overwrite them. Exiting.")
@@ -42,70 +40,35 @@ def create_input(win_a, win_b, out, overwrite):
     timestamps = list(filter(lambda x: x is not None, [item_win_a.datetime, item_win_b.datetime]))
     timestamp = max(timestamps) if len(timestamps) > 0 else None
 
-    # TODO: Check that items are spatially aligned, or implement a way to only download the intersection
+    if bbox is not None:
+        bbox = list(map(float, bbox.split(",")))
 
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        tmp_win_a_fn = os.path.join(tmpdirname, "tmp_win_a.tif")
-        tmp_win_b_fn = os.path.join(tmpdirname, "tmp_win_b.tif")
+    print("Loading data")
+    tic = time.time()
+    data = odc.stac.load(
+        [item_win_a, item_win_b],
+        bands=BANDS_OF_INTEREST,
+        dtype="uint16",
+        resampling="bilinear",
+        bbox=bbox,
+        progress=tqdm
+    )
 
-        print("Loading window A data")
-        tic = time.time()
-        data = odc.stac.stac_load(
-            [item_win_a],
-            bands=BANDS_OF_INTEREST,
-            dtype="uint16",
-            resampling="bilinear",
-        ).isel(time=0)
+    print("Merging data")
+    data = data.to_array(dim="band").stack(bands=("time", "band")).drop_vars("band").transpose('bands', 'y', 'x')
 
-        data.rio.to_raster(
-            tmp_win_a_fn,
-            driver="GTiff",
-            dtype="uint16",
-            tiled=True,
-            blockxsize=256,
-            blockysize=256,
-        )
-        print(f"Finished saving window A to file in {time.time()-tic:0.2f} seconds")
+    print("Writing output")
+    data.rio.to_raster(
+        out,
+        driver="GTiff",
+        compress="deflate",
+        dtype="uint16",
+        tiled=True,
+        blockxsize=256,
+        blockysize=256,
+        tags={
+            "TIFFTAG_DATETIME": timestamp.strftime("%Y:%m:%d %H:%M:%S")
+        }
+    )
 
-        print("Loading window B data")
-        tic = time.time()
-        data = odc.stac.stac_load(
-            [item_win_b],
-            bands=BANDS_OF_INTEREST,
-            dtype="uint16",
-            resampling="bilinear",
-        ).isel(time=0)
-
-        data.rio.to_raster(
-            tmp_win_b_fn,
-            driver="GTiff",
-            dtype="uint16",
-            tiled=True,
-            blockxsize=256,
-            blockysize=256,
-        )
-        print(f"Finished saving window B to file in {time.time()-tic:0.2f} seconds")
-
-        print("Merging data and writing output")
-        tic = time.time()
-        with rasterio.open(tmp_win_a_fn) as f:
-            profile = f.profile
-            data1 = f.read()
-
-        with rasterio.open(tmp_win_b_fn) as f:
-            data2 = f.read()
-
-        data = np.concatenate([data1, data2], axis=0)
-        profile["count"] = data.shape[0]
-        profile["compress"] = "deflate"
-        profile["tiled"] = True
-        profile["blockxsize"] = 256
-        profile["blockysize"] = 256
-        profile["BIGTIFF"] = "YES"
-
-        with rasterio.open(out, "w", **profile) as f:
-            if timestamp is not None:
-                tiff_tags = {"TIFFTAG_DATETIME": timestamp.strftime("%Y:%m:%d %H:%M:%S")}
-                f.update_tags(**tiff_tags)
-            f.write(data)
-        print(f"Finished merging and writing output in {time.time()-tic:0.2f} seconds")
+    print(f"Finished merging and writing output in {time.time()-tic:0.2f} seconds")

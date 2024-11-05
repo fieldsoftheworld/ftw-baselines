@@ -87,9 +87,10 @@ def inference():
 @click.option('--win_b', type=str, required=True, help=WIN_HELP.format(x="B"))
 @click.option('--out', '-o', type=str, required=True, help="Filename to save results to")
 @click.option('--overwrite', '-f', is_flag=True, help="Overwrites the outputs if they exist")
-def inference_download(win_a, win_b, out, overwrite):
+@click.option('--bbox', type=str, default=None, help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'")
+def inference_download(win_a, win_b, out, overwrite, bbox):
     from ftw_cli.download_img import create_input
-    create_input(win_a, win_b, out, overwrite)
+    create_input(win_a, win_b, out, overwrite, bbox)
 
 @inference.command("run", help="Run inference on the stacked Sentinel-2 L2A satellite images specified via INPUT.")
 @click.argument('input', type=click.Path(exists=True), required=True)
