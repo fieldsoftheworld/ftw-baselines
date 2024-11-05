@@ -7,6 +7,7 @@ import pystac
 import rioxarray  # seems unused but is needed
 import xarray as xr
 from tqdm.auto import tqdm
+from shapely.geometry import shape
 
 from .cfg import BANDS_OF_INTEREST, COLLECTION_ID, MSPC_URL
 
@@ -34,14 +35,24 @@ def create_input(win_a, win_b, out, overwrite, bbox = None):
     # Ensure that the base directory exists
     os.makedirs(os.path.dirname(out), exist_ok=True)
 
+    # Parse the bounding box
+    if bbox is not None:
+        bbox = list(map(float, bbox.split(",")))
+
+    # Load the items
     item_win_a = get_item(win_a)
     item_win_b = get_item(win_b)
 
+    # Ensure the images intersect
+    geometry1 = shape(item_win_a.geometry)
+    geometry2 = shape(item_win_b.geometry)
+    if not geometry1.intersects(geometry2):
+        print("The provided images do not intersect. Exiting.")
+        return
+
+    # Get the latest timestamp
     timestamps = list(filter(lambda x: x is not None, [item_win_a.datetime, item_win_b.datetime]))
     timestamp = max(timestamps) if len(timestamps) > 0 else None
-
-    if bbox is not None:
-        bbox = list(map(float, bbox.split(",")))
 
     print("Loading data")
     tic = time.time()
