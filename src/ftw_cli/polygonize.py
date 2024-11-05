@@ -121,7 +121,7 @@ def polygonize(input, out, simplify, min_size, overwrite, close_interiors):
     if format == "Parquet":
         timestamp = tags.get("TIFFTAG_DATETIME", None)
         if timestamp is not None:
-            pattern = re.compile(r"^(\d{4})[:-](\d{2})[:-](\d{2})[T\s](\d{2}):(\d{2}):(\d{2}).+$")
+            pattern = re.compile(r"^(\d{4})[:-](\d{2})[:-](\d{2})[T\s](\d{2}):(\d{2}):(\d{2}).*$")
             if pattern.match(timestamp):
                 timestamp = re.sub(pattern, r"\1-\2-\3T\4:\5:\6Z", timestamp)
             else:
