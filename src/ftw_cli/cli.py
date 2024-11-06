@@ -87,19 +87,20 @@ def inference():
 @click.option('--win_b', type=str, required=True, help=WIN_HELP.format(x="B"))
 @click.option('--out', '-o', type=str, required=True, help="Filename to save results to")
 @click.option('--overwrite', '-f', is_flag=True, help="Overwrites the outputs if they exist")
-def inference_download(win_a, win_b, out, overwrite):
+@click.option('--bbox', type=str, default=None, help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'")
+def inference_download(win_a, win_b, out, overwrite, bbox):
     from ftw_cli.download_img import create_input
-    create_input(win_a, win_b, out, overwrite)
+    create_input(win_a, win_b, out, overwrite, bbox)
 
 @inference.command("run", help="Run inference on the stacked Sentinel-2 L2A satellite images specified via INPUT.")
 @click.argument('input', type=click.Path(exists=True), required=True)
 @click.option('--model', '-m', type=click.Path(exists=True), required=True, help="Path to the model checkpoint.")
 @click.option('--out', '-o', type=str, required=True, help="Output filename.")
-@click.option('--resize_factor', type=int, default=2, help="Resize factor to use for inference.")
+@click.option('--resize_factor', type=int, default=2, show_default=True, help="Resize factor to use for inference.")
 @click.option('--gpu', type=int, help="GPU ID to use. If not provided, CPU will be used by default.")
-@click.option('--patch_size', type=int, default=1024, help="Size of patch to use for inference.")
-@click.option('--batch_size', type=int, default=2, help="Batch size.")
-@click.option('--padding', type=int, default=64, help="Pixels to discard from each side of the patch.")
+@click.option('--patch_size', type=int, default=None, help="Size of patch to use for inference. Defaults to 1024 unless the image is < 1024x1024px.")
+@click.option('--batch_size', type=int, default=2, show_default=True, help="Batch size.")
+@click.option('--padding', type=int, default=64, show_default=True, help="Pixels to discard from each side of the patch.")
 @click.option('--overwrite', '-f', is_flag=True, help="Overwrite outputs if they exist.")
 @click.option('--mps_mode', is_flag=True, help="Run inference in MPS mode (Apple GPUs).")
 def inference_run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, overwrite, mps_mode):

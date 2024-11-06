@@ -20,18 +20,12 @@ from ftw.trainers import CustomSemanticSegmentationTask
 
 
 def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, overwrite, mps_mode):
-    # Sanity checks
+    # IO related sanity checks
     assert os.path.exists(model), f"Model file {model} does not exist."
     assert model.endswith(".ckpt"), "Model file must be a .ckpt file."
     assert os.path.exists(input), f"Input file {input} does not exist."
     assert input.endswith(".tif") or input.endswith(".vrt"), "Input file must be a .tif or .vrt file."
-    assert int(math.log(patch_size, 2)) == math.log(patch_size, 2), "Patch size must be a power of 2."
-
-    stride = patch_size - padding * 2
-
-    if os.path.exists(out) and not overwrite:
-        print(f"Output file {out} already exists. Use -f to overwrite.")
-        return
+    assert overwrite or os.path.exists(out), f"Output file {out} already exists. Use -f to overwrite."
 
     # Determine the device: GPU, MPS, or CPU
     if mps_mode:
@@ -43,7 +37,28 @@ def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, 
         print("Neither GPU nor MPS mode is enabled, defaulting to CPU.")
         device = torch.device("cpu")
 
-    # Load task and data
+    # Load the input raster
+    with rasterio.open(input) as src:
+        input_height, input_width = src.shape
+        profile = src.profile
+        transform = profile["transform"]
+        tags = src.tags()
+
+    # Determine the default patch size
+    if patch_size is None:
+        steps = [1024, 512, 256, 128]
+        for step in steps:
+            if step <= min(input_height, input_width):
+                patch_size = step
+                break
+    stride = patch_size - padding * 2
+    print("Patch size:", patch_size)
+    
+    assert patch_size is not None, "Input image is too small"
+    assert patch_size % 32 == 0, "Patch size must be a multiple of 32."
+    assert stride > 64, "Patch size minus two times the padding must be greater than 64."
+
+    # Load task
     tic = time.time()
     task = CustomSemanticSegmentationTask.load_from_checkpoint(model, map_location="cpu")
     task.freeze()
@@ -61,12 +76,6 @@ def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, 
     dataloader = DataLoader(dataset, sampler=sampler, batch_size=batch_size, num_workers=6, collate_fn=stack_samples)
 
     # Run inference
-    with rasterio.open(input) as src:
-        input_height, input_width = src.shape
-        profile = src.profile
-        transform = profile["transform"]
-        tags = src.tags()
-
     output_mask = np.zeros((input_height, input_width), dtype=np.uint8)
     dl_enumerator = tqdm(dataloader)
 
@@ -90,10 +99,13 @@ def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, 
             left, top = ~transform * (bb.minx, bb.maxy)
             right, bottom = ~transform * (bb.maxx, bb.miny)
             left, right, top, bottom = int(np.round(left)), int(np.round(right)), int(np.round(top)), int(np.round(bottom))
-            destination_height, destination_width = output_mask[top + padding:bottom - padding, left + padding:right - padding].shape
-
+            pleft = left + padding
+            pright = right - padding
+            ptop = top + padding
+            pbottom = bottom - padding
+            destination_height, destination_width = output_mask[ptop:pbottom, pleft:pright].shape
             inp = predictions[i][padding:padding + destination_height, padding:padding + destination_width]
-            output_mask[top + padding:bottom - padding, left + padding:right - padding] = inp
+            output_mask[ptop:pbottom, pleft:pright] = inp
 
     # Save predictions
     profile.update({

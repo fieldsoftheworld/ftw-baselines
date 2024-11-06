@@ -173,13 +173,15 @@ Usage: ftw inference download [OPTIONS]
   Download 2 Sentinel-2 scenes & stack them in a single file for inference.
 
 Options:
-  --win_a TEXT       URL to or Microsoft Planetary Computer ID of an Sentinel-2
-                     L2A STAC item for the window A image  [required]
-  --win_b TEXT       URL to or Microsoft Planetary Computer ID of an Sentinel-2
-                     L2A STAC item for the window B image  [required]
-  -o, --out TEXT     Filename to save results to  [required]
-  -f, --overwrite    Overwrites the outputs if they exist
-  --help             Show this message and exit.
+  --win_a TEXT     URL to or Microsoft Planetary Computer ID of an Sentinel-2
+                   L2A STAC item for the window A image  [required]
+  --win_b TEXT     URL to or Microsoft Planetary Computer ID of an Sentinel-2
+                   L2A STAC item for the window B image  [required]
+  -o, --out TEXT   Filename to save results to  [required]
+  -f, --overwrite  Overwrites the outputs if they exist
+  --bbox TEXT      Bounding box to use for the download in the format
+                   'minx,miny,maxx,maxy'
+  --help           Show this message and exit.
 ```
 
 Then `ftw inference run` is the command that will run a given model on overlapping patches of input imagery (i.e. the output of `ftw inference download`) and stitch the results together in GeoTIFF format.
@@ -189,24 +191,26 @@ ftw inference run --help
 
 Usage: ftw inference run [OPTIONS] INPUT
 
-  Run inference on the stacked Sentinel-2 L2A satellite images specified in
+  Run inference on the stacked Sentinel-2 L2A satellite images specified via
   INPUT.
 
 Options:
   -m, --model PATH         Path to the model checkpoint.  [required]
   -o, --out TEXT           Output filename.  [required]
-  --resize_factor INTEGER  Resize factor to use for inference.
+  --resize_factor INTEGER  Resize factor to use for inference.  [default: 2]
   --gpu INTEGER            GPU ID to use. If not provided, CPU will be used by
                            default.
-  --patch_size INTEGER     Size of patch to use for inference.
-  --batch_size INTEGER     Batch size.
+  --patch_size INTEGER     Size of patch to use for inference. Defaults to
+                           1024 unless the image is < 1024x1024px.
+  --batch_size INTEGER     Batch size.  [default: 2]
   --padding INTEGER        Pixels to discard from each side of the patch.
+                           [default: 64]
   -f, --overwrite          Overwrite outputs if they exist.
   --mps_mode               Run inference in MPS mode (Apple GPUs).
   --help                   Show this message and exit.
 ```
 
-You can then use the `ftw inference polygonize` command to convert the output of the inference into a vector format (initially GeoPackage, GeoParquet/Fiboa coming soon).
+You can then use the `ftw inference polygonize` command to convert the output of the inference into a vector format (defaults to GeoParquet/[Fiboa](https://github.com/fiboa/), with GeoPackage, FlatGeobuf and GeoJSON as other options).
 
 ```text
 ftw inference polygonize --help
@@ -214,11 +218,21 @@ ftw inference polygonize --help
 Usage: ftw inference polygonize [OPTIONS] INPUT
 
   Polygonize the output from inference for the raster image given via INPUT.
+  Results are in the CRS of the given raster image.
 
 Options:
-  -o, --out TEXT     Output filename for the polygonized data.  [required]
-  --simplify FLOAT   Simplification factor to use when polygonizing.
+  -o, --out TEXT     Output filename for the polygonized data. If not given
+                     defaults to the name of the input file with parquet
+                     extension. Available file extensions: .parquet
+                     (GeoParquet, fiboa-compliant), .fgb (FlatGeoBuf), .gpkg
+                     (GeoPackage), .geojson and .json (GeoJSON)
+  --simplify FLOAT   Simplification factor to use when polygonizing in the
+                     unit of the CRS, e.g. meters for Sentinel-2 imagery in
+                     UTM. Set to 0 to disable simplification.  [default: 15]
+  --min_size FLOAT   Minimum area size in square meters to include in the
+                     output.  [default: 500]
   -f, --overwrite    Overwrite outputs if they exist.
+  --close_interiors  Remove the interiors holes in the polygons.
   --help             Show this message and exit.
 ```
 
@@ -243,10 +257,12 @@ The following commands show these four steps for a pair of Sentinel-2 scenes ove
   ftw inference download --win_a S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729 --win_b S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923 --out inference_imagery/austria_example.tif
   ```
 
+  You can also specify a bbox to download a smaller subset of the data, e.g. add `--bbox 13.0,48.0,13.3,48.3`
+
 - Run inference on the entire scene.
   
   ```bash
-  ftw inference run inference_imagery/austria_example.tif --model 3_Class_FULL_FTW_Pretrained.ckpt --out austria_example_output_full.tif --gpu 0 --overwrite --resize_factor 2
+  ftw inference run inference_imagery/austria_example.tif --model 3_Class_FULL_FTW_Pretrained.ckpt --out austria_example_output_full.tif --gpu 0 --overwrite
   ```
 
 ### Sample Prediction Output (Austria Patch, Red - Fields)
