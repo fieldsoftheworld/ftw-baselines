@@ -24,7 +24,7 @@ jobs:
       - name: Install Python dependencies
         run: pip install -e .[dev]
       - name: Download model
-        run: wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/Pretrained-Models/3_Class_FULL_FTW_Pretrained.ckpt
+        run: wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/v1/3_Class_FULL_FTW_Pretrained.ckpt
       - name: Execute help tests
         run: pytest src/tests/test_help.py
       - name: Execute data tests
