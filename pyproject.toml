@@ -3,12 +3,26 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ftw"
-version = "0.4"
-description = "Fields of The World (FTW) - Codebase"
+name = "ftw-tools"
+version = "1.1.0"
+license = {file = "LICENSE"}
+description = "Fields of The World (FTW) Command Line Interface (CLI) for data management, ML processing, and more."
+readme = 'README.md'
 authors = [
-    { name = "Your Name", email = "your.email@example.com" }
+    { name = "Hannah Kerner", email = "hkerner@asu.edu" },
+    { name = "Matthias Mohr", email = "matthias@mohr.ws" },
+    { name = "Caleb Robinson", email = "Caleb.Robinson@microsoft.com" },
+    { name = "Aninda Ghosh", email = "aghosh57@asu.edu" },
+    { name = "Chris Holmes", email = "cholmes@tgengine.org" },
+    { name = "Snehal Chaudhari", email = "sschaud5@asu.edu" },
 ]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+]
+
+requires-python = ">= 3.9"
 dependencies = [
     "click",                   # For CLI functionality
     "tqdm",                    # For progress bars
@@ -36,6 +50,12 @@ dependencies = [
     "pyproj",                  # For projections and CRSes
     "fiboa-cli==0.7.0",        # For storing data in Fiboa format
 ]
+
+[project.urls]
+Homepage = "https://fieldsofthe.world/"
+Repository = "https://github.com/fieldsoftheworld/ftw-baselines.git"
+Issues = "https://github.com/fieldsoftheworld/ftw-baselines/issues"
+Changelog = "https://github.com/fieldsoftheworld/ftw-baselines/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = [

@@ -28,7 +28,13 @@ This repository provides the codebase for working with the [FTW dataset](https:/
 
 You need to install Python 3.9 or later and GDAL with libgdal-arrow-parquet.
 
-As a simple way to install the required software you can use Anaconda/Mamba.
+The easiest way to install the fiboa CLI is to run:
+
+```bash
+pip install ftw-tools
+```
+
+The alternative is to install the required software through Anaconda/Mamba.
 Set up the environment using the provided `env.yml` file:
 
 ### (Ana)conda

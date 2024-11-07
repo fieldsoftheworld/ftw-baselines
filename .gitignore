@@ -7,7 +7,7 @@ results/
 logs_old/
 build/
 inference_imagery/
-src/ftw.egg-info/
+src/ftw_tools.egg-info/
 *.ckpt
 *.aux.xml
 *.gpkg
@@ -15,3 +15,4 @@ src/ftw.egg-info/
 /results.csv
 /austria_example_output_full.gpkg
 /austria_example_output_full.tif
+/dist
