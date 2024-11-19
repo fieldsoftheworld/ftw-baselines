@@ -12,6 +12,10 @@
 
 - First public release to pypi
 
+### 1.1.1
+
+- Fixed `fiboa inference run` to not show `GDAL signalled an error: Cannot modify tag "PhotometricInterpretation" while writing` any longer
+
 ### internal legacy non-pypi releases
 
 #### Version 1.0.0 (Public Release)

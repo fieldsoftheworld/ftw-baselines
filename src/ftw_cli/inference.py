@@ -122,8 +122,8 @@ def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, 
 
     with rasterio.open(out, "w", **profile) as dst:
         dst.update_tags(**tags)
-        dst.write(output_mask, 1)
         dst.write_colormap(1, {1: (255, 0, 0), 2:(0, 255, 0)})
         dst.colorinterp = [ColorInterp.palette]
+        dst.write(output_mask, 1)
 
     print(f"Finished inference and saved output to {out} in {time.time() - tic:.2f}s")
