@@ -238,7 +238,9 @@ Options:
                      unit of the CRS, e.g. meters for Sentinel-2 imagery in
                      UTM. Set to 0 to disable simplification.  [default: 15]
   --min_size FLOAT   Minimum area size in square meters to include in the
-                     output.  [default: 500]
+                     output. Set to 0 to disable.  [default: 500]
+  --max_size FLOAT   Maximum area size in square meters to include in the
+                     output. Disabled by default.
   -f, --overwrite    Overwrite outputs if they exist.
   --close_interiors  Remove the interiors holes in the polygons.
   --help             Show this message and exit.

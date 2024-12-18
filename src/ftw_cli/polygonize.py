@@ -17,7 +17,7 @@ from tqdm import tqdm
 from .cfg import SUPPORTED_POLY_FORMATS_TXT
 
 
-def polygonize(input, out, simplify, min_size, overwrite, close_interiors):
+def polygonize(input, out, simplify, min_size, max_size, overwrite, close_interiors):
     """Polygonize the output from inference."""
 
     print(f"Polygonizing input file: {input}")
@@ -103,7 +103,7 @@ def polygonize(input, out, simplify, min_size, overwrite, close_interiors):
                         perimeter = geom_proj_meters.length
                         
                         # Only include geometries that meet the minimum size requirement
-                        if area < min_size:
+                        if area < min_size or (max_size is not None and area > max_size):
                             continue
 
                         rows.append({
