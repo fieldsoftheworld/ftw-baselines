@@ -2,6 +2,7 @@
 '''
 Compute band-wise statistics of mean and std for all GeoTIFF raster images in a directory.
 Example usage: python3 compute_band_stats.py /ftw/austria/s2_images/ --output austria_stats.txt
+TODO: need to integrate into cli
 '''
 
 import os
