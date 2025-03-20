@@ -118,9 +118,24 @@ def inference_polygonize(input, out, simplify, min_size, overwrite, close_interi
     from ftw_cli.polygonize import polygonize
     polygonize(input, out, simplify, min_size, overwrite, close_interiors)
 
+
+@inference.command("filter_by_lulc", help="Filter the output field in GeoJSON format by field size and LULC mask.")
+@click.argument('input', type=click.Path(exists=True), required=True)
+@click.option('--out', '-o', type=str, default=None, help="Output filename for the polygonized data. If not given defaults to the name of the input file with parquet extension. " + SUPPORTED_POLY_FORMATS_TXT)
+@click.option('--minimal_area_m2', type=float, default=1000, show_default=True, help="Minimum area size in square meters to include in the output.")
+@click.option('--lulc_path', type=str, default="LULC.tif", show_default=True, help="Path to the LULC raster file.")
+@click.option('--lulc_year', type=int, default=2023, show_default=True, help="Year of the LULC raster file.")
+@click.option('--overwrite', '-f', is_flag=True, help="Overwrite outputs if they exist.")
+def inference_lulc_filtering(input, out, minimal_area_m2, lulc_path, lulc_year, overwrite):
+    from ftw_cli.lulc_filtering import lulc_filtering
+    lulc_filtering(input=input, out=out, minimal_area_m2=minimal_area_m2, overwrite=overwrite, lulc_year=lulc_year, lulc_path=lulc_path)
+
+
+
 inference.add_command(inference_download)
 inference.add_command(inference_polygonize)
 inference.add_command(inference_run)
+inference.add_command(inference_lulc_filtering)
 
 if __name__ == "__main__":
     ftw()
