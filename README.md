@@ -246,6 +246,29 @@ Options:
 
 Simplification factor is measured in the units of the coordinate reference system (CRS), and for Sentinel-2 this is meters, so a simplification factor of 15 or 20 is usually sufficient (and recommended, or the vector file will be as large as the raster file).
 
+You can then use the `ftw inference filter_by_lulc` command to filter the inference output based on field size and a LULC raster mask. The output is saved in vector format, defaulting to GeoJSON.
+
+```text
+ftw inference filter_by_lulc --help
+
+Usage: ftw inference filter_by_lulc [OPTIONS] INPUT
+
+  Filter the output field in GeoJSON format by field size and LULC mask.
+
+Options:
+  -o, --out TEXT           Output filename for the filtered polygon data. If
+                           not given, defaults to the input filename with
+                           parquet extension. Available formats: 
+                           .geojson (GeoJSON).
+  --minimal_area_m2 FLOAT  Minimum area size in square meters to include in
+                           the output. [default: 1000]
+  --lulc_path TEXT         Path to the LULC raster file for downloading. [default: LULC.tif]
+  --lulc_year INT          Year of the LULC raster file. [default: 2023]
+  -f, --overwrite          Overwrite output file if it exists.
+  --help                   Show this message and exit.
+```
+
+
 The following commands show these four steps for a pair of Sentinel-2 scenes over Austria:
 
 - Download pretrained checkpoint from [v1](https://github.com/fieldsoftheworld/ftw-baselines/releases/tag/v1).
