@@ -1,177 +1,158 @@
 "field processing with lulc"
 
-import math
 import os
-import time
 from typing import Union
 
-import geopandas as gpd
+import numpy as np
 import planetary_computer
-import pystac
+import pystac_client
 import rasterio as rio
 import rioxarray
+import xarray as xr
 from loguru import logger
-from rasterio.features import shapes
-from shapely.geometry import box, shape
+from rasterio import warp
 
 
-class LulcFiltering:
-    """Class for processing fields using LULC data."""
+class RasterLULCFilter:
+    """
+    Filters raster by LULC class
+    """
 
-    LULC_CLASS = 5
+    LULC_CLASS_IO = 5  # IO LULC class for agriculture
+    LULC_CLASS_ESA = 40  # ESA LULC class for agriculture
+    LULC_PROVIDER = ["io-lulc-annual-v02", "esa-worldcover"]  # Providers of LULC data
 
-    def __init__(self, fields_path: str, minimal_area_m2: int, lulc_year: int):
-        """
-        Field processor initialization.
-
-        Args:
-            fields_path (str): Path to the field geodata file
-        """
-        self.lulc_year = lulc_year
-        self._fields = gpd.read_file(fields_path)
-        self._fields = LulcFiltering.convert_to_utm(self._fields)
-        self._fields = self._fields[self._fields.geometry.area > minimal_area_m2]
-
-    @staticmethod
-    def convert_to_utm(fields: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-        """
-        Converts geodata to UTM projection.
-
-        Args:
-            fields (gpd.GeoDataFrame): Source geodata
-
-        Returns:
-            gpd.GeoDataFrame: Geodata in UTM projection
-        """
-        return fields.to_crs(epsg=fields.estimate_utm_crs().to_epsg())
-
-    def get_lulc(self, lulc_path: str) -> str:
-        """
-        Gets and processes land use data (LULC) for specified fields.
-
-        Args:
-            fields (gpd.GeoDataFrame): Field geodata
-
-        Returns:
-            str: Path to saved LULC raster
-        """
-        fields = self._fields
-        # Get fields bbox
-        start_time = time.time()
-        minx, miny, maxx, maxy = fields.total_bounds
-
-        centroid = box(*fields.to_crs(epsg=4326).total_bounds).centroid
-        lon, lat = centroid.x, centroid.y
-        zone_number = math.floor((lon + 180) / 6) + 1
-        hemisphere = "N" if lat >= 0 else "S"
-        utm_zone = f"{zone_number}{'U' if hemisphere == 'N' else 'C'}"
-
-        # Form URL for required zone
-        item_url = (
-            "https://planetarycomputer.microsoft.com/api/stac/v1/collections"
-            f"/io-lulc-annual-v02/items/{utm_zone}-{self.lulc_year}"
+    def __init__(
+        self,
+        input_path: str,
+        output_path: str,
+        collection_name: str = "io-lulc-annual-v02",
+    ):
+        assert (
+            collection_name in self.LULC_PROVIDER
+        ), f"Collection name must be one of {self.LULC_PROVIDER}"
+        self.LULC_CLASS = (
+            self.LULC_CLASS_IO
+            if collection_name == "io-lulc-annual-v02"
+            else self.LULC_CLASS_ESA
+        )
+        self.input_path = input_path
+        self.catalog = pystac_client.Client.open(
+            "https://planetarycomputer.microsoft.com/api/stac/v1",
+            modifier=planetary_computer.sign_inplace,
         )
 
-        # Load metadata and sign assets
-        for _ in range(5):
-            try:
-                item = pystac.Item.from_file(item_url)
-                signed_item = planetary_computer.sign(item)
-                break
-            except Exception as e:
-                logger.error(f"Error loading item: {e}")
-                logger.info("Retrying in 1 second...")
-                time.sleep(1)
+        # Get bounds from input geotiff file with classification results for fields
+        with rio.open(self.input_path) as src:
+            self.src_bounds = src.bounds
+            self.bounds_4326 = rio.warp.transform_bounds(
+                src.crs, "EPSG:4326", *src.bounds
+            )
+            self.src_crs = src.crs
+        lulc = self.load_lulc(collection_name)
+        self.filter_raster_by_lulc(self.input_path, lulc, output_path)
 
-        # Open raster using rioxarray
-        asset_href = signed_item.assets["data"].href
+    def load_lulc(self, collection_name: str) -> xr.Dataset:
+        """
+        Loads data for the specified collection.
+
+        First item from collection used for IO LULC couse it is most resent year (2023).
+        First item from collection used for ESA LULC because it is the most recent version (200).
+
+        Args:
+            collection_name (str): Name of the collection ('io-lulc-annual-v02' or 'esa-worldcover')
+        """
+        search = self.catalog.search(
+            collections=[collection_name], bbox=self.bounds_4326, limit=10
+        )
+        items = search.item_collection()
+
+        # Define asset key depending on collection
+        asset_key = "data" if collection_name == "io-lulc-annual-v02" else "map"
+
+        # Here we get the href of the asset.
+        # First item used for IO LULC couse it is most resent year.
+        # First item used for ESA LULC because it is the most recent version.
+        asset_href = items.items[0].assets[asset_key].href
+
+        # Load data from asset
         ds = rioxarray.open_rasterio(asset_href)
+        # Transform bounds to the size of the raster
+        minx, miny, maxx, maxy = warp.transform_bounds(
+            self.src_crs, ds.rio.crs, *self.src_bounds
+        )
+        clipped_ds = ds.rio.clip_box(
+            minx=minx, miny=miny, maxx=maxx, maxy=maxy
+        )  # type: ignore
 
-        # Clip by bbox
-        clipped_ds = ds.rio.clip_box(minx=minx, miny=miny, maxx=maxx, maxy=maxy)  # type: ignore
+        return clipped_ds
 
-        # Optionally: save clipped raster
-        clipped_ds.rio.to_raster(lulc_path)
-        total_time = time.time() - start_time
-        logger.info(f"Total time for getting LULC data: {total_time:.2f} sec")
-
-        return lulc_path
-
-    def get_fields_intersecting_lulc(self, lulc_path: str, output_path: str) -> str:
+    def filter_raster_by_lulc(
+        self, input_path: str, lulc: xr.Dataset, output_path: str
+    ) -> str:
         """
-        Finds fields that intersect with agricultural lands according to LULC data.
+        Filters raster by LULC class
 
         Args:
-            fields (gpd.GeoDataFrame): Field geodata
-            lulc_path (str): Path to LULC raster
-            output_path (str): Path for saving results
-
-        Returns:
-            gpd.GeoDataFrame: Filtered fields
+            input_path (str): Path to the input raster
+            lulc (xr.Dataset): LULC raster
         """
-        start_time = time.time()
-        fields = self._fields
-        with rio.open(lulc_path) as src:
-            logger.info("Reading LULC raster...")
-            lulc = src.read(1)
-            transform = src.transform
-            crs = src.crs
 
-        logger.info("Creating mask for all geometries...")
-        mask = lulc == self.LULC_CLASS
-        shapes_gen = shapes(lulc, mask=mask, transform=transform, connectivity=8)
+        # Read Geotiff with classification reults with rioxarray
+        inference = rioxarray.open_rasterio(input_path)
 
-        # Find intersections for all fields at once
-        logger.info("Finding intersections...")
+        # Reproject LULC to the size of inference
+        lulc = lulc.rio.reproject_match(inference)
 
-        lulc_polygons = gpd.GeoDataFrame(
-            geometry=[shape(geom) for geom, value in shapes_gen], crs=crs
-        )
-        lulc_polygons_utm = lulc_polygons.to_crs(
-            epsg=fields.estimate_utm_crs().to_epsg()
-        )
+        # Convert to numpy arrays
+        inference_array = inference.values[0]  # Take first channel
+        lulc_array = lulc.values[0]  # Take first channel
 
-        # Filter polygons by area
-        mask_area_lulc = lulc_polygons_utm.geometry.area > 1000
-        lulc_polygons_utm = lulc_polygons_utm[mask_area_lulc]
+        # Create mask where LULC is equal to agro class
+        lulc_mask = lulc_array == self.LULC_CLASS
 
-        # Spatial join
-        logger.info("Filtering fields...")
+        # Create copy of inference array
+        inference_modified = inference_array.copy()
 
-        filtered_fields = fields.sjoin(lulc_polygons_utm, predicate="intersects")
+        # Set 0 where LULC is not equal to agro class
+        inference_modified[~lulc_mask] = 0
 
-        # Save result
-        assert output_path.endswith(".geojson"), "output_path must end with .geojson"
-        filtered_fields.to_file(output_path, driver="GeoJSON")
-        total_time = time.time() - start_time
-        logger.info(f"Total field processing time: {total_time:.2f} sec")
-        logger.info(f"Number of fields: {len(filtered_fields)}")
+        # Save result to new file
+        with rio.open(
+            output_path,
+            "w",
+            driver="GTiff",
+            height=inference_modified.shape[0],
+            width=inference_modified.shape[1],
+            count=1,
+            dtype=inference_array.dtype,
+            crs=inference.rio.crs,
+            nodata=0,
+            compress="lzw",
+            blockxsize=512,
+            blockysize=512,
+            interleave="band",
+            transform=inference.rio.transform(),
+        ) as dst:
+            dst.write(inference_modified, 1)
         return output_path
 
 
 def lulc_filtering(
     input: str,
     out: str,
-    minimal_area_m2: int,
-    lulc_year: int = 2023,
-    lulc_path: str = "lulc.tif",
     overwrite: bool = False,
+    collection_name: str = "io-lulc-annual-v02",
 ) -> Union[str, None]:
-
-    lulc_filter = LulcFiltering(
-        fields_path=input, minimal_area_m2=minimal_area_m2, lulc_year=lulc_year
-    )
 
     if os.path.exists(out) and not overwrite:
         logger.info(f"Output file {out} already exists. Use -f to overwrite.")
         return None
     elif os.path.exists(out) and overwrite:
         os.remove(out)  # GPKGs are sometimes weird about overwriting in-place
-    if os.path.exists(lulc_path) and not overwrite:
-        logger.info(f"LULC file already exists: {lulc_path}")
-    else:
-        lulc_path = lulc_filter.get_lulc(lulc_path=lulc_path)
-    output_path = lulc_filter.get_fields_intersecting_lulc(lulc_path, out)
+    output_path = RasterLULCFilter(
+        input_path=input, output_path=out, collection_name=collection_name
+    )
     return output_path
 
 
@@ -180,30 +161,28 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
         description="""
-    Processing fields with filtering by minimal area and intersection with agricultural lands according to LULC data.
+    Processing fields with filtering by agricultural lands according to LULC data.
+
+    Available collections:
+    - io-lulc-annual-v02
+    - esa-worldcover
 
     Usage:
-    python field_processing.py --fields_path /path/to/fields.geojson --output_path /path/to/output.geojson --minimal_area_m2 1000 --lulc_year 2023 --lulc_path /path/to/lulc.tif
+    python lulc_filtering.py --input /path/to/input.tif --out /path/to/output.tif --overwrite False --collection_name io-lulc-annual-v02
     """
     )
     parser.add_argument("--input", type=str, required=True)
     parser.add_argument("--out", type=str, required=True)
-    parser.add_argument("--minimal_area_m2", type=int, required=False, default=1000)
-    parser.add_argument("--lulc_year", type=int, required=False, default=2023)
-    parser.add_argument("--lulc_path", type=str, required=False, default="LULC.tif")
     parser.add_argument("--overwrite", type=bool, required=False, default=False)
+    parser.add_argument(
+        "--collection_name", type=str, required=False, default="io-lulc-annual-v02"
+    )
     args = parser.parse_args()
     input_file = args.input
     out = args.out
-    minimal_area_m2 = args.minimal_area_m2
-    lulc_year = args.lulc_year
-    lulc_path = args.lulc_path
     overwrite = args.overwrite
+    collection_name = args.collection_name
     output_path = lulc_filtering(
-        input=input_file,
-        out=out,
-        minimal_area_m2=minimal_area_m2,
-        lulc_year=lulc_year,
-        lulc_path=lulc_path,
-        overwrite=overwrite,
+        input=input_file, out=out, overwrite=overwrite, collection_name=collection_name
     )
+    print(f"Output path: {output_path}")
