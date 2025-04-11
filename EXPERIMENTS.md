@@ -90,7 +90,7 @@ seed_everything: <SEED VALUE>
 
 ## Model Weights
 
-For the training and experimentation, we utilize pre-trained model weights available on Hugging Face. You can download these weights directly from the [Hugging Face Model Hub](https://huggingface.co/torchgeo/fields-of-the-worl).
+For the training and experimentation, we utilize pre-trained model weights available on Hugging Face. You can download these weights directly from the [Hugging Face Model Hub](https://huggingface.co/torchgeo/fields-of-the-world).
 
 ## Training
 
