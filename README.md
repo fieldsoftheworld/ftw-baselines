@@ -262,10 +262,10 @@ The following commands show these four steps for a pair of Sentinel-2 scenes ove
 - Download S2 Image scene.
   
   ```bash
-  ftw inference download --win_a S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729 --win_b S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923 --out inference_imagery/austria_example.tif
+  ftw inference download --win_a S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729 --win_b S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923 --out inference_imagery/austria_example.tif --bbox 13.0,48.0,13.3,48.3
   ```
 
-  You can also specify a bbox to download a smaller subset of the data, e.g. add `--bbox 13.0,48.0,13.3,48.3`
+  This specifies a bbox to download a smaller subset of the data, with `--bbox 13.0,48.0,13.3,48.3`. If you leave that off you'll get the full S2 scenes downloaded.
 
 - Run inference on the entire scene.
   
