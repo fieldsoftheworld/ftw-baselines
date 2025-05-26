@@ -45,7 +45,7 @@ dependencies = [
     "rioxarray",               # For raster data handling
     "scipy",                   # For scientific computing
     "tensorboard",             # For PyTorch logging
-    "torchgeo",                # For geospatial deep learning
+    "torchgeo>=0.7.0",         # For geospatial deep learning
     "fiona",                   # For reading/writing vector data
     "pyproj",                  # For projections and CRSes
     "fiboa-cli==0.7.0",        # For storing data in Fiboa format
