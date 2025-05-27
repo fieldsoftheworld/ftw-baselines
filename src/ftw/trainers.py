@@ -101,7 +101,7 @@ class CustomSemanticSegmentationTask(BaseTask):
             )
 
         self.weights = weights
-        super().__init__(ignore="weights")
+        super().__init__()
         print(self.hparams)
 
 

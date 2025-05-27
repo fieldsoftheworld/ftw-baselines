@@ -12,8 +12,15 @@ jobs:
     defaults:
       run:
         shell: bash -l {0}
-    name: python-matrix
+    name: Run tests
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version:
+          - "3.11"
+          - "3.12"
+#         - "3.13"
+      fail-fast: false
     steps:
       - uses: actions/checkout@v4
       - uses: conda-incubator/setup-miniconda@v2
@@ -21,6 +28,8 @@ jobs:
           activate-environment: ftw
           environment-file: env.yml
           auto-activate-base: false
+      - name: Install Python version ${{ matrix.python-version }}
+        run: conda install python=${{ matrix.python-version }}
       - name: Install Python dependencies
         run: pip install -e .[dev]
       - name: Download model

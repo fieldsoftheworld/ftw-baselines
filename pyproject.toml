@@ -22,7 +22,7 @@ classifiers = [
   "Programming Language :: Python :: 3",
 ]
 
-requires-python = ">= 3.9"
+requires-python = ">= 3.11,<3.13"
 dependencies = [
     "click",                   # For CLI functionality
     "tqdm",                    # For progress bars
@@ -38,14 +38,17 @@ dependencies = [
     "wget",                    # For file downloads
     # pyarrow or later lead to an filesystem error in the fit function:
     # Error: Attempted to register factory for scheme 'file' but that scheme is already registered.
-    "pyarrow==16.0.0",         # For in-memory data processing
-    "odc-stac",                # For handling STAC data via Open Data Cube
+    # see https://github.com/apache/arrow/issues/44696
+    "pyarrow==16.1.0",         # For in-memory data processing
+    # see https://github.com/fieldsoftheworld/ftw-baselines/issues/77
+    "odc-stac>=0.4.0",         # For handling STAC data via Open Data Cube
     "planetary-computer",      # For accessing Planetary Computer STAC data
     "pystac",                  # For reading STAC
     "rioxarray",               # For raster data handling
     "scipy",                   # For scientific computing
     "tensorboard",             # For PyTorch logging
-    "torchgeo",                # For geospatial deep learning
+    # see https://github.com/fieldsoftheworld/ftw-baselines/issues/79
+    "torchgeo>=0.7.0",         # For geospatial deep learning
     "fiona",                   # For reading/writing vector data
     "pyproj",                  # For projections and CRSes
     "fiboa-cli==0.7.0",        # For storing data in Fiboa format
@@ -86,7 +89,7 @@ skip_gitignore = true
 color_output = true
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 ignore_missing_imports = true
 show_error_codes = true
 exclude = "(data|configs)/"

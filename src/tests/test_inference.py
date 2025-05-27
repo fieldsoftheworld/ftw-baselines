@@ -14,6 +14,7 @@ def test_inference_download(): # create_input
     result = runner.invoke(inference_download, [
         "--win_a=S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729",
         "--win_b=S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923",
+        "--bbox=13.0,48.0,13.2,48.2",
         "-o", inference_image,
         "-f"
     ])
