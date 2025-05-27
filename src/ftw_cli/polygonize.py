@@ -11,7 +11,8 @@ import rasterio.features
 import shapely.geometry
 from affine import Affine
 from fiboa_cli.parquet import create_parquet, features_to_dataframe
-from pyproj import CRS
+from shapely.ops import transform
+from pyproj import CRS, Transformer
 from tqdm import tqdm
 
 from .cfg import SUPPORTED_POLY_FORMATS_TXT
@@ -50,7 +51,6 @@ def polygonize(input, out, simplify, min_size, overwrite, close_interiors):
     with rasterio.open(input) as src:
         original_crs = src.crs.to_string()
         is_meters = src.crs.linear_units in ["m", "metre", "meter"]
-        transform = src.transform
         equal_area_crs = CRS.from_epsg(6933) # Define the equal-area projection using EPSG:6933
         tags = src.tags()
 
@@ -67,6 +67,8 @@ def polygonize(input, out, simplify, min_size, overwrite, close_interiors):
             format = "FlatGeobuf"
         elif out.endswith(".geojson") or out.endswith(".json"):
             format = "GeoJSON"
+            epsg4326 = CRS.from_epsg(4326)
+            affine = Transformer.from_crs(original_crs, epsg4326, always_xy=True).transform
         else:
             raise ValueError("Output format not supported. " + SUPPORTED_POLY_FORMATS_TXT)
 
@@ -74,7 +76,7 @@ def polygonize(input, out, simplify, min_size, overwrite, close_interiors):
         with tqdm(total=total_iterations, desc="Processing mask windows") as pbar:
             for y in range(0, input_height, polygonization_stride):
                 for x in range(0, input_width, polygonization_stride):
-                    new_transform = transform * Affine.translation(x, y)
+                    new_transform = src.transform * Affine.translation(x, y)
                     mask_window = mask[y:y+polygonization_stride, x:x+polygonization_stride]
                     for geom_geojson, val in rasterio.features.shapes(mask_window, transform=new_transform):
                         if val != 1:
@@ -105,6 +107,9 @@ def polygonize(input, out, simplify, min_size, overwrite, close_interiors):
                         # Only include geometries that meet the minimum size requirement
                         if area < min_size:
                             continue
+
+                        if format == "GeoJSON":
+                            geom = transform(affine, geom)
 
                         rows.append({
                             "geometry": shapely.geometry.mapping(geom),
@@ -140,6 +145,8 @@ def polygonize(input, out, simplify, min_size, overwrite, close_interiors):
         create_parquet(gdf, columns, collection, out, config, compression = "brotli")
     else:
         print("WARNING: The fiboa-compliant GeoParquet output format is recommended for field boundaries.")
+        if format == "GeoJSON":
+            original_crs = epsg4326
         with fiona.open(out, 'w', format, schema=schema, crs=original_crs) as dst:
             dst.writerecords(rows)
 

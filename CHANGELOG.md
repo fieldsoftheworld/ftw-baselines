@@ -8,6 +8,13 @@
 
 ## CLI
 
+### 1.2.0
+
+- Requires Python 3.10 or 3.11
+- Updates dependencies (especially torchgeo and odc-stac)
+- Polygonization: Reprojects polygons for GeoJSON output to WGS84
+- Polygonization: Add `max_size` parameter
+
 ### 1.1.0
 
 - First public release to pypi
