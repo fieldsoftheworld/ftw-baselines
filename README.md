@@ -26,7 +26,7 @@ This repository provides the codebase for working with the [FTW dataset](https:/
 
 ## System setup
 
-You need to install Python 3.11 or later and GDAL with libgdal-arrow-parquet.
+You need to install Python 3.11 or 3.12 and GDAL with libgdal-arrow-parquet.
 
 The easiest way to install the fiboa CLI is to run:
 
