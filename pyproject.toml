@@ -22,7 +22,7 @@ classifiers = [
   "Programming Language :: Python :: 3",
 ]
 
-requires-python = ">= 3.9"
+requires-python = ">= 3.11"
 dependencies = [
     "click",                   # For CLI functionality
     "tqdm",                    # For progress bars
@@ -45,6 +45,7 @@ dependencies = [
     "rioxarray",               # For raster data handling
     "scipy",                   # For scientific computing
     "tensorboard",             # For PyTorch logging
+    # see https://github.com/fieldsoftheworld/ftw-baselines/issues/79
     "torchgeo>=0.7.0",         # For geospatial deep learning
     "fiona",                   # For reading/writing vector data
     "pyproj",                  # For projections and CRSes
@@ -86,7 +87,7 @@ skip_gitignore = true
 color_output = true
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 ignore_missing_imports = true
 show_error_codes = true
 exclude = "(data|configs)/"
