@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ftw-tools"
-version = "1.1.1"
+version = "1.2.0"
 license = {file = "LICENSE"}
 description = "Fields of The World (FTW) Command Line Interface (CLI) for data management, ML processing, and more."
 readme = 'README.md'

@@ -95,7 +95,7 @@ def inference_download(win_a, win_b, out, overwrite, bbox):
 @inference.command("run", help="Run inference on the stacked Sentinel-2 L2A satellite images specified via INPUT.")
 @click.argument('input', type=click.Path(exists=True), required=True)
 @click.option('--model', '-m', type=click.Path(exists=True), required=True, help="Path to the model checkpoint.")
-@click.option('--out', '-o', type=str, required=True, help="Output filename.")
+@click.option('--out', '-o', type=str, default=None, help="Output filename for the inference imagery. Defaults to the name of the input file name with 'inference.' prefix.")
 @click.option('--resize_factor', type=int, default=2, show_default=True, help="Resize factor to use for inference.")
 @click.option('--gpu', type=int, help="GPU ID to use. If not provided, CPU will be used by default.")
 @click.option('--patch_size', type=int, default=None, help="Size of patch to use for inference. Defaults to 1024 unless the image is < 1024x1024px.")
@@ -109,7 +109,7 @@ def inference_run(input, model, out, resize_factor, gpu, patch_size, batch_size,
 
 @inference.command("polygonize", help="Polygonize the output from inference for the raster image given via INPUT. Results are in the CRS of the given raster image.")
 @click.argument('input', type=click.Path(exists=True), required=True)
-@click.option('--out', '-o', type=str, default=None, help="Output filename for the polygonized data. If not given defaults to the name of the input file with parquet extension. " + SUPPORTED_POLY_FORMATS_TXT)
+@click.option('--out', '-o', type=str, default=None, help="Output filename for the polygonized data. Defaults to the name of the input file with parquet extension. " + SUPPORTED_POLY_FORMATS_TXT)
 @click.option('--simplify', type=float, default=15, show_default=True, help="Simplification factor to use when polygonizing in the unit of the CRS, e.g. meters for Sentinel-2 imagery in UTM. Set to 0 to disable simplification.")
 @click.option('--min_size', type=float, default=500, show_default=True, help="Minimum area size in square meters to include in the output. Set to 0 to disable.")
 @click.option('--max_size', type=float, default=None, show_default=True, help="Maximum area size in square meters to include in the output. Disabled by default.")

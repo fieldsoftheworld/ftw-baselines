@@ -20,6 +20,9 @@ from ftw.trainers import CustomSemanticSegmentationTask
 
 
 def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, overwrite, mps_mode):
+    if not out:
+        out = os.path.join(os.path.dirname(input), "inference." + os.path.basename(input))
+
     # IO related sanity checks
     assert os.path.exists(model), f"Model file {model} does not exist."
     assert model.endswith(".ckpt"), "Model file must be a .ckpt file."

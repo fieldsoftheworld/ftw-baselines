@@ -12,17 +12,18 @@
 
 - Requires Python 3.10 or 3.11
 - Updates dependencies (especially torchgeo and odc-stac)
+- Inderence: Parameter `out` is not required any longer
 - Polygonization: Reprojects polygons for GeoJSON output to WGS84
 - Polygonization: Add `max_size` parameter
 - Polygonization: Support NDJSON
 
-### 1.1.0
-
-- First public release to pypi
-
 ### 1.1.1
 
 - Fixed `fiboa inference run` to not show `GDAL signalled an error: Cannot modify tag "PhotometricInterpretation" while writing` any longer
+
+### 1.1.0
+
+- First public release to pypi
 
 ### internal legacy non-pypi releases
 
