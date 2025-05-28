@@ -67,10 +67,15 @@ def polygonize(input, out, simplify, min_size, max_size, overwrite, close_interi
             format = "FlatGeobuf"
         elif out.endswith(".geojson") or out.endswith(".json"):
             format = "GeoJSON"
-            epsg4326 = CRS.from_epsg(4326)
-            affine = Transformer.from_crs(original_crs, epsg4326, always_xy=True).transform
+        elif out.endswith(".ndjson"):
+            format = "GeoJSONSeq"
         else:
             raise ValueError("Output format not supported. " + SUPPORTED_POLY_FORMATS_TXT)
+
+        is_geojson = format.startswith("GeoJSON")
+        if is_geojson:
+            epsg4326 = CRS.from_epsg(4326)
+            affine = Transformer.from_crs(original_crs, epsg4326, always_xy=True).transform
 
         rows = []
         with tqdm(total=total_iterations, desc="Processing mask windows") as pbar:
@@ -108,7 +113,7 @@ def polygonize(input, out, simplify, min_size, max_size, overwrite, close_interi
                         if area < min_size or (max_size is not None and area > max_size):
                             continue
 
-                        if format == "GeoJSON":
+                        if is_geojson:
                             geom = transform(affine, geom)
 
                         rows.append({
@@ -145,7 +150,7 @@ def polygonize(input, out, simplify, min_size, max_size, overwrite, close_interi
         create_parquet(gdf, columns, collection, out, config, compression = "brotli")
     else:
         print("WARNING: The fiboa-compliant GeoParquet output format is recommended for field boundaries.")
-        if format == "GeoJSON":
+        if is_geojson:
             original_crs = epsg4326
         with fiona.open(out, 'w', format, schema=schema, crs=original_crs) as dst:
             dst.writerecords(rows)

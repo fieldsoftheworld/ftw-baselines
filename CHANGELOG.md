@@ -14,6 +14,7 @@
 - Updates dependencies (especially torchgeo and odc-stac)
 - Polygonization: Reprojects polygons for GeoJSON output to WGS84
 - Polygonization: Add `max_size` parameter
+- Polygonization: Support NDJSON
 
 ### 1.1.0
 
