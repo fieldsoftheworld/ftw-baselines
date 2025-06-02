@@ -297,7 +297,7 @@ The following commands show these four steps for a pair of Sentinel-2 scenes ove
 - Run filtering by LULC mask.
 
   ```bash
-  ftw inference filter_by_lulc -f austria_example_output_full.tif -o austria_example_output_full_lulc.tif  --collection_name esa-worldcover
+  ftw inference filter_by_lulc -f austria_example_output_full.tif -o austria_example_output_full.tif  --collection_name esa-worldcover
   ```
 
 ### Sample Prediction Output (Austria Patch, Red - Fields)
@@ -307,7 +307,7 @@ The following commands show these four steps for a pair of Sentinel-2 scenes ove
 - Polygonize the output.
   
   ```bash
-  ftw inference polygonize austria_example_output_full_lulc.tif --simplify 20
+  ftw inference polygonize austria_example_output_full.tif --simplify 20
   ```
 
 This results in a fiboa-compliant file named `austria_example_output_full.parquet`.
