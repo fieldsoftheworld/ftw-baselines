@@ -218,8 +218,9 @@ Options:
   --help                   Show this message and exit.
 ```
 
+Optional step
 
-You can then use the `ftw inference filter_by_lulc` command to filter the inference output based a LULC raster mask. The output is saved in raster format, defaulting to GeoTIFF.
+In many regions, abandoned fields and other land plots are often misidentified as agricultural fields by segmentation models. To reduce such errors, you can use an additional filtering step using a Land Use/Land Cover (LULC) mask. You can then use the `ftw inference filter_by_lulc` command to filter the inference output based a LULC raster mask. The output is saved in raster format, defaulting to GeoTIFF.
 
 ```text
 ftw inference filter_by_lulc --help
@@ -236,9 +237,6 @@ Options:
   -f, --overwrite          Overwrite output file if it exists. [default: False]
   --help                   Show this message and exit.
 ```
-
-
-
 
 You can then use the `ftw inference polygonize` command to convert the output of the inference into a vector format (defaults to GeoParquet/[Fiboa](https://github.com/fiboa/), with GeoPackage, FlatGeobuf and GeoJSON as other options).
 
@@ -295,6 +293,7 @@ The following commands show these four steps for a pair of Sentinel-2 scenes ove
   ftw inference run inference_imagery/austria_example.tif --model 3_Class_FULL_FTW_Pretrained.ckpt --out austria_example_output_full.tif --gpu 0 --overwrite
   ```
 
+(*Optional)
 - Run filtering by LULC mask.
 
   ```bash
