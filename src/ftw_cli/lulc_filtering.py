@@ -1,5 +1,6 @@
 "field processing with lulc"
 
+import logging
 import os
 from typing import Union
 
@@ -9,8 +10,9 @@ import pystac_client
 import rasterio as rio
 import rioxarray
 import xarray as xr
-from loguru import logger
 from rasterio import warp
+
+logger = logging.getLogger(__name__)
 
 
 class RasterLULCFilter:
@@ -150,10 +152,8 @@ def lulc_filtering(
         return None
     elif os.path.exists(out) and overwrite:
         os.remove(out)  # GPKGs are sometimes weird about overwriting in-place
-    output_path = RasterLULCFilter(
-        input_path=input, output_path=out, collection_name=collection_name
-    )
-    return output_path
+    RasterLULCFilter(input_path=input, output_path=out, collection_name=collection_name)
+    return out
 
 
 if __name__ == "__main__":
