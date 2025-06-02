@@ -218,6 +218,28 @@ Options:
   --help                   Show this message and exit.
 ```
 
+
+You can then use the `ftw inference filter_by_lulc` command to filter the inference output based a LULC raster mask. The output is saved in raster format, defaulting to GeoTIFF.
+
+```text
+ftw inference filter_by_lulc --help
+
+Usage: ftw inference filter_by_lulc [OPTIONS] INPUT
+
+  Filter the output inference after model by LULC mask.
+
+Options:
+  -o, --out TEXT           Output filename for the filtered inference. If
+                           not given, defaults to the input filename -lulc postfix and .tif extension. Available formats: 
+                           .tif (GeoTIFF).
+  --collection_name TEXT    Name of the LULC collection to use. Available collections: io-lulc-annual-v02 (default) and esa-worldcover. [default: io-lulc-annual-v02]
+  -f, --overwrite          Overwrite output file if it exists. [default: False]
+  --help                   Show this message and exit.
+```
+
+
+
+
 You can then use the `ftw inference polygonize` command to convert the output of the inference into a vector format (defaults to GeoParquet/[Fiboa](https://github.com/fiboa/), with GeoPackage, FlatGeobuf and GeoJSON as other options).
 
 ```text
@@ -246,29 +268,6 @@ Options:
 
 Simplification factor is measured in the units of the coordinate reference system (CRS), and for Sentinel-2 this is meters, so a simplification factor of 15 or 20 is usually sufficient (and recommended, or the vector file will be as large as the raster file).
 
-You can then use the `ftw inference filter_by_lulc` command to filter the inference output based on field size and a LULC raster mask. The output is saved in vector format, defaulting to GeoJSON.
-
-```text
-ftw inference filter_by_lulc --help
-
-Usage: ftw inference filter_by_lulc [OPTIONS] INPUT
-
-  Filter the output field in GeoJSON format by field size and LULC mask.
-
-Options:
-  -o, --out TEXT           Output filename for the filtered polygon data. If
-                           not given, defaults to the input filename with
-                           parquet extension. Available formats: 
-                           .geojson (GeoJSON).
-  --minimal_area_m2 FLOAT  Minimum area size in square meters to include in
-                           the output. [default: 1000]
-  --lulc_path TEXT         Path to the LULC raster file for downloading. [default: LULC.tif]
-  --lulc_year INT          Year of the LULC raster file. [default: 2023]
-  -f, --overwrite          Overwrite output file if it exists.
-  --help                   Show this message and exit.
-```
-
-
 The following commands show these four steps for a pair of Sentinel-2 scenes over Austria:
 
 - Download pretrained checkpoint from [v1](https://github.com/fieldsoftheworld/ftw-baselines/releases/tag/v1).
@@ -296,6 +295,12 @@ The following commands show these four steps for a pair of Sentinel-2 scenes ove
   ftw inference run inference_imagery/austria_example.tif --model 3_Class_FULL_FTW_Pretrained.ckpt --out austria_example_output_full.tif --gpu 0 --overwrite
   ```
 
+- Run filtering by LULC mask.
+
+  ```bash
+  ftw inference filter_by_lulc -f austria_example_output_full.tif -o austria_example_output_full_lulc.tif  --collection_name esa-worldcover
+  ```
+
 ### Sample Prediction Output (Austria Patch, Red - Fields)
 
 ![Sample Prediction Output](/assets/austria_prediction.png)
@@ -303,7 +308,7 @@ The following commands show these four steps for a pair of Sentinel-2 scenes ove
 - Polygonize the output.
   
   ```bash
-  ftw inference polygonize austria_example_output_full.tif --simplify 20
+  ftw inference polygonize austria_example_output_full_lulc.tif --simplify 20
   ```
 
 This results in a fiboa-compliant file named `austria_example_output_full.parquet`.
