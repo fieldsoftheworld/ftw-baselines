@@ -1,5 +1,7 @@
 import os
+import torch
 
+import pytest
 from click.testing import CliRunner
 
 from ftw_cli.cli import model_fit, model_test, data_download
@@ -38,3 +40,34 @@ def test_model_test():
     assert "Created dataloader" in result.output
     assert "Object level recall: 0.0000" in result.output
     assert os.path.exists("results.csv")
+
+@pytest.mark.parametrize(
+    "arch", ["unet", "deeplabv3+", "fcn", "segformer", "dpt", "upernet"]
+)
+@torch.inference_mode()
+def test_model_archs(arch: str):
+    from ftw.trainers import CustomSemanticSegmentationTask
+    params = {
+        "class_weights": [0.04, 0.08, 0.88],
+        "loss": "ce",
+        "backbone": "efficientnet-b3",
+        "weights": False,
+        "patch_weights": False,
+        "in_channels": 8,
+        "num_classes": 3,
+        "num_filters": 64,
+        "ignore_index": 3,
+        "lr": 1e-3,
+        "patience": 100,
+        "model_kwargs": {},
+    }
+    params["model"] = arch
+
+    if arch == "dpt":
+        params["backbone"] = "tu-resnet18"
+
+    model = CustomSemanticSegmentationTask(**params)
+    model.eval()
+    x = torch.randn(1, 8, 256, 256)
+    y = model(x)
+    assert y.shape == (1, 3, 256, 256), f"Output shape mismatch for {arch}: {y.shape}"
