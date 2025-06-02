@@ -45,6 +45,7 @@ class CustomSemanticSegmentationTask(BaseTask):
         freeze_backbone: bool = False,
         freeze_decoder: bool = False,
         model_kwargs: dict[Any, Any] = dict(),
+        image_size: Optional[int] = None,
     ) -> None:
         """Inititalize a new SemanticSegmentationTask instance.
 
@@ -54,6 +55,9 @@ class CustomSemanticSegmentationTask(BaseTask):
             backbone: Name of the `timm
                 <https://smp.readthedocs.io/en/latest/encoders_timm.html>`__ or `smp
                 <https://smp.readthedocs.io/en/latest/encoders.html>`__ backbone to use.
+                Note: if using a DPT model, the backbone must be a supported timm encoder
+                from the list `here <https://smp.readthedocs.io/en/latest/encoders_timm.html>`__
+                such as `tu-resnet50` or `tu-vit_base_patch16_224`.
             weights: Initial model weights. Either a weight enum, the string
                 representation of a weight enum, True for ImageNet weights, False or
                 None for random weights, or the path to a saved model state dict. FCN
@@ -74,6 +78,8 @@ class CustomSemanticSegmentationTask(BaseTask):
                 decoder and segmentation head.
             freeze_decoder: Freeze the decoder network to linear probe
                 the segmentation head.
+            image_size: Size of the input image. Only needed for DPT models with ViT
+                encoders to properly interpolate the positional embeddings.
 
         Warns:
             UserWarning: When loss='jaccard' and ignore_index is specified.
@@ -189,15 +195,39 @@ class CustomSemanticSegmentationTask(BaseTask):
                 encoder_weights="imagenet" if weights is True else None,
                 in_channels=in_channels,
                 classes=num_classes,
+                **model_kwargs,
             )
         elif model == "fcn":
             self.model = FCN(
                 in_channels=in_channels, classes=num_classes, num_filters=num_filters
             )
+        elif model == "upernet":
+            self.model = smp.UPerNet(
+                encoder_name=backbone,
+                encoder_weights="imagenet" if weights is True else None,
+                in_channels=in_channels,
+                classes=num_classes,
+                **model_kwargs,
+            )
+        elif model == "segformer":
+            self.model = smp.Segformer(
+                encoder_name=backbone,
+                encoder_weights="imagenet" if weights is True else None,
+                in_channels=in_channels,
+                classes=num_classes,
+            )
+        elif model == "dpt":
+            self.model = smp.DPT(
+                encoder_name=backbone,
+                encoder_weights="imagenet" if weights is True else None,
+                in_channels=in_channels,
+                classes=num_classes,
+                **model_kwargs,
+            )
         else:
             raise ValueError(
                 f"Model type '{model}' is not valid. "
-                "Currently, only supports 'unet', 'deeplabv3+' and 'fcn'."
+                "Currently, only supports 'unet', 'deeplabv3+', 'fcn', 'upernet', 'segformer', and 'dpt'."
             )
 
         # Freeze backbone
