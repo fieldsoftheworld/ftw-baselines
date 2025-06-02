@@ -20,10 +20,6 @@ def test_model_fit():
     # Run minimal fit
     result = runner.invoke(model_fit, ["-c", CONFIG_FILE])
     assert result.exit_code == 0, result.output
-
-    with open("log.txt", "w") as f:
-        f.write(result.output)
-
     assert "Train countries: ['rwanda']" in result.output
     assert "`Trainer.fit` stopped: `max_epochs=1` reached." in result.output
     assert "Finished" in result.output
