@@ -45,7 +45,6 @@ class CustomSemanticSegmentationTask(BaseTask):
         freeze_backbone: bool = False,
         freeze_decoder: bool = False,
         model_kwargs: dict[Any, Any] = dict(),
-        image_size: Optional[int] = None,
     ) -> None:
         """Inititalize a new SemanticSegmentationTask instance.
 
@@ -78,8 +77,7 @@ class CustomSemanticSegmentationTask(BaseTask):
                 decoder and segmentation head.
             freeze_decoder: Freeze the decoder network to linear probe
                 the segmentation head.
-            image_size: Size of the input image. Only needed for DPT models with ViT
-                encoders to properly interpolate the positional embeddings.
+            model_kwargs: Additional keyword arguments to pass to the model
 
         Warns:
             UserWarning: When loss='jaccard' and ignore_index is specified.
@@ -227,7 +225,7 @@ class CustomSemanticSegmentationTask(BaseTask):
         else:
             raise ValueError(
                 f"Model type '{model}' is not valid. "
-                "Currently, only supports 'unet', 'deeplabv3+', 'fcn', 'upernet', 'segformer', and 'dpt'."
+                "Currently, only supports 'unet', 'deeplabv3+', and 'fcn', 'upernet', 'segformer', and 'dpt'."
             )
 
         # Freeze backbone

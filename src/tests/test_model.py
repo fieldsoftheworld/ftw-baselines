@@ -5,7 +5,6 @@ import pytest
 from click.testing import CliRunner
 
 from ftw_cli.cli import model_fit, model_test, data_download
-from ftw.trainers import CustomSemanticSegmentationTask
 
 CKPT_FILE = "logs/FTW-CI/lightning_logs/version_0/checkpoints/last.ckpt"
 CONFIG_FILE = "src/tests/data-files/min_config.yaml"
@@ -21,6 +20,10 @@ def test_model_fit():
     # Run minimal fit
     result = runner.invoke(model_fit, ["-c", CONFIG_FILE])
     assert result.exit_code == 0, result.output
+
+    with open("log.txt", "w") as f:
+        f.write(result.output)
+
     assert "Train countries: ['rwanda']" in result.output
     assert "`Trainer.fit` stopped: `max_epochs=1` reached." in result.output
     assert "Finished" in result.output
@@ -47,6 +50,7 @@ def test_model_test():
 )
 @torch.inference_mode()
 def test_model_archs(arch: str):
+    from ftw.trainers import CustomSemanticSegmentationTask
     params = {
         "class_weights": [0.04, 0.08, 0.88],
         "loss": "ce",
