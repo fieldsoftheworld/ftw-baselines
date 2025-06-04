@@ -28,7 +28,7 @@ def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, 
     assert model.endswith(".ckpt"), "Model file must be a .ckpt file."
     assert os.path.exists(input), f"Input file {input} does not exist."
     assert input.endswith(".tif") or input.endswith(".vrt"), "Input file must be a .tif or .vrt file."
-    assert overwrite or os.path.exists(out), f"Output file {out} already exists. Use -f to overwrite."
+    assert overwrite or not os.path.exists(out), f"Output file {out} already exists. Use -f to overwrite."
 
     # Determine the device: GPU, MPS, or CPU
     if mps_mode:

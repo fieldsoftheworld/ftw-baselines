@@ -8,6 +8,10 @@
 
 ## CLI
 
+### Unreleased
+
+- Fixed the overwrite check in `ftw run inference`
+
 ### 1.2.0
 
 - Requires Python 3.10 or 3.11
