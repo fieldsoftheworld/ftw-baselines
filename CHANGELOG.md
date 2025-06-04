@@ -11,6 +11,8 @@
 ### Unreleased
 
 - Fixed the overwrite check in `ftw run inference`
+- Make inference more robust against Sentinel-2 processing versions 4 and 5
+- Warn if the input imagery for inference is not processing version 3 (which was used to train the models)
 
 ### 1.2.0
 
