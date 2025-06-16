@@ -50,7 +50,7 @@ def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, 
 
     # Determine the default patch size
     if patch_size is None:
-        steps = [1024, 512, 256, 128, 64]
+        steps = [1024, 512, 256, 128]
         for step in steps:
             if step <= min(input_height, input_width):
                 patch_size = step
