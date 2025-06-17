@@ -212,7 +212,7 @@ Options:
                            1024 unless the image is < 1024x1024px.
   --batch_size INTEGER     Batch size.  [default: 2]
   --padding INTEGER        Pixels to discard from each side of the patch.
-                           [default: 64]
+                           Defaults to 64 unless the image is < 1024x1024px.
   -f, --overwrite          Overwrite outputs if they exist.
   --mps_mode               Run inference in MPS mode (Apple GPUs).
   --help                   Show this message and exit.

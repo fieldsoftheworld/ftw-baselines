@@ -43,6 +43,7 @@ def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, 
     # Load the input raster
     with rasterio.open(input) as src:
         input_height, input_width = src.shape
+        print(f"Input image size: {input_height}x{input_width} pixels (HxW)")
         profile = src.profile
         transform = profile["transform"]
         tags = src.tags()
@@ -54,11 +55,17 @@ def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, 
             if step <= min(input_height, input_width):
                 patch_size = step
                 break
-    stride = patch_size - padding * 2
     print("Patch size:", patch_size)
-    
     assert patch_size is not None, "Input image is too small"
     assert patch_size % 32 == 0, "Patch size must be a multiple of 32."
+    assert patch_size <= min(input_height, input_width), "Patch size must not be larger than the input image dimensions."
+
+    if padding is None:
+        # 64 for patch sizes >= 1024, otherwise smaller paddings
+        padding = math.ceil(min(1024, patch_size) / 16)
+    print("Padding:", padding)
+    
+    stride = patch_size - padding * 2
     assert stride > 64, "Patch size minus two times the padding must be greater than 64."
 
     # Load task
