@@ -8,10 +8,12 @@ import rioxarray  # seems unused but is needed
 import xarray as xr
 from tqdm.auto import tqdm
 from shapely.geometry import shape
+from tenacity import retry, wait_random_exponential, stop_after_attempt
 
 from .cfg import BANDS_OF_INTEREST, COLLECTION_ID, MSPC_URL
 
 
+@retry(wait=wait_random_exponential(max=30), stop=stop_after_attempt(5))
 def get_item(id):
     if "/" not in id:
         uri = MSPC_URL + "/collections/" + COLLECTION_ID + "/items/" + id
