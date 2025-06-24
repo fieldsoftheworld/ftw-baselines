@@ -1,12 +1,12 @@
 import os
 import time
 
+import dask.diagnostics.progress
 import odc.stac
 import planetary_computer as pc
 import pystac
 import rioxarray  # seems unused but is needed
 import xarray as xr
-from tqdm.auto import tqdm
 from shapely.geometry import shape
 
 from .cfg import BANDS_OF_INTEREST, COLLECTION_ID, MSPC_URL
@@ -78,7 +78,6 @@ def create_input(win_a, win_b, out, overwrite, bbox = None):
         resampling="bilinear",
         bbox=bbox,
         chunks={"x": "auto", "y": "auto"},
-        progress=tqdm
     )
 
     data = data.to_array(dim="band").stack(bands=("time", "band")).drop_vars("band").transpose('bands', 'y', 'x')
@@ -90,17 +89,18 @@ def create_input(win_a, win_b, out, overwrite, bbox = None):
         data = (data.astype("int32") - 1000).clip(min=0).astype("uint16")
 
     print("Writing output")
-    data.rio.to_raster(
-        out,
-        driver="GTiff",
-        compress="deflate",
-        dtype="uint16",
-        tiled=True,
-        blockxsize=256,
-        blockysize=256,
-        tags={
-            "TIFFTAG_DATETIME": timestamp.strftime("%Y:%m:%d %H:%M:%S")
-        }
-    )
+    with dask.diagnostics.progress.ProgressBar():
+        data.rio.to_raster(
+            out,
+            driver="GTiff",
+            compress="deflate",
+            dtype="uint16",
+            tiled=True,
+            blockxsize=256,
+            blockysize=256,
+            tags={
+                "TIFFTAG_DATETIME": timestamp.strftime("%Y:%m:%d %H:%M:%S")
+            }
+        )
 
     print(f"Finished merging and writing output in {time.time()-tic:0.2f} seconds")
