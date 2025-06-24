@@ -52,6 +52,7 @@ dependencies = [
     "fiona",                   # For reading/writing vector data
     "pyproj",                  # For projections and CRSes
     "fiboa-cli==0.7.0",        # For storing data in Fiboa format
+    "dask[distributed]==2025.5.1"  # For parallel processing
 ]
 
 [project.urls]

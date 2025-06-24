@@ -70,7 +70,6 @@ def create_input(win_a, win_b, out, overwrite, bbox = None):
         print("The provided images do not intersect. Exiting.")
         return
 
-    print("Loading data")
     tic = time.time()
     data = odc.stac.load(
         [items[0], items[1]],
@@ -78,10 +77,10 @@ def create_input(win_a, win_b, out, overwrite, bbox = None):
         dtype="uint16",
         resampling="bilinear",
         bbox=bbox,
+        chunks={"x": "auto", "y": "auto"},
         progress=tqdm
     )
 
-    print("Merging data")
     data = data.to_array(dim="band").stack(bands=("time", "band")).drop_vars("band").transpose('bands', 'y', 'x')
 
     if version < 3 or version >= 4:
