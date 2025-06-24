@@ -7,7 +7,7 @@ This repository provides the codebase for working with the [FTW dataset](https:/
 
 ## ⚠️ Note on Repository Structure <!-- omit in toc -->
 
-The `ftw-tools` CLI currently lives in this [`ftw-baselines`](https://github.com/fieldsoftheworld/ftw-baselines) repository due to legacy reasons. We plan to migrate the CLI and related tools into an `ftw-tools` repository soon. Until then, the latest and most complete version of the CLI still lives in `ftw-baselines`.
+The Fields of The World Command Line Inferface (FTW CLI),`ftw-tools`, currently lives in this `ftw-baselines` repository due to legacy reasons. We plan to migrate the FTW CLI and related tools into an `ftw-tools` repository soon. Until then, the latest and most complete version of the FTW CLI still lives in `ftw-baselines`.
 
 ## Table of Contents <!-- omit in toc -->
 
@@ -23,8 +23,8 @@ The `ftw-tools` CLI currently lives in this [`ftw-baselines`](https://github.com
   - [4. Polygonize the output (using `ftw inference polygonize`)](#4-polygonize-the-output-using-ftw-inference-polygonize)
 - [FTW Baseline Dataset](#ftw-baseline-dataset)
   - [Download the FTW Baseline Dataset](#download-the-ftw-baseline-dataset)
-- [Visualize the FTW Baseline Dataset](#visualize-the-ftw-baseline-dataset)
-  - [CC-BY (or equivalent) trained models](#cc-by-or-equivalent-trained-models)
+  - [Visualize the FTW Baseline Dataset](#visualize-the-ftw-baseline-dataset)
+- [CC-BY (or equivalent) trained models](#cc-by-or-equivalent-trained-models)
 - [Experimentation](#experimentation)
 - [Notes](#notes)
 - [Upcoming features](#upcoming-features)
@@ -97,11 +97,11 @@ Commands:
 
 ## FTW CLI Tutorial
 
-The following commands show the steps for using the FTW CLI to obtain the FTW model and data, and then run an inference using that model on that data, and finally polygonizing that output. This example uses a pair of Sentinel-2 scenes over Austria.
+The following commands show the steps for using the FTW CLI to obtain the FTW model and data, and then run an inference using that model on that data, and finally polygonizing that output. This example uses a pair of Sentinel-2 (S2) scenes over Austria.
 
 ### 1. Download the model (using `wget`)
 
-You need a trained model - either download a pre-trained model (we provide an example pre-trained model in the [Releases](https://github.com/fieldsoftheworld/ftw-baselines/releases) list), or train your own model as explained in the [Training](./EXPERIMENTS.md#training) section.
+In order to use `ftw inference`, you need a trained model. You can either download a pre-trained model (FTW pre-trained models can be found in the [Releases](https://github.com/fieldsoftheworld/ftw-baselines/releases) list) or you can train your own model as explained in the [Training](./EXPERIMENTS.md#training) section. This example will use an FTW pre-trained model (with options for either 3 Class or 2 Class).
 
 - Download pretrained checkpoint from [v1](https://github.com/fieldsoftheworld/ftw-baselines/releases/tag/v1).
   - 3 Class
@@ -241,6 +241,8 @@ This results in a fiboa-compliant file named `austria_example_output_full.parque
 
 ![Sample Prediction Output](/assets/austria_prediction.png)
 
+And that's it! In 4 lines of code, you obtained an FTW model, downloaded S2 data, ran model inference on that data, and polygonized the output to have a final parquet product.
+
 ## FTW Baseline Dataset
 
 Download and unpack the FTW Baseline Dataset using the FTW CLI.
@@ -294,14 +296,14 @@ ftw data download --countries belgium,kenya,vietnam
 
 *Note:* Make sure to avoid adding any space in between the list of comma seperated countries.
 
-## Visualize the FTW Baseline Dataset
+### Visualize the FTW Baseline Dataset
 
 Explore `visualize_dataset.ipynb` to know more about the dataset.
 
 ![Sample 1](/assets/sample1.png)
 ![Sample 2](/assets/sample2.png)
 
-### CC-BY (or equivalent) trained models
+## CC-BY (or equivalent) trained models
 
 Consider using CC-BY FTW Trained Checkpoints from the release file for Commercial Purpose. For Non-Commercial Purpose and Academic purpose, you can use the FULL FTW Trained Checkpoints (See the graph below for perfrmance comparison).
 
