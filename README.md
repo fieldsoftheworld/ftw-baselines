@@ -71,6 +71,9 @@ or for development purposes:
 
 ```bash
 pip install -e .[dev]
+
+# setup pre-commit
+pre-commit configure
 ```
 
 ```text
