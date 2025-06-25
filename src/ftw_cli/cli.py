@@ -119,9 +119,23 @@ def inference_polygonize(input, out, simplify, min_size, max_size, overwrite, cl
     from ftw_cli.polygonize import polygonize
     polygonize(input, out, simplify, min_size, max_size, overwrite, close_interiors)
 
+
+
+
+@inference.command("filter_by_lulc", help="Filter the output raster in GeoTIFF format by LULC mask.")
+@click.argument('input', type=click.Path(exists=True), required=True)
+@click.option('--out', '-o', type=str, default=None, help="Output filename for the polygonized data. If not given defaults to the name of the input file with parquet extension. " + SUPPORTED_POLY_FORMATS_TXT)
+@click.option('--overwrite', '-f', is_flag=True, help="Overwrite outputs if they exist.")
+@click.option('--collection_name', type=str, default="io-lulc-annual-v02", help="Name of the LULC collection to use. Available collections: io-lulc-annual-v02 (default) and esa-worldcover" )
+def inference_lulc_filtering(input, out, overwrite, collection_name):
+    from ftw_cli.lulc_filtering import lulc_filtering
+    lulc_filtering(input=input, out=out, overwrite=overwrite, collection_name=collection_name)
+
+
 inference.add_command(inference_download)
 inference.add_command(inference_polygonize)
 inference.add_command(inference_run)
+inference.add_command(inference_lulc_filtering)
 
 if __name__ == "__main__":
     ftw()
