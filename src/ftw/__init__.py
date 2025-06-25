@@ -1,7 +1,1 @@
-__all__ = [
-    "datamodules",
-    "datasets",
-    "metrics",
-    "trainers",
-    "utils"
-]
+__all__ = ["datamodules", "datasets", "metrics", "trainers", "utils"]

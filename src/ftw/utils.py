@@ -30,11 +30,11 @@ def validate_checksums(checksum_file, root_directory):
         parts = line.strip().split()
         if len(parts) != 2:
             continue
-        
+
         stored_checksum, file_path = parts
         file_path = os.path.join(root_directory, file_path)
         current_checksum = compute_md5(file_path)
-        
+
         if current_checksum != stored_checksum:
             print("Checksum mismatch: {file_path}")
             return False
@@ -51,7 +51,7 @@ def euclidean_distance(pt1, pt2):
     Returns:
         distance between the two points
     """
-    return np.sqrt((pt1[0] - pt2[0])**2 + (pt1[1] - pt2[1])**2)
+    return np.sqrt((pt1[0] - pt2[0]) ** 2 + (pt1[1] - pt2[1]) ** 2)
 
 
 def featurize(polygon):
@@ -136,6 +136,7 @@ def featurize(polygon):
         "length": length,
         "width": width,
         "length_width_ratio": length / width,
-        "vertices": len(coords) - 1,  # -1 because the first and last point are always the same
+        "vertices": len(coords)
+        - 1,  # -1 because the first and last point are always the same
     }
     return results

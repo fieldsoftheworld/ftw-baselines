@@ -19,16 +19,33 @@ from ftw.datasets import SingleRasterDataset
 from ftw.trainers import CustomSemanticSegmentationTask
 
 
-def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, overwrite, mps_mode):
+def run(
+    input,
+    model,
+    out,
+    resize_factor,
+    gpu,
+    patch_size,
+    batch_size,
+    padding,
+    overwrite,
+    mps_mode,
+):
     if not out:
-        out = os.path.join(os.path.dirname(input), "inference." + os.path.basename(input))
+        out = os.path.join(
+            os.path.dirname(input), "inference." + os.path.basename(input)
+        )
 
     # IO related sanity checks
     assert os.path.exists(model), f"Model file {model} does not exist."
     assert model.endswith(".ckpt"), "Model file must be a .ckpt file."
     assert os.path.exists(input), f"Input file {input} does not exist."
-    assert input.endswith(".tif") or input.endswith(".vrt"), "Input file must be a .tif or .vrt file."
-    assert overwrite or not os.path.exists(out), f"Output file {out} already exists. Use -f to overwrite."
+    assert input.endswith(".tif") or input.endswith(".vrt"), (
+        "Input file must be a .tif or .vrt file."
+    )
+    assert overwrite or not os.path.exists(out), (
+        f"Output file {out} already exists. Use -f to overwrite."
+    )
 
     # Determine the device: GPU, MPS, or CPU
     if mps_mode:
@@ -58,32 +75,54 @@ def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, 
     print("Patch size:", patch_size)
     assert patch_size is not None, "Input image is too small"
     assert patch_size % 32 == 0, "Patch size must be a multiple of 32."
-    assert patch_size <= min(input_height, input_width), "Patch size must not be larger than the input image dimensions."
+    assert patch_size <= min(input_height, input_width), (
+        "Patch size must not be larger than the input image dimensions."
+    )
 
     if padding is None:
         # 64 for patch sizes >= 1024, otherwise smaller paddings
         padding = math.ceil(min(1024, patch_size) / 16)
     print("Padding:", padding)
-    
+
     stride = patch_size - padding * 2
-    assert stride > 64, "Patch size minus two times the padding must be greater than 64."
+    assert stride > 64, (
+        "Patch size minus two times the padding must be greater than 64."
+    )
 
     # Load task
     tic = time.time()
-    task = CustomSemanticSegmentationTask.load_from_checkpoint(model, map_location="cpu")
+    task = CustomSemanticSegmentationTask.load_from_checkpoint(
+        model, map_location="cpu"
+    )
     task.freeze()
     model = task.model.eval().to(device)
 
     if mps_mode:
-        up_sample = K.Resize((patch_size * resize_factor, patch_size * resize_factor)).to("cpu")
-        down_sample = K.Resize((patch_size, patch_size), resample=Resample.NEAREST.name).to(device).to("cpu")
+        up_sample = K.Resize(
+            (patch_size * resize_factor, patch_size * resize_factor)
+        ).to("cpu")
+        down_sample = (
+            K.Resize((patch_size, patch_size), resample=Resample.NEAREST.name)
+            .to(device)
+            .to("cpu")
+        )
     else:
-        up_sample = K.Resize((patch_size * resize_factor, patch_size * resize_factor)).to(device)
-        down_sample = K.Resize((patch_size, patch_size), resample=Resample.NEAREST.name).to(device)
+        up_sample = K.Resize(
+            (patch_size * resize_factor, patch_size * resize_factor)
+        ).to(device)
+        down_sample = K.Resize(
+            (patch_size, patch_size), resample=Resample.NEAREST.name
+        ).to(device)
 
     dataset = SingleRasterDataset(input, transforms=preprocess)
     sampler = GridGeoSampler(dataset, size=patch_size, stride=stride)
-    dataloader = DataLoader(dataset, sampler=sampler, batch_size=batch_size, num_workers=6, collate_fn=stack_samples)
+    dataloader = DataLoader(
+        dataset,
+        sampler=sampler,
+        batch_size=batch_size,
+        num_workers=6,
+        collate_fn=stack_samples,
+    )
 
     # Run inference
     output_mask = np.zeros((input_height, input_width), dtype=np.uint8)
@@ -108,31 +147,43 @@ def run(input, model, out, resize_factor, gpu, patch_size, batch_size, padding, 
             bb = bboxes[i]
             left, top = ~transform * (bb.minx, bb.maxy)
             right, bottom = ~transform * (bb.maxx, bb.miny)
-            left, right, top, bottom = int(np.round(left)), int(np.round(right)), int(np.round(top)), int(np.round(bottom))
+            left, right, top, bottom = (
+                int(np.round(left)),
+                int(np.round(right)),
+                int(np.round(top)),
+                int(np.round(bottom)),
+            )
             pleft = left + padding
             pright = right - padding
             ptop = top + padding
             pbottom = bottom - padding
-            destination_height, destination_width = output_mask[ptop:pbottom, pleft:pright].shape
-            inp = predictions[i][padding:padding + destination_height, padding:padding + destination_width]
+            destination_height, destination_width = output_mask[
+                ptop:pbottom, pleft:pright
+            ].shape
+            inp = predictions[i][
+                padding : padding + destination_height,
+                padding : padding + destination_width,
+            ]
             output_mask[ptop:pbottom, pleft:pright] = inp
 
     # Save predictions
-    profile.update({
-        "driver": "GTiff",
-        "count": 1,
-        "dtype": "uint8",
-        "compress": "lzw",
-        "nodata": 0,
-        "blockxsize": 512,
-        "blockysize": 512,
-        "tiled": True,
-        "interleave": "pixel"
-    })
+    profile.update(
+        {
+            "driver": "GTiff",
+            "count": 1,
+            "dtype": "uint8",
+            "compress": "lzw",
+            "nodata": 0,
+            "blockxsize": 512,
+            "blockysize": 512,
+            "tiled": True,
+            "interleave": "pixel",
+        }
+    )
 
     with rasterio.open(out, "w", **profile) as dst:
         dst.update_tags(**tags)
-        dst.write_colormap(1, {1: (255, 0, 0), 2:(0, 255, 0)})
+        dst.write_colormap(1, {1: (255, 0, 0), 2: (0, 255, 0)})
         dst.colorinterp = [ColorInterp.palette]
         dst.write(output_mask, 1)
 

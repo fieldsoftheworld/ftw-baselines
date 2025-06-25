@@ -1,7 +1,1 @@
-__all__ = [
-    "cli",
-    "download",
-    "model",
-    "unpack",
-    "inference"
-]
+__all__ = ["cli", "download", "model", "unpack", "inference"]
