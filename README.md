@@ -60,7 +60,7 @@ python -c "import torch; print(torch.cuda.is_available())"
 
 ### Setup FTW CLI
 
-To create the `ftw` command-line tool, run the following:
+To install the `ftw` command-line tool on your computer, run the following:
 
 ```bash
 pip install ftw-tools
