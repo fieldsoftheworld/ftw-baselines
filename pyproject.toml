@@ -73,12 +73,6 @@ ftw = "ftw_cli.cli:ftw"
 packages = { find = { where = ["src"] } }
 include-package-data = true  # Includes non-Python files specified in MANIFEST.in
 
-[tool.isort]
-profile = "black"
-known_first_party = ["ftw"]
-skip_gitignore = true
-color_output = true
-
 [tool.ruff]
 extend-exclude = ["*.ipynb"]
 
