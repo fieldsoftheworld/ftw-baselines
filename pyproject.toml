@@ -62,11 +62,7 @@ Changelog = "https://github.com/fieldsoftheworld/ftw-baselines/blob/main/CHANGEL
 
 [project.optional-dependencies]
 dev = [
-    "black",       # Code formatting tool
-    "isort",       # Import sorting tool
-    "mypy",        # Static type checker
-    "pydocstyle",  # Python docstring style checker
-    "flake8",      # Linter for Python
+    "ruff",        # Code formatting tool
     "pytest",      # Testing framework
 ]
 
@@ -77,40 +73,14 @@ ftw = "ftw_cli.cli:ftw"
 packages = { find = { where = ["src"] } }
 include-package-data = true  # Includes non-Python files specified in MANIFEST.in
 
-[tool.black]
-target-version = ["py310"]
-color = true
-skip_magic_trailing_comma = true
-
 [tool.isort]
 profile = "black"
 known_first_party = ["ftw"]
 skip_gitignore = true
 color_output = true
 
-[tool.mypy]
-python_version = "3.11"
-ignore_missing_imports = true
-show_error_codes = true
-exclude = "(data|configs)/"
-warn_unused_configs = true
-disallow_any_generics = true
-disallow_subclassing_any = true
-disallow_untyped_calls = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_return_any = true
-no_implicit_reexport = true
-strict_equality = true
-
-[tool.pydocstyle]
-convention = "google"
-match_dir = "(ftw)"
+[tool.ruff]
+extend-exclude = ["*.ipynb"]
 
 [tool.pytest.ini_options]
 pythonpath = [
