@@ -305,7 +305,7 @@ Explore `visualize_dataset.ipynb` to know more about the dataset.
 ![Sample 1](/assets/sample1.png)
 ![Sample 2](/assets/sample2.png)
 
-## CC-BY (or equivalent) trained models
+## CC-BY vs. the full model
 
 Consider using CC-BY FTW Trained Checkpoints from the release file for Commercial Purpose. For Non-Commercial Purpose and Academic purpose, you can use the FULL FTW Trained Checkpoints (See the graph below for perfrmance comparison).
 
