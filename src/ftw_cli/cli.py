@@ -36,9 +36,6 @@ def data_unpack(input):
     from ftw_cli.unpack import unpack
     unpack(input)
 
-data.add_command(data_download)
-data.add_command(data_unpack)
-
 ### Model group
 
 @ftw.group()
@@ -69,9 +66,6 @@ def model_fit(config, ckpt_path, cli_args):
 def model_test(model, dir, gpu, countries, postprocess, iou_threshold, out, model_predicts_3_classes, test_on_3_classes, temporal_options, cli_args):
     from ftw_cli.model import test
     test(model, dir, gpu, countries, postprocess, iou_threshold, out, model_predicts_3_classes, test_on_3_classes, temporal_options, cli_args)
-
-model.add_command(model_fit)
-model.add_command(model_test)
 
 ### Inference group
 
@@ -118,10 +112,6 @@ def inference_run(input, model, out, resize_factor, gpu, patch_size, batch_size,
 def inference_polygonize(input, out, simplify, min_size, max_size, overwrite, close_interiors):
     from ftw_cli.polygonize import polygonize
     polygonize(input, out, simplify, min_size, max_size, overwrite, close_interiors)
-
-inference.add_command(inference_download)
-inference.add_command(inference_polygonize)
-inference.add_command(inference_run)
 
 if __name__ == "__main__":
     ftw()
