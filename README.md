@@ -5,9 +5,8 @@
 
 This repository provides the codebase for working with the [FTW dataset](https://beta.source.coop/repositories/kerner-lab/fields-of-the-world/description/), including tools for data pre-processing, model training, and evaluation.
 
-## ⚠️ Note on Repository Structure <!-- omit in toc -->
-
-The Fields of The World Command Line Inferface (FTW CLI),`ftw-tools`, currently lives in this `ftw-baselines` repository due to legacy reasons. We plan to migrate the FTW CLI and related tools into an `ftw-tools` repository soon. Until then, the latest and most complete version of the FTW CLI still lives in `ftw-baselines`.
+> [!NOTE]  
+> The Fields of The World Command Line Inferface (FTW CLI), published under the name `ftw-tools`, currently lives in this `ftw-baselines` repository due to legacy reasons. We plan to migrate the FTW CLI and related tools into an `ftw-tools` repository soon. Until then, the latest and most complete version of the FTW CLI still lives in `ftw-baselines`.
 
 ## Table of Contents <!-- omit in toc -->
 
