@@ -15,7 +15,8 @@ This repository provides the codebase for working with the [FTW dataset](https:/
   - [Mamba](#mamba)
   - [Verify PyTorch installation and CUDA availability](#verify-pytorch-installation-and-cuda-availability)
   - [Setup FTW CLI](#setup-ftw-cli)
-- [FTW CLI Tutorial](#ftw-cli-tutorial)
+  - [Development](#development)
+- [Predicting field boundaries](#predicting-field-boundaries)
   - [1. Download the model (using `wget`)](#1-download-the-model-using-wget)
   - [2. Download S2 image scene (using `ftw inference download`)](#2-download-s2-image-scene-using-ftw-inference-download)
   - [3. Run inference (using `ftw inference run`)](#3-run-inference-using-ftw-inference-run)
@@ -23,7 +24,7 @@ This repository provides the codebase for working with the [FTW dataset](https:/
 - [FTW Baseline Dataset](#ftw-baseline-dataset)
   - [Download the FTW Baseline Dataset](#download-the-ftw-baseline-dataset)
   - [Visualize the FTW Baseline Dataset](#visualize-the-ftw-baseline-dataset)
-- [CC-BY (or equivalent) trained models](#cc-by-or-equivalent-trained-models)
+- [CC-BY vs. the full model](#cc-by-vs-the-full-model)
 - [Experimentation](#experimentation)
 - [Notes](#notes)
 - [Upcoming features](#upcoming-features)
@@ -97,7 +98,7 @@ Commands:
   model      Training and testing FTW models.
 ```
 
-## FTW CLI Tutorial
+## Predicting field boundaries
 
 The following commands show the steps for using the FTW CLI to obtain the FTW model and data, and then run an inference using that model on that data, and finally polygonizing that output. This example uses a pair of Sentinel-2 (S2) scenes over Austria.
 
@@ -344,7 +345,7 @@ Rest assured `ftw` won't face any issue in experimentation and dataset explorati
 
 ## Upcoming features
 
-@m-mohr to update (or should we just cut this section?)
+Check out the [Issues Section](https://github.com/fieldsoftheworld/ftw-baselines/issues) to see what we are working on and to suggest desired features.
 
 ## Contributing
 
