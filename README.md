@@ -253,12 +253,12 @@ The following commands show these four steps for a pair of Sentinel-2 scenes ove
 - Download pretrained checkpoint from [v1](https://github.com/fieldsoftheworld/ftw-baselines/releases/tag/v1).
   - 3 Class
     ```bash
-    wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/v1/3_Class_FULL_FTW_Pretrained.ckpt
+    ftw model download --type THREE_CLASS_FULL
     ```
 
   - 2 Class
     ```bash
-    wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/v1/2_Class_FULL_FTW_Pretrained.ckpt
+    ftw model download --type TWO_CLASS_FULL
     ```
 
 - Download S2 Image scene.
