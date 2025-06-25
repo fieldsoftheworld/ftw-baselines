@@ -66,7 +66,10 @@ To install the `ftw` command-line tool on your computer, run the following:
 pip install ftw-tools
 ```
 
-If you plan to develop on the FTW CLI at all, you will run one of the following commands from your cloned repository:
+### Development
+
+If you plan to make changes to the FTW CLI at all, you will run one of the following commands from within your cloned repository:
+
 
 ```bash
 pip install -e .
