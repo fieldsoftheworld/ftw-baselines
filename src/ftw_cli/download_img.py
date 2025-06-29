@@ -13,7 +13,7 @@ from tenacity import retry, wait_random_exponential, stop_after_attempt
 from .cfg import BANDS_OF_INTEREST, COLLECTION_ID, MSPC_URL
 
 
-@retry(wait=wait_random_exponential(max=30), stop=stop_after_attempt(5))
+@retry(wait=wait_random_exponential(max=3), stop=stop_after_attempt(2))
 def get_item(id):
     if "/" not in id:
         uri = MSPC_URL + "/collections/" + COLLECTION_ID + "/items/" + id
