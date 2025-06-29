@@ -1,6 +1,8 @@
 import click
+import wget
 
 from .cfg import ALL_COUNTRIES, SUPPORTED_POLY_FORMATS_TXT
+from .types import ModelVersions
 
 # Imports are in the functions below to speed-up CLI startup time
 # Some of the ML related imports (presumable torch) are very slow
@@ -66,6 +68,13 @@ def model_fit(config, ckpt_path, cli_args):
 def model_test(model, dir, gpu, countries, postprocess, iou_threshold, out, model_predicts_3_classes, test_on_3_classes, temporal_options, cli_args):
     from ftw_cli.model import test
     test(model, dir, gpu, countries, postprocess, iou_threshold, out, model_predicts_3_classes, test_on_3_classes, temporal_options, cli_args)
+
+@model.command("download", help="Download model checkpoints")
+@click.option("--type", type=click.Choice(ModelVersions), required=True, help="Short model name corresponding to a .ckpt file in github.")
+def model_download(type: ModelVersions):
+    github_url = f"https://github.com/fieldsoftheworld/ftw-baselines/releases/download/v1/{type.value}"
+    print(f"Downloading {github_url} to {type.value}")
+    wget.download(github_url)
 
 ### Inference group
 
