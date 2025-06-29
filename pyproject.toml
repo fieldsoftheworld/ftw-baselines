@@ -53,6 +53,7 @@ dependencies = [
     "pyproj",                  # For projections and CRSes
     "fiboa-cli==0.7.0",        # For storing data in Fiboa format
     "tenacity==9.1.2",         # For backoff / retry.
+    "dask[distributed]==2025.5.1"  # For parallel processing
 ]
 
 [project.urls]
