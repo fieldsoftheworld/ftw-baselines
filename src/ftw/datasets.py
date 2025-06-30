@@ -71,7 +71,6 @@ class FTW(NonGeoDataset):
         countries: Union[Sequence[str], str] = None,
         split: str = "train",
         transforms: Optional[Callable[[dict[str, Any]], dict[str, Any]]] = None,
-        download: bool = False,
         checksum: bool = False,
         load_boundaries: bool = False,
         temporal_options: str = "stacked",
@@ -86,15 +85,13 @@ class FTW(NonGeoDataset):
             split: string specifying what split to load (e.g. "train", "val", "test")
             transforms: a function/transform that takes input sample and its target as
                 entry and returns a transformed version
-            download: if True, download dataset and store it in the root directory
             checksum: if True, check the MD5 of the downloaded files (may be slow)
             load_boundaries: if True, load the 3 class masks with boundaries
             temporal_options : for abalation study, valid option are (stacked, windowA, windowB, median, rgb)
         Raises:
             AssertionError: if ``countries`` argument is invalid
             AssertionError: if ``split`` argument is invalid
-            RuntimeError: if ``download=False`` and data is not found, or checksums
-                don't match
+            RuntimeError: if data is not found, or checksums don't match
         """
         self.root = root
 
@@ -125,7 +122,6 @@ class FTW(NonGeoDataset):
         if not self._check_integrity():
             raise RuntimeError(
                 "Dataset not found at root directory or corrupted. "
-                + "You can use download=True to download it"
             )
 
         if checksum:
@@ -240,18 +236,6 @@ class FTW(NonGeoDataset):
                     print(f"Country {country} does not have all required directories")
                     return False
         return True
-
-    def _download(self) -> None:
-        """Download the dataset and extract it.
-
-        Raises:
-            AssertionError: if the checksum of split.py does not match
-        """
-        if self._check_integrity():
-            print("Files already downloaded and verified")
-            return
-
-        raise NotImplementedError("Download functionality not implemented yet")
 
     def __len__(self) -> int:
         """Return the number of data points in the dataset.
