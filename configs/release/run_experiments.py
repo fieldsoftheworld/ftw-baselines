@@ -2,9 +2,10 @@
 """Runs the train script with a grid of hyperparameters."""
 
 import subprocess
-from multiprocessing import Process, Queue
-import torch
+import multiprocessing
+import queue
 
+StrQueue = queue.Queue[str]
 GPUS = [0,1,2,3]
 DRY_RUN = False  # Set to False to actually run the experiments
 
@@ -16,7 +17,7 @@ experiment_configs = [
     "configs/FTW-Release/3_class/full-ftw"
 ]
 
-def run_experiments(work: "Queue[str]") -> None:
+def run_experiments(work: StrQueue) -> None:
     """Run experiments from the queue."""
     print(f"Running {work.qsize()} experiments")
     print(f"work.empty(): {work.empty()}")
@@ -27,7 +28,8 @@ def run_experiments(work: "Queue[str]") -> None:
             subprocess.call(experiment.split(" "))
 
 if __name__ == "__main__":
-    work: "Queue[str]" = Queue()
+    manager = multiprocessing.Manager()
+    work: StrQueue = manager.Queue()
 
     # Add the experiments to the queue with the GPU index
     for config in experiment_configs:
