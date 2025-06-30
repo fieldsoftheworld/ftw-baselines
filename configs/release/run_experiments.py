@@ -10,10 +10,10 @@ DRY_RUN = False  # Set to False to actually run the experiments
 
 # for experiment-3-1 and experiment-3-2 we are reusing experiment-2-1-3 and experiment-2-2-3
 experiment_configs = [
-    "configs/FTW-Release/2_class/cc-by-ftw",
-    "configs/FTW-Release/3_class/cc-by-ftw",
-    "configs/FTW-Release/2_class/full-ftw",
-    "configs/FTW-Release/3_class/full-ftw"
+    "configs/release/2_class/cc-by-ftw",
+    "configs/release/3_class/cc-by-ftw",
+    "configs/release/2_class/full-ftw",
+    "configs/release/3_class/full-ftw"
 ]
 
 def run_experiments(work: "Queue[str]") -> None:
