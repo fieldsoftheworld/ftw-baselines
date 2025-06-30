@@ -8,7 +8,7 @@ import pystac
 import rioxarray  # seems unused but is needed
 import xarray as xr
 from shapely.geometry import shape
-from tenacity import retry, wait_random_exponential, stop_after_attempt
+from tenacity import retry, stop_after_attempt, wait_random_exponential
 
 from .cfg import BANDS_OF_INTEREST, COLLECTION_ID, MSPC_URL
 
@@ -19,7 +19,7 @@ def get_item(id):
         uri = MSPC_URL + "/collections/" + COLLECTION_ID + "/items/" + id
     else:
         uri = id
-    
+
     item = pystac.Item.from_file(uri)
 
     if uri.startswith(MSPC_URL):
@@ -28,7 +28,7 @@ def get_item(id):
     return item
 
 
-def create_input(win_a, win_b, out, overwrite, bbox = None):
+def create_input(win_a, win_b, out, overwrite, bbox=None):
     """Main function for creating input for inference."""
     out = os.path.abspath(out)
     if os.path.exists(out) and not overwrite:
@@ -55,14 +55,16 @@ def create_input(win_a, win_b, out, overwrite, bbox = None):
         if datetime and (not timestamp or datetime > timestamp):
             timestamp = datetime
 
-        proc_version = item.properties.get("processing:version", item.properties.get("s2:processing_baseline", 0))
+        proc_version = item.properties.get(
+            "processing:version", item.properties.get("s2:processing_baseline", 0)
+        )
         try:
             proc_version = float(proc_version)
         except TypeError:
             proc_version = 0
         if proc_version > 0:
             if version > 0 and version != proc_version:
-                print('Processing version of imagery differs. Exiting.')
+                print("Processing version of imagery differs. Exiting.")
                 return
             version = proc_version
 
@@ -82,12 +84,21 @@ def create_input(win_a, win_b, out, overwrite, bbox = None):
         chunks={"x": "auto", "y": "auto"},
     )
 
-    data = data.to_array(dim="band").stack(bands=("time", "band")).drop_vars("band").transpose('bands', 'y', 'x')
+    data = (
+        data.to_array(dim="band")
+        .stack(bands=("time", "band"))
+        .drop_vars("band")
+        .transpose("bands", "y", "x")
+    )
 
     if version < 3 or version >= 4:
-        print(f"Processing version {version} unknown or untested (< 3.0 or >= 6.0). Inference quality might decrease.")
+        print(
+            f"Processing version {version} unknown or untested (< 3.0 or >= 6.0). Inference quality might decrease."
+        )
     if version >= 4:
-        print(f"Rescaling data to processing version 3.0 from processing version {version}.")
+        print(
+            f"Rescaling data to processing version 3.0 from processing version {version}."
+        )
         data = (data.astype("int32") - 1000).clip(min=0).astype("uint16")
 
     print("Writing output")
@@ -100,9 +111,7 @@ def create_input(win_a, win_b, out, overwrite, bbox = None):
             tiled=True,
             blockxsize=256,
             blockysize=256,
-            tags={
-                "TIFFTAG_DATETIME": timestamp.strftime("%Y:%m:%d %H:%M:%S")
-            }
+            tags={"TIFFTAG_DATETIME": timestamp.strftime("%Y:%m:%d %H:%M:%S")},
         )
 
-    print(f"Finished merging and writing output in {time.time()-tic:0.2f} seconds")
+    print(f"Finished merging and writing output in {time.time() - tic:0.2f} seconds")

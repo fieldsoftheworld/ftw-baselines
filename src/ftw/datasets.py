@@ -34,35 +34,34 @@ class SingleRasterDataset(RasterDataset):
 
 
 class FTW(NonGeoDataset):
-
     valid_countries = [
-        "austria",  
-        "belgium",  
-        "brazil",  
-        "cambodia",  
-        "corsica",  
-        "croatia",  
-        "denmark",  
-        "estonia",  
-        "finland",  
-        "france",  
-        "germany",  
-        "india",  
-        "kenya",  
-        "latvia",  
-        "lithuania",  
-        "luxembourg",  
-        "netherlands",  
-        "portugal",  
-        "rwanda",  
-        "slovakia",  
-        "slovenia",  
-        "south_africa",  
-        "spain",  
-        "sweden",  
-        "vietnam"
+        "austria",
+        "belgium",
+        "brazil",
+        "cambodia",
+        "corsica",
+        "croatia",
+        "denmark",
+        "estonia",
+        "finland",
+        "france",
+        "germany",
+        "india",
+        "kenya",
+        "latvia",
+        "lithuania",
+        "luxembourg",
+        "netherlands",
+        "portugal",
+        "rwanda",
+        "slovakia",
+        "slovenia",
+        "south_africa",
+        "spain",
+        "sweden",
+        "vietnam",
     ]
-    
+
     valid_splits = ["train", "val", "test"]
 
     def __init__(
@@ -97,13 +96,13 @@ class FTW(NonGeoDataset):
 
         if countries is None:
             raise ValueError("Please specify the countries to load the dataset from")
-        
+
         if isinstance(countries, str):
             countries = [countries]
         countries = [country.lower() for country in countries]
         for country in countries:
             assert country in self.valid_countries, f"Invalid country {country}"
-        
+
         self.countries = countries
         assert split in self.valid_splits
         self.transforms = transforms
@@ -138,19 +137,40 @@ class FTW(NonGeoDataset):
             aoi_ids = chips_df["aoi_id"].values
 
             for idx in aoi_ids:
-                window_b_fn = Path(os.path.join( country_root, "s2_images/window_b", f"{idx}.tif"))
-                window_a_fn =  Path(os.path.join( country_root, "s2_images/window_a", f"{idx}.tif"))
-                masks_2c_fn =  Path(os.path.join( country_root, "label_masks/semantic_2class", f"{idx}.tif"))
-                masks_3c_fn =  Path(os.path.join( country_root, "label_masks/semantic_3class", f"{idx}.tif"))
+                window_b_fn = Path(
+                    os.path.join(country_root, "s2_images/window_b", f"{idx}.tif")
+                )
+                window_a_fn = Path(
+                    os.path.join(country_root, "s2_images/window_a", f"{idx}.tif")
+                )
+                masks_2c_fn = Path(
+                    os.path.join(
+                        country_root, "label_masks/semantic_2class", f"{idx}.tif"
+                    )
+                )
+                masks_3c_fn = Path(
+                    os.path.join(
+                        country_root, "label_masks/semantic_3class", f"{idx}.tif"
+                    )
+                )
 
-                # Skip the image AOI's which does not have all four corresponding files 
-                if not (window_b_fn.exists() and window_a_fn.exists() and masks_2c_fn.exists() and masks_3c_fn.exists()):
+                # Skip the image AOI's which does not have all four corresponding files
+                if not (
+                    window_b_fn.exists()
+                    and window_a_fn.exists()
+                    and masks_2c_fn.exists()
+                    and masks_3c_fn.exists()
+                ):
                     continue
 
                 if self.load_boundaries:
-                    mask_fn = os.path.join(country_root, "label_masks/semantic_3class", f"{idx}.tif")
+                    mask_fn = os.path.join(
+                        country_root, "label_masks/semantic_3class", f"{idx}.tif"
+                    )
                 else:
-                    mask_fn = os.path.join(country_root, "label_masks/semantic_2class", f"{idx}.tif")
+                    mask_fn = os.path.join(
+                        country_root, "label_masks/semantic_2class", f"{idx}.tif"
+                    )
 
                 if os.path.exists(mask_fn):
                     all_filenames.append(
@@ -165,13 +185,14 @@ class FTW(NonGeoDataset):
                         }
                     )
 
-        if self.num_samples == -1: # select all samples
+        if self.num_samples == -1:  # select all samples
             self.filenames = all_filenames
         else:
-            self.filenames = random.sample(all_filenames, min(self.num_samples, len(all_filenames)))
+            self.filenames = random.sample(
+                all_filenames, min(self.num_samples, len(all_filenames))
+            )
 
-        print("Selecting : ",len(self.filenames), " samples")
-
+        print("Selecting : ", len(self.filenames), " samples")
 
     def _checksum(self) -> bool:
         """Check the checksum of the dataset.
@@ -181,7 +202,12 @@ class FTW(NonGeoDataset):
         """
         for country in self.valid_countries:
             print(f"Validating checksums for {country}")
-            for checksum_file in ["distances_checksums.md5", "masks_checksums.md5", "window_b_checksums.md5", "window_a_checksums.md5"]:
+            for checksum_file in [
+                "distances_checksums.md5",
+                "masks_checksums.md5",
+                "window_b_checksums.md5",
+                "window_a_checksums.md5",
+            ]:
                 checksum_file = os.path.join(self.root, country, checksum_file)
                 if not os.path.exists(checksum_file):
                     print(f"Checksum file {checksum_file} not found")
@@ -197,13 +223,11 @@ class FTW(NonGeoDataset):
             True if the dataset directories and split files are found, else False
         """
 
-
-
         for country in self.countries:
             if country not in self.valid_countries:
                 print(f"Invalid country {country}")
                 return False
-            
+
             country_dir = os.path.join(self.root, country)
             if not os.path.exists(country_dir):
                 print(f"Country directory {country_dir} not found")
@@ -220,7 +244,9 @@ class FTW(NonGeoDataset):
                     [
                         os.path.exists(os.path.join(country_dir, "s2_images/window_b")),
                         os.path.exists(os.path.join(country_dir, "s2_images/window_a")),
-                        os.path.exists(os.path.join(country_dir, "label_masks/semantic_3class")),
+                        os.path.exists(
+                            os.path.join(country_dir, "label_masks/semantic_3class")
+                        ),
                     ]
                 ):
                     print(f"Country {country} does not have all required directories")
@@ -230,7 +256,9 @@ class FTW(NonGeoDataset):
                     [
                         os.path.exists(os.path.join(country_dir, "s2_images/window_b")),
                         os.path.exists(os.path.join(country_dir, "s2_images/window_a")),
-                        os.path.exists(os.path.join(country_dir, "label_masks/semantic_2class")),
+                        os.path.exists(
+                            os.path.join(country_dir, "label_masks/semantic_2class")
+                        ),
                     ]
                 ):
                     print(f"Country {country} does not have all required directories")
@@ -261,14 +289,14 @@ class FTW(NonGeoDataset):
         if self.temporal_options in ("stacked", "median", "windowB", "rgb"):
             with rasterio.open(filenames["window_b"]) as f:
                 window_b_img = f.read()
-                if self.temporal_options ==  "rgb": # select 3 channels only
+                if self.temporal_options == "rgb":  # select 3 channels only
                     window_b_img = window_b_img[:3]
                 images.append(window_b_img)
 
         if self.temporal_options in ("stacked", "median", "windowA", "rgb"):
             with rasterio.open(filenames["window_a"]) as f:
                 window_a_img = f.read()
-                if self.temporal_options ==  "rgb": # select 3 channels only
+                if self.temporal_options == "rgb":  # select 3 channels only
                     window_a_img = window_a_img[:3]
                 images.append(window_a_img)
 
@@ -277,7 +305,7 @@ class FTW(NonGeoDataset):
             image = np.median(images, axis=0).astype(np.int32)
         else:
             image = np.concatenate(images, axis=0).astype(np.int32)
-        
+
         image = torch.from_numpy(image).float()
 
         with rasterio.open(filenames["mask"]) as f:
@@ -303,14 +331,21 @@ class FTW(NonGeoDataset):
         """
         img1 = sample["image"][0:3].numpy().transpose(1, 2, 0)
 
-        if self.temporal_options in ("stacked", "rgb"): # only two option where we will have more than 4 channels in input image
-            img2 = sample["image"][3:6]  if self.temporal_options == "rgb" else sample["image"][4:7]
+        if self.temporal_options in (
+            "stacked",
+            "rgb",
+        ):  # only two option where we will have more than 4 channels in input image
+            img2 = (
+                sample["image"][3:6]
+                if self.temporal_options == "rgb"
+                else sample["image"][4:7]
+            )
             img2 = img2.numpy().transpose(1, 2, 0)
 
         mask = sample["mask"].numpy()
         num_panels = 3 if self.temporal_options in ("stacked", "rgb") else 2
         if "prediction" in sample:
-            num_panels +=1
+            num_panels += 1
             predictions = sample["prediction"].numpy()
 
         fig, axs = plt.subplots(1, num_panels, figsize=(num_panels * 5, 8))
@@ -322,13 +357,13 @@ class FTW(NonGeoDataset):
         if self.temporal_options in ("stacked", "rgb"):
             axs[panel_id].imshow(np.clip(img2, 0, 1))
             axs[panel_id].axis("off")
-            axs[panel_id+1].imshow(mask, vmin=0, vmax=2, cmap="gray")
-            axs[panel_id+1].axis("off")
-            panel_id+=2
+            axs[panel_id + 1].imshow(mask, vmin=0, vmax=2, cmap="gray")
+            axs[panel_id + 1].axis("off")
+            panel_id += 2
         else:
             axs[panel_id].imshow(mask, vmin=0, vmax=2, cmap="gray")
             axs[panel_id].axis("off")
-            panel_id +=1
+            panel_id += 1
 
         if "prediction" in sample:
             axs[panel_id].imshow(predictions)

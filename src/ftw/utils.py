@@ -27,13 +27,12 @@ def validate_checksums(checksum_file, root_directory):
         parts = line.strip().split()
         if len(parts) != 2:
             continue
-        
+
         stored_checksum, file_path = parts
         file_path = os.path.join(root_directory, file_path)
         current_checksum = compute_md5(file_path)
-        
+
         if current_checksum != stored_checksum:
             print("Checksum mismatch: {file_path}")
             return False
     return True
-
