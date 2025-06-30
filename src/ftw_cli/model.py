@@ -53,7 +53,19 @@ def fit(config, ckpt_path, cli_args):
     print("Finished")
 
 
-def test(model, dir, gpu, countries, postprocess, iou_threshold, out, model_predicts_3_classes, test_on_3_classes, temporal_options, cli_args):
+def test(
+    model,
+    dir,
+    gpu,
+    countries,
+    postprocess,
+    iou_threshold,
+    out,
+    model_predicts_3_classes,
+    test_on_3_classes,
+    temporal_options,
+    cli_args,
+):
     """Command to test the model."""
     print("Running test command")
 
@@ -65,7 +77,9 @@ def test(model, dir, gpu, countries, postprocess, iou_threshold, out, model_pred
 
     print("Loading model")
     tic = time.time()
-    trainer = CustomSemanticSegmentationTask.load_from_checkpoint(model, map_location="cpu")
+    trainer = CustomSemanticSegmentationTask.load_from_checkpoint(
+        model, map_location="cpu"
+    )
     model = trainer.model.eval().to(device)
     print(f"Model loaded in {time.time() - tic:.2f}s")
 
@@ -78,23 +92,39 @@ def test(model, dir, gpu, countries, postprocess, iou_threshold, out, model_pred
         split="test",
         transforms=preprocess,
         load_boundaries=test_on_3_classes,
-        temporal_options=temporal_options
+        temporal_options=temporal_options,
     )
     dl = DataLoader(ds, batch_size=64, shuffle=False, num_workers=12)
     print(f"Created dataloader with {len(ds)} samples in {time.time() - tic:.2f}s")
 
     if test_on_3_classes:
-        metrics = MetricCollection([
-            JaccardIndex(task="multiclass", average="none", num_classes=3, ignore_index=3),
-            Precision(task="multiclass", average="none", num_classes=3, ignore_index=3),
-            Recall(task="multiclass", average="none", num_classes=3, ignore_index=3)
-        ]).to(device)
+        metrics = MetricCollection(
+            [
+                JaccardIndex(
+                    task="multiclass", average="none", num_classes=3, ignore_index=3
+                ),
+                Precision(
+                    task="multiclass", average="none", num_classes=3, ignore_index=3
+                ),
+                Recall(
+                    task="multiclass", average="none", num_classes=3, ignore_index=3
+                ),
+            ]
+        ).to(device)
     else:
-        metrics = MetricCollection([
-            JaccardIndex(task="multiclass", average="none", num_classes=2, ignore_index=3),
-            Precision(task="multiclass", average="none", num_classes=2, ignore_index=3),
-            Recall(task="multiclass", average="none", num_classes=2, ignore_index=3)
-        ]).to(device)
+        metrics = MetricCollection(
+            [
+                JaccardIndex(
+                    task="multiclass", average="none", num_classes=2, ignore_index=3
+                ),
+                Precision(
+                    task="multiclass", average="none", num_classes=2, ignore_index=3
+                ),
+                Recall(
+                    task="multiclass", average="none", num_classes=2, ignore_index=3
+                ),
+            ]
+        ).to(device)
 
     all_tps = 0
     all_fps = 0
@@ -108,14 +138,18 @@ def test(model, dir, gpu, countries, postprocess, iou_threshold, out, model_pred
         outputs = outputs.argmax(dim=1)
 
         if model_predicts_3_classes:
-            new_outputs = torch.zeros(outputs.shape[0], outputs.shape[1], outputs.shape[2], device=device)
+            new_outputs = torch.zeros(
+                outputs.shape[0], outputs.shape[1], outputs.shape[2], device=device
+            )
             new_outputs[outputs == 2] = 0  # Boundary pixels
             new_outputs[outputs == 0] = 0  # Background pixels
             new_outputs[outputs == 1] = 1  # Crop pixels
             outputs = new_outputs
         else:
             if test_on_3_classes:
-                raise ValueError("Cannot test on 3 classes when the model was trained on 2 classes")
+                raise ValueError(
+                    "Cannot test on 3 classes when the model was trained on 2 classes"
+                )
 
         metrics.update(outputs, masks)
         outputs = outputs.cpu().numpy().astype(np.uint8)
@@ -127,7 +161,9 @@ def test(model, dir, gpu, countries, postprocess, iou_threshold, out, model_pred
             if postprocess:
                 post_processed_output = out.copy()
                 output = post_processed_output
-            tps, fps, fns = get_object_level_metrics(mask, output, iou_threshold=iou_threshold)
+            tps, fps, fns = get_object_level_metrics(
+                mask, output, iou_threshold=iou_threshold
+            )
             all_tps += tps
             all_fps += fps
             all_fns += fns
@@ -140,12 +176,12 @@ def test(model, dir, gpu, countries, postprocess, iou_threshold, out, model_pred
     if all_tps + all_fps > 0:
         object_precision = all_tps / (all_tps + all_fps)
     else:
-        object_precision = float('nan')
+        object_precision = float("nan")
 
     if all_tps + all_fns > 0:
         object_recall = all_tps / (all_tps + all_fns)
     else:
-        object_recall = float('nan')
+        object_recall = float("nan")
 
     print(f"Pixel level IoU: {pixel_level_iou:.4f}")
     print(f"Pixel level precision: {pixel_level_precision:.4f}")
@@ -156,6 +192,10 @@ def test(model, dir, gpu, countries, postprocess, iou_threshold, out, model_pred
     if out is not None:
         if not os.path.exists(out):
             with open(out, "w") as f:
-                f.write("train_checkpoint,test_countries,pixel_level_iou,pixel_level_precision,pixel_level_recall,object_level_precision,object_level_recall\n")
+                f.write(
+                    "train_checkpoint,test_countries,pixel_level_iou,pixel_level_precision,pixel_level_recall,object_level_precision,object_level_recall\n"
+                )
         with open(out, "a") as f:
-            f.write(f"{model},{countries},{pixel_level_iou},{pixel_level_precision},{pixel_level_recall},{object_precision},{object_recall}\n")
+            f.write(
+                f"{model},{countries},{pixel_level_iou},{pixel_level_precision},{pixel_level_recall},{object_precision},{object_recall}\n"
+            )

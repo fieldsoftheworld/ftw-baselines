@@ -1,4 +1,5 @@
 import os
+
 from click.testing import CliRunner
 
 from ftw_cli.cli import data_download as download
@@ -30,6 +31,7 @@ def test_data_download():
     assert result.exit_code == 0, result.output
     assert "already exists, skipping download." in result.output
     assert "Unpacking files:" in result.output
+
 
 def test_data_unpack():
     runner = CliRunner()

@@ -41,7 +41,7 @@ class CustomSemanticSegmentationTask(BaseTask):
         ignore_index: Optional[int] = None,
         lr: float = 1e-3,
         patience: int = 10,
-        patch_weights : bool = False,
+        patch_weights: bool = False,
         freeze_backbone: bool = False,
         freeze_decoder: bool = False,
         model_kwargs: dict[Any, Any] = dict(),
@@ -107,7 +107,6 @@ class CustomSemanticSegmentationTask(BaseTask):
         self.weights = weights
         super().__init__()
         print(self.hparams)
-
 
     def configure_losses(self) -> None:
         """Initialize the loss criterion.
@@ -176,7 +175,7 @@ class CustomSemanticSegmentationTask(BaseTask):
         in_channels: int = self.hparams["in_channels"]
         num_classes: int = self.hparams["num_classes"]
         num_filters: int = self.hparams["num_filters"]
-        model_kwargs: dict[Any, Any] = self.hparams["model_kwargs"] 
+        model_kwargs: dict[Any, Any] = self.hparams["model_kwargs"]
         patch_weights: bool = self.hparams["patch_weights"]
 
         if model == "unet":
@@ -356,59 +355,75 @@ class CustomSemanticSegmentationTask(BaseTask):
             Optimizer and learning rate scheduler.
         """
         optimizer = AdamW(self.parameters(), lr=self.hparams["lr"], amsgrad=True)
-        scheduler = CosineAnnealingLR(optimizer, T_max=self.hparams["patience"], eta_min=1e-6)
+        scheduler = CosineAnnealingLR(
+            optimizer, T_max=self.hparams["patience"], eta_min=1e-6
+        )
         return {
             "optimizer": optimizer,
             "lr_scheduler": {"scheduler": scheduler, "monitor": self.monitor},
         }
 
     def on_train_epoch_start(self) -> None:
-        lr = self.optimizers().param_groups[0]['lr']
+        lr = self.optimizers().param_groups[0]["lr"]
         self.logger.experiment.add_scalar("lr", lr, self.current_epoch)
 
     def transfer_weights(self, model, backbone):
         base_model = None
-        if backbone == 'resnet18':
+        if backbone == "resnet18":
             base_model = models.resnet18(pretrained=True)
-        elif backbone == 'resnet50':
+        elif backbone == "resnet50":
             base_model = models.resnet50(pretrained=True)
-        elif backbone == 'resnext50_32x4d':
+        elif backbone == "resnext50_32x4d":
             base_model = models.resnext50_32x4d(pretrained=True)
 
-        if not base_model :
-            print('Pretrained weights for ',backbone, ' not found. Unable to patch wieights')
+        if not base_model:
+            print(
+                "Pretrained weights for ",
+                backbone,
+                " not found. Unable to patch wieights",
+            )
             return
-        prefix = 'encoder.'
+        prefix = "encoder."
         pretrained_weights = base_model.state_dict()
         model_dict = model.state_dict()
-        pretrained_dict={}
+        pretrained_dict = {}
         weights_ = 0
         update_weights = True
 
         for index, layer_key in enumerate(pretrained_weights):
             # TODO : generalizing the patch mapping
-            encoder_key = prefix+layer_key
+            encoder_key = prefix + layer_key
             layer_w = pretrained_weights[layer_key]
             if encoder_key in model_dict:
-                if index == 0: # pacth first conv. layer weights
+                if index == 0:  # pacth first conv. layer weights
                     # Extract pre-trained weights for the first convolutional layer
                     pretrained_conv1_weights = layer_w
                     # Retrieve the current conv1 weights
                     new_conv1_weights = model_dict[encoder_key]
-                    new_conv1_weights[:, :3, :, :] = pretrained_conv1_weights[:, :3, :, :]
-                    new_conv1_weights[:, 4:7, :, :] = pretrained_conv1_weights[:, :3, :, :]
-                    print(encoder_key,' First layer: ', model_dict[encoder_key].size(), '=>', new_conv1_weights.size())
+                    new_conv1_weights[:, :3, :, :] = pretrained_conv1_weights[
+                        :, :3, :, :
+                    ]
+                    new_conv1_weights[:, 4:7, :, :] = pretrained_conv1_weights[
+                        :, :3, :, :
+                    ]
+                    print(
+                        encoder_key,
+                        " First layer: ",
+                        model_dict[encoder_key].size(),
+                        "=>",
+                        new_conv1_weights.size(),
+                    )
                     pretrained_dict[encoder_key] = new_conv1_weights
                 else:
-                    if model_dict[encoder_key].size() !=  layer_w.size():
-                        print('Invalid size match for ', encoder_key)
+                    if model_dict[encoder_key].size() != layer_w.size():
+                        print("Invalid size match for ", encoder_key)
                         update_weights = False
                         break
                     pretrained_dict[encoder_key] = layer_w
-                weights_+=1
+                weights_ += 1
         if update_weights:
-            print('Updated weights_ count ', weights_)
+            print("Updated weights_ count ", weights_)
             model_dict.update(pretrained_dict)
             model.load_state_dict(model_dict)
         else:
-            print('Due to mismatch in the Tensor size, unable to patch weights.')        
+            print("Due to mismatch in the Tensor size, unable to patch weights.")

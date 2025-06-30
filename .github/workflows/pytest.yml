@@ -7,6 +7,13 @@ on:
   pull_request: {}
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: pre-commit/action@v3.0.0
+
   tests:
     # See https://stackoverflow.com/questions/72703363/how-to-activate-conda-environment-in-github-actions
     defaults:

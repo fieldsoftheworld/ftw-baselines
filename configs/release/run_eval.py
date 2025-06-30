@@ -1,5 +1,6 @@
-import subprocess
 import os
+import subprocess
+
 import yaml
 
 if __name__ == "__main__":
@@ -28,7 +29,7 @@ if __name__ == "__main__":
         "south_africa",
         "spain",
         "sweden",
-        "vietnam"
+        "vietnam",
     ]
 
     checkpoints = []
@@ -38,13 +39,17 @@ if __name__ == "__main__":
                 parent_dir = os.path.dirname(root)
                 config_file_path = os.path.join(parent_dir, "config.yaml")
                 if os.path.isfile(config_file_path):
-                    with open(config_file_path, 'r') as conf_file:
+                    with open(config_file_path, "r") as conf_file:
                         config_data = yaml.safe_load(conf_file)
 
-                    model_predicts_classes = config_data.get('model').get('init_args').get('num_classes', 3)
-                    checkpoints.append((os.path.join(root, file), model_predicts_classes))
+                    model_predicts_classes = (
+                        config_data.get("model").get("init_args").get("num_classes", 3)
+                    )
+                    checkpoints.append(
+                        (os.path.join(root, file), model_predicts_classes)
+                    )
                 else:
-                    print(f'Missing config for checkpoint {root}')
+                    print(f"Missing config for checkpoint {root}")
 
     for checkpoints_data in checkpoints:
         (checkpoint, model_predicts_classes) = checkpoints_data
@@ -52,23 +57,38 @@ if __name__ == "__main__":
             if model_predicts_classes == 2:
                 # Test on the same country
                 command = [
-                    "ftw", "model", "test",
-                    "--gpu", "0",
-                    "--dir", "data/ftw",
-                    "--model", checkpoint,
-                    "--out", "results/experiments-ftw_release-2_classes.csv",
-                    "--countries", country
+                    "ftw",
+                    "model",
+                    "test",
+                    "--gpu",
+                    "0",
+                    "--dir",
+                    "data/ftw",
+                    "--model",
+                    checkpoint,
+                    "--out",
+                    "results/experiments-ftw_release-2_classes.csv",
+                    "--countries",
+                    country,
                 ]
                 subprocess.call(command)
             elif model_predicts_classes == 3:
                 # Test on the same country
                 command = [
-                    "ftw", "model", "test",
-                    "--gpu", "0",
-                    "--dir", "data/ftw",
-                    "--model", checkpoint,
-                    "--out", "results/experiments-ftw_release-3_classes.csv",
-                    "--countries", country,
-                    "--model_predicts_3_classes", "True"
+                    "ftw",
+                    "model",
+                    "test",
+                    "--gpu",
+                    "0",
+                    "--dir",
+                    "data/ftw",
+                    "--model",
+                    checkpoint,
+                    "--out",
+                    "results/experiments-ftw_release-3_classes.csv",
+                    "--countries",
+                    country,
+                    "--model_predicts_3_classes",
+                    "True",
                 ]
                 subprocess.call(command)
