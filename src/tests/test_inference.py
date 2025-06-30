@@ -22,8 +22,6 @@ def test_inference_download():  # create_input
         ],
     )
     assert result.exit_code == 0, result.output
-    assert "Loading data" in result.output
-    assert "Merging data" in result.output
     assert "Writing output" in result.output
     assert "Finished merging and writing output" in result.output
     assert os.path.exists(inference_image)

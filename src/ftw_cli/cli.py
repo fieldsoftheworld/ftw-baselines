@@ -1,6 +1,8 @@
 import click
+import wget
 
 from .cfg import ALL_COUNTRIES, SUPPORTED_POLY_FORMATS_TXT
+from .types import ModelVersions
 
 # Imports are in the functions below to speed-up CLI startup time
 # Some of the ML related imports (presumable torch) are very slow
@@ -67,9 +69,6 @@ def data_unpack(input):
 
     unpack(input)
 
-
-data.add_command(data_download)
-data.add_command(data_unpack)
 
 ### Model group
 
@@ -174,8 +173,18 @@ def model_test(
     )
 
 
-model.add_command(model_fit)
-model.add_command(model_test)
+@model.command("download", help="Download model checkpoints")
+@click.option(
+    "--type",
+    type=click.Choice(ModelVersions),
+    required=True,
+    help="Short model name corresponding to a .ckpt file in github.",
+)
+def model_download(type: ModelVersions):
+    github_url = f"https://github.com/fieldsoftheworld/ftw-baselines/releases/download/v1/{type.value}"
+    print(f"Downloading {github_url} to {type.value}")
+    wget.download(github_url)
+
 
 ### Inference group
 
@@ -341,10 +350,6 @@ def inference_polygonize(
 
     polygonize(input, out, simplify, min_size, max_size, overwrite, close_interiors)
 
-
-inference.add_command(inference_download)
-inference.add_command(inference_polygonize)
-inference.add_command(inference_run)
 
 if __name__ == "__main__":
     ftw()
