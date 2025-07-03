@@ -87,7 +87,6 @@ def _download_country_file(
     except Exception:
         logger.exception(f"Error downloading {key}")
         print(f"Failed to download {key}.")
-        raise
 
 
 def download(out, clean_download, countries):
