@@ -82,7 +82,7 @@ or for development that includes testing:
 pip install -e .[dev]
 
 # setup pre-commit
-pre-commit configure
+pre-commit install
 ```
 
 This repo uses pre-commit to automatically lint code as you write commits.  You may manually run the linter with `pre-commit run --all-files`.  To confirm you properly downloaded the FTW CLI, run `ftw` in your command line, and you should see the following output:
