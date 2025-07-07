@@ -14,7 +14,7 @@ from .cfg import ALL_COUNTRIES
 
 logger = logging.getLogger()
 client = boto3.client(
-    "s3", config=Config(signature_version=UNSIGNED), region_name="us-west-1"
+    "s3", config=Config(signature_version=UNSIGNED), region_name="us-west-2"
 )
 
 
@@ -43,7 +43,6 @@ def _calculate_md5(file_path):
 
 
 def _download_file(key: str, fpath: str):
-    # if key.endswith(".zip"):
     print(f"Downloading {key} to {fpath}")
     with smart_open.open(
         f"s3://us-west-2.opendata.source.coop/{key}",
@@ -67,7 +66,6 @@ def _download_country_file(
         return
 
     # Otherwise download the file.
-    expected_md5 = checksum_data[country_name]
     try:
         _download_file(key, local_file_path)
 
@@ -76,6 +74,7 @@ def _download_country_file(
         if country_name not in checksum_data:
             print(f"No checksum found for {country_name}, skipping verification.")
             return
+        expected_md5 = checksum_data[country_name]
         if actual_md5 == expected_md5:
             logger.info(f"Checksum verification passed for {local_file_path}")
             print(f"Checksum verification passed for {country_name}.")
