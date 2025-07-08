@@ -22,39 +22,7 @@ classifiers = [
   "Programming Language :: Python :: 3",
 ]
 
-requires-python = ">= 3.11,<3.13"
-dependencies = [
-    "click",                   # For CLI functionality
-    "tqdm",                    # For progress bars
-    "geopandas",               # For geospatial data handling
-    "rasterio",                # For raster data
-    "numpy",                   # For numerical computation
-    "matplotlib",              # For plotting
-    "torch",                   # For deep learning
-    "kornia",                  # For computer vision
-    "torchvision",             # For vision-related tasks in PyTorch
-    "pytorch-lightning",       # For high-level PyTorch training loops
-    "PyYAML",                  # For parsing YAML config files
-    "wget",                    # For file downloads
-    # pyarrow or later lead to an filesystem error in the fit function:
-    # Error: Attempted to register factory for scheme 'file' but that scheme is already registered.
-    # see https://github.com/apache/arrow/issues/44696
-    "pyarrow==16.1.0",         # For in-memory data processing
-    # see https://github.com/fieldsoftheworld/ftw-baselines/issues/77
-    "odc-stac>=0.4.0",         # For handling STAC data via Open Data Cube
-    "planetary-computer",      # For accessing Planetary Computer STAC data
-    "pystac",                  # For reading STAC
-    "rioxarray",               # For raster data handling
-    "scipy",                   # For scientific computing
-    "tensorboard",             # For PyTorch logging
-    # see https://github.com/fieldsoftheworld/ftw-baselines/issues/79
-    "torchgeo>=0.7.0",         # For geospatial deep learning
-    "fiona",                   # For reading/writing vector data
-    "pyproj",                  # For projections and CRSes
-    "fiboa-cli==0.7.0",        # For storing data in Fiboa format
-    "tenacity==9.1.2",         # For backoff / retry.
-    "dask[distributed]==2025.5.1"  # For parallel processing
-]
+requires-python = ">=3.11,<3.13"
 
 [project.urls]
 Homepage = "https://fieldsofthe.world/"
@@ -82,3 +50,82 @@ extend-exclude = ["*.ipynb"]
 pythonpath = [
   "src",
 ]
+
+# ===============================================================================
+# Pixi Configuration
+# ===============================================================================
+
+[tool.pixi.project]
+name = "ftw-baselines"
+channels = ["conda-forge", "pytorch"]
+platforms = ["linux-64", "osx-64", "osx-arm64", "win-64"]
+
+[tool.pixi.dependencies]
+python = ">=3.11,<3.13"
+
+# System dependencies (from env.yml) - pinned for stability
+gdal = ">=3.10,<3.12"
+libgdal-arrow-parquet = ">=3.10,<3.12"
+notebook = ">=7.0,<8.0"
+
+# Core Python packages
+click = ">=8.1,<9.0"
+tqdm = ">=4.65,<5.0"
+pyyaml = ">=6.0,<7.0"
+python-wget = ">=3.2,<4.0"
+numpy = ">=1.24,<3.0"
+scipy = ">=1.11,<2.0"
+matplotlib = ">=3.7,<4.0"
+
+# PyTorch ecosystem (use pytorch channel for better CUDA support)
+pytorch = ">=2.4,<2.8"
+torchvision = ">=0.19,<0.23"
+pytorch-lightning = ">=2.0,<2.6"
+kornia = ">=0.7,<1.0"
+tensorboard = ">=2.15,<3.0"
+
+# Geospatial stack (critical: install together for compatibility)
+geopandas = ">=0.14,<2.0"
+rasterio = ">=1.3,<2.0"
+fiona = ">=1.9,<2.0"
+pyproj = ">=3.6,<4.0"
+
+# Data processing (moved from PyPI based on analysis)
+pystac = ">=1.8,<2.0"
+rioxarray = ">=0.15,<1.0"
+planetary-computer = ">=1.0,<2.0"
+odc-stac = ">=0.4.0,<1.0"
+torchgeo = ">=0.7.0,<1.0"
+
+[tool.pixi.pypi-dependencies]
+# Version-constrained packages (MUST remain PyPI)
+pyarrow = "==16.1.0"  # CRITICAL: filesystem registration error with newer versions
+fiboa-cli = "==0.7.0"  # Not available on conda-forge
+ftw-tools = ">=1.3.0, <2"
+
+# Parallel processing (kept on PyPI to avoid pyarrow version conflicts)
+dask = "==2025.5.1"
+distributed = ">=2025.3.0,<2026.0"
+
+[tool.pixi.feature.dev.dependencies]
+ruff = ">=0.1,<1.0"
+pytest = ">=7.4,<9.0"
+
+
+[tool.pixi.system-requirements]
+cuda = "12"
+
+[tool.pixi.environments]
+default = {solve-group = "default"}
+dev = {features = ["dev"], solve-group = "default"}
+
+[tool.pixi.tasks]
+# Code quality
+format = "ruff format src/"
+lint = "ruff check src/"
+test = "pytest src/tests/"
+check-all = {depends-on = ["format", "lint", "test"]}
+
+# FTW commands
+ftw = "ftw"
+install-dev = "pip install -e ."

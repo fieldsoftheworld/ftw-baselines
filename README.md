@@ -11,11 +11,8 @@ This repository provides the codebase for working with the [FTW dataset](https:/
 ## Table of Contents <!-- omit in toc -->
 
 - [System setup](#system-setup)
-  - [(Ana)conda](#anaconda)
-  - [Mamba](#mamba)
-  - [Verify PyTorch installation and CUDA availability](#verify-pytorch-installation-and-cuda-availability)
-  - [Setup FTW CLI](#setup-ftw-cli)
-  - [Development](#development)
+  - [Pixi (Recommended)](#pixi-recommended)
+  - [Conda/Mamba (Alternative)](#condamamba-alternative)
 - [Predicting field boundaries](#predicting-field-boundaries)
   - [1. Download the model (using `wget`)](#1-download-the-model-using-wget)
   - [2. Download S2 image scene (using `ftw inference download`)](#2-download-s2-image-scene-using-ftw-inference-download)
@@ -33,59 +30,117 @@ This repository provides the codebase for working with the [FTW dataset](https:/
 
 ## System setup
 
-**NOTE:** You need to install Python 3.11 or 3.12 and GDAL with libgdal-arrow-parquet.
+To ensure consistent behavior and compatibility, use a dedicated environment to isolate the system requirements to run the FTW CLI (ftw-tools). **We strongly recommend using Pixi for the most reliable experience**, as it provides exact dependency versions and cross-platform reproducibility.
 
-To ensure consistent behavior and compatibility, use a dedicated environment to isolate the system requirements to run the FTW CLI (ftw-tools). You can do this through Anaconda or Mamba. Set up the environment using the provided `env.yml` file:
+**Important:** Users who choose conda/mamba may encounter dependency version conflicts and compatibility issues that are automatically resolved with Pixi.
 
-### (Ana)conda
+### Pixi (Recommended)
+
+[Pixi](https://pixi.sh) is a modern, fast package manager that provides consistent, locked environments across platforms. It automatically manages both system dependencies (GDAL, CUDA) and Python packages with exact versions.
+
+#### Installation
+
+Install Pixi following the [official installation instructions](https://pixi.sh/latest/#installation).
+
+#### Environment Setup
 
 ```bash
+# Install all dependencies and create the environment
+pixi install
+
+# Activate the environment (optional - pixi commands work without activation)
+pixi shell
+```
+
+#### Usage
+
+```bash
+# Use pixi run for individual commands
+pixi run ftw --help
+pixi run install-dev
+pixi run -e dev test
+
+# Or activate environment first, then use commands directly
+pixi shell
+ftw --help
+
+# For development work
+pixi shell -e dev
+ruff format src/
+pytest src/tests/
+```
+
+#### Available Environments
+
+- **default**: Core runtime environment with all scientific packages
+- **dev**: Development environment with ruff and pytest
+
+#### Verify Installation
+
+```bash
+# Check PyTorch and CUDA
+pixi run python -c "import torch; print('PyTorch:', torch.__version__); print('CUDA available:', torch.cuda.is_available())"
+
+# Check geospatial stack
+pixi run python -c "from osgeo import gdal; import rasterio, geopandas; print('Geospatial stack working')"
+
+# Check FTW CLI import
+pixi run python -c "from ftw_cli.cli import ftw; print('FTW CLI ready')"
+```
+
+### Conda/Mamba (Alternative)
+
+**Warning:** Using conda/mamba may result in dependency version conflicts, CUDA compatibility issues, and platform-specific problems. We recommend using Pixi for the most reliable experience.
+
+If you choose to use conda/mamba, you'll need to manually ensure compatibility:
+
+```bash
+# Create environment from env.yml
 conda env create -f env.yml
 conda activate ftw
-```
 
-### Mamba
-
-```bash
-mamba env create -f env.yml
-mamba activate ftw
-```
-
-### Verify PyTorch installation and CUDA availability
-
-If you are using GPU, verify that PyTorch and CUDA are installed correctly:
-
-```bash
-python -c "import torch; print(torch.cuda.is_available())"
-```
-
-### Setup FTW CLI
-
-To install the `ftw` command-line tool on your computer, run the following:
-
-```bash
-pip install ftw-tools
-```
-
-### Development
-
-If you plan to make changes to the FTW CLI at all, you will run one of the following commands from within your cloned repository:
-
-
-```bash
-pip install -e .
-```
-
-or for development that includes testing:
-
-```bash
+# Install FTW CLI in development mode
 pip install -e .[dev]
 
-# setup pre-commit
-pre-commit configure
+# Verify CUDA availability (if using GPU)
+python -c "import torch; print('CUDA available:', torch.cuda.is_available())"
 ```
 
-This repo uses pre-commit to automatically lint code as you write commits.  You may manually run the linter with `pre-commit run --all-files`.  To confirm you properly downloaded the FTW CLI, run `ftw` in your command line, and you should see the following output:
+#### Development with Conda
+
+For development work:
+
+```bash
+# Format and lint (requires manual tool installation)
+ruff format src/
+ruff check src/
+
+# Run tests
+pytest src/tests/
+```
+
+#### Common Issues with Conda
+
+- GDAL version conflicts with geospatial packages
+- PyTorch CUDA compatibility issues
+- Platform-specific dependency resolution problems
+- Inconsistent package versions across environments
+
+These issues are automatically resolved with Pixi's locked environment approach.
+
+#### Verify Installation
+
+To confirm the FTW CLI is properly installed:
+
+```bash
+# With Pixi
+pixi run ftw --help
+
+# With conda (after activation)
+ftw --help
+```
+
+You should see:
 
 ```text
 Usage: ftw [OPTIONS] COMMAND [ARGS]...
@@ -105,6 +160,8 @@ Commands:
 
 The following commands show the steps for using the FTW CLI to obtain the FTW model and data, and then run an inference using that model on that data, and finally polygonizing that output. This example uses a pair of Sentinel-2 (S2) scenes over Austria.
 
+> **Note**: If using pixi, you can either use `pixi run` for individual commands (e.g., `pixi run ftw inference download ...`) or activate the environment first with `pixi shell` and then use commands directly. All examples below show the direct commands.
+
 ### 1. Download the model (using `wget`)
 
 In order to use `ftw inference`, you need a trained model. You can either download a pre-trained model (FTW pre-trained models can be found in the [Releases](https://github.com/fieldsoftheworld/ftw-baselines/releases) list) or you can train your own model as explained in the [Training](./EXPERIMENTS.md#training) section. This example will use an FTW pre-trained model (with options for either 3 Class or 2 Class).
@@ -113,13 +170,13 @@ In order to use `ftw inference`, you need a trained model. You can either downlo
   - 3 Class
 
     ```bash
-    ftw model download --type THREE_CLASS_FULL
+    wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/v1/3_Class_FULL_FTW_Pretrained.ckpt
     ```
 
   - 2 Class
 
     ```bash
-    ftw model download --type TWO_CLASS_FULL
+    wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/v1/2_Class_FULL_FTW_Pretrained.ckpt
     ```
 
 ### 2. Download S2 image scene (using `ftw inference download`)
@@ -171,7 +228,7 @@ Run this line to download our S2 scenes of interest. This line specifies a bound
   ftw inference download --win_a S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729 --win_b S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923 --out inference_imagery/austria_example.tif --bbox 13.0,48.0,13.3,48.3
   ```
 
-  If you are looking to download data from the FTW Baseline Dataset, you would use `ftw data download`. You can see an example of this lower on this README at [Dataset setup](#dataset-setup).
+  If you are looking to download data from the FTW Baseline Dataset, you would use `ftw data download`. You can see an example of this lower on this README in the [FTW Baseline Dataset](#ftw-baseline-dataset) section.
 
 ### 3. Run inference (using `ftw inference run`)
 
