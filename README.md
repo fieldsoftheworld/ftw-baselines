@@ -170,13 +170,13 @@ In order to use `ftw inference`, you need a trained model. You can either downlo
   - 3 Class
 
     ```bash
-    wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/v1/3_Class_FULL_FTW_Pretrained.ckpt
+    ftw model download --type THREE_CLASS_FULL
     ```
 
   - 2 Class
 
     ```bash
-    wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/v1/2_Class_FULL_FTW_Pretrained.ckpt
+    ftw model download --type TWO_CLASS_FULL
     ```
 
 ### 2. Download S2 image scene (using `ftw inference download`)

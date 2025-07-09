@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 import pytest
 import torch
@@ -82,3 +83,35 @@ def test_model_archs(arch: str):
     x = torch.randn(1, 8, 256, 256)
     y = model(x)
     assert y.shape == (1, 3, 256, 256), f"Output shape mismatch for {arch}: {y.shape}"
+
+def test_cuda_installation():
+    """Test that CUDA is properly installed if GPU hardware is present."""
+
+    def has_nvidia_gpu():
+        """Check for NVIDIA GPU hardware independent of PyTorch."""
+        try:
+            result = subprocess.run(["nvidia-smi"], capture_output=True, text=True)
+            return result.returncode == 0
+        except FileNotFoundError:
+            return False
+
+    torch_cuda_available = torch.cuda.is_available()
+    hardware_gpu_present = has_nvidia_gpu()
+
+    if hardware_gpu_present and not torch_cuda_available:
+        pytest.fail(
+            "GPU hardware detected via nvidia-smi but PyTorch CUDA not available. "
+            "This indicates CUDA libraries may not be properly installed or "
+            "PyTorch was not installed with CUDA support."
+        )
+
+    if torch_cuda_available:
+        assert torch.version.cuda is not None, "CUDA version not detected"
+        assert torch.cuda.device_count() > 0, "No CUDA devices found"
+
+        try:
+            x = torch.tensor([1.0, 2.0]).cuda()
+            y = x * 2
+            assert y.is_cuda, "CUDA tensor operations not working"
+        except Exception as e:
+            pytest.fail(f"CUDA operations failed: {e}")
