@@ -11,7 +11,7 @@ CKPT_FILE = "logs/FTW-CI/lightning_logs/version_0/checkpoints/last.ckpt"
 CONFIG_FILE = "src/tests/data-files/min_config.yaml"
 
 
-def test_model_fit():
+def test_model_fit(caplog):
     runner = CliRunner()
 
     # Download required data for the fit command
@@ -23,7 +23,7 @@ def test_model_fit():
     result = runner.invoke(model_fit, ["-c", CONFIG_FILE])
     assert result.exit_code == 0, result.output
     assert "Train countries: ['rwanda']" in result.output
-    assert "`Trainer.fit` stopped: `max_epochs=1` reached." in result.output
+    assert "`Trainer.fit` stopped: `max_epochs=1` reached." in caplog.text
     assert "Finished" in result.output
     assert os.path.exists(CKPT_FILE)
 

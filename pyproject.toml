@@ -76,6 +76,7 @@ python-wget = ">=3.2,<4.0"
 numpy = ">=1.24,<3.0"
 scipy = ">=1.11,<2.0"
 matplotlib = ">=3.7,<4.0"
+tenacity = ">=9.1.2,<10.0"
 
 # PyTorch ecosystem (use pytorch channel for better CUDA support)
 pytorch = ">=2.4,<2.8"
