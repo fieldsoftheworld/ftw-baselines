@@ -15,19 +15,14 @@ except ModuleNotFoundError:
         "ultralytics is not installed. Please install it with 'pip install ultralytics'."
     )
 
-try:
-    import huggingface_hub
-except ModuleNotFoundError:
-    raise ModuleNotFoundError(
-        "huggingface_hub is not installed. Please install it with 'pip install huggingface_hub'."
-    )
-
 
 class DelineateAnything:
     """DelineateAnything model for delineating fields in satellite imagery."""
 
-    repo = "MykolaL/DelineateAnything"
-    revision = "c218e08349039afadc9bed3ff46f5cc7f69d9aa9"
+    checkpoints = {
+        "DelineateAnything-S": "https://hf.co/torchgeo/delineate-anything-s/resolve/69cd440b0c5bd450ced145e68294aa9393ddae05/delineate_anything_s_rgb_yolo11n-b879d643.pt",
+        "DelineateAnything": "https://hf.co/torchgeo/delineate-anything/resolve/60bea7b2f81568d16d5c75e4b5b06289e1d7efaf/delineate_anything_rgb_yolo11x-88ede029.pt",
+    }
     transforms = nn.Sequential(
         T.Lambda(lambda x: x[:, :3, ...]),
         T.ToDtype(torch.float),
@@ -65,17 +60,13 @@ class DelineateAnything:
         self.iou_threshold = iou_threshold
         self.conf_threshold = conf_threshold
         self.device = device
-
-        self.checkpoint_path = huggingface_hub.hf_hub_download(
-            repo_id=self.repo, revision=self.revision, filename=f"{model}.pt"
-        )
-        self.model = ultralytics.YOLO(self.checkpoint_path).to(device)
+        self.model = ultralytics.YOLO(self.checkpoints[model]).to(device)
         self.model.eval()
         self.transforms.eval()
         self.transforms = self.transforms.to(device)
 
+    @staticmethod
     def polygonize(
-        self,
         result: ultralytics.engine.results.Results,
         transform: rasterio.Affine,
         crs=rasterio.CRS,
@@ -108,11 +99,14 @@ class DelineateAnything:
         """Forward pass through the model.
 
         Args:
-            image (torch.Tensor): The input image tensor, expected to be in the format [C, H, W] and normalized.
+            image (torch.Tensor): The input image tensor, expected to be in the format (B, C, H, W).
 
         Returns:
             list[ultralytics.engine.results.Results]: A list of results containing the model predictions.
         """
+        if image.ndim == 3:
+            image = image.unsqueeze(0)
+
         image = self.transforms(image.to(self.device))
         results = self.model.predict(
             image,

@@ -38,7 +38,7 @@ jobs:
       - name: Install Python version ${{ matrix.python-version }}
         run: conda install python=${{ matrix.python-version }}
       - name: Install Python dependencies
-        run: pip install -e .[dev]
+        run: pip install -e .[all]
       - name: Download model
         run: wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/v1/3_Class_FULL_FTW_Pretrained.ckpt
       - name: Execute help tests
