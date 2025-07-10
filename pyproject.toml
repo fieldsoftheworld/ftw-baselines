@@ -31,9 +31,15 @@ Issues = "https://github.com/fieldsoftheworld/ftw-baselines/issues"
 Changelog = "https://github.com/fieldsoftheworld/ftw-baselines/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
+delineate-anything = [
+  "ultralytics>8.3.0,<9.0",
+]
 dev = [
     "ruff",        # Code formatting tool
     "pytest",      # Testing framework
+]
+all = [
+    "ftw-tools[dev,delineate-anything]",
 ]
 
 [project.scripts]

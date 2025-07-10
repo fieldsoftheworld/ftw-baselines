@@ -38,7 +38,7 @@ jobs:
       - name: Install Python version ${{ matrix.python-version }}
         run: conda install python=${{ matrix.python-version }}
       - name: Install Python dependencies
-        run: pip install -e .[dev]
+        run: pip install -e .[all]
       - name: Execute help tests
         run: pytest src/tests/test_help.py
       - name: Execute data tests
