@@ -2,7 +2,12 @@ import os
 
 from click.testing import CliRunner
 
-from ftw_cli.cli import inference_download, inference_polygonize, inference_run, model_download
+from ftw_cli.cli import (
+    inference_download,
+    inference_polygonize,
+    inference_run,
+    model_download,
+)
 
 
 def test_inference_download():  # create_input

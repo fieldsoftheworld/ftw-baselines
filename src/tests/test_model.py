@@ -5,7 +5,7 @@ import pytest
 import torch
 from click.testing import CliRunner
 
-from ftw_cli.cli import data_download, model_fit, model_test, model_download
+from ftw_cli.cli import data_download, model_download, model_fit, model_test
 
 CKPT_FILE = "logs/FTW-CI/lightning_logs/version_0/checkpoints/last.ckpt"
 CONFIG_FILE = "src/tests/data-files/min_config.yaml"
@@ -14,7 +14,7 @@ CONFIG_FILE = "src/tests/data-files/min_config.yaml"
 def test_model_download1():
     runner = CliRunner()
     runner.invoke(model_download, ["--type=TWO_CLASS_FULL"])
-    filepath = '2_Class_FULL_FTW_Pretrained.ckpt'
+    filepath = "2_Class_FULL_FTW_Pretrained.ckpt"
     assert os.path.exists(filepath)
     os.remove(filepath)
 
@@ -22,7 +22,7 @@ def test_model_download1():
 def test_model_download2():
     runner = CliRunner()
     runner.invoke(model_download, ["--type=THREE_CLASS_CCBY"])
-    filepath = '3_Class_CCBY_FTW_Pretrained.ckpt'
+    filepath = "3_Class_CCBY_FTW_Pretrained.ckpt"
     assert os.path.exists(filepath)
     os.remove(filepath)
 
@@ -100,6 +100,7 @@ def test_model_archs(arch: str):
     x = torch.randn(1, 8, 256, 256)
     y = model(x)
     assert y.shape == (1, 3, 256, 256), f"Output shape mismatch for {arch}: {y.shape}"
+
 
 def test_cuda_installation():
     """Test that CUDA is properly installed if GPU hardware is present."""

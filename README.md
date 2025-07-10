@@ -66,8 +66,11 @@ ftw --help
 
 # For development work
 pixi shell -e dev
-ruff format src/
 pytest src/tests/
+
+pre-commit install # run automatically on each commit
+pre-commit run --all-files # run manually
+
 ```
 
 #### Available Environments

@@ -37,6 +37,7 @@ delineate-anything = [
 dev = [
     "ruff",        # Code formatting tool
     "pytest",      # Testing framework
+    "pre-commit",  # Run tests on commit
 ]
 all = [
     "ftw-tools[dev,delineate-anything]",
@@ -118,6 +119,7 @@ distributed = ">=2025.3.0,<2026.0"
 [tool.pixi.feature.dev.dependencies]
 ruff = ">=0.1,<1.0"
 pytest = ">=7.4,<9.0"
+pre-commit = ">=4.0,<=5.0"
 
 
 [tool.pixi.system-requirements]
@@ -130,7 +132,7 @@ dev = {features = ["dev"], solve-group = "default"}
 [tool.pixi.tasks]
 # Code quality
 format = "ruff format src/"
-lint = "ruff check src/"
+lint = "ruff check src/ --fix --select I"
 test = "pytest src/tests/"
 check-all = {depends-on = ["format", "lint", "test"]}
 
