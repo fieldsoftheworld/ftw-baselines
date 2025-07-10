@@ -96,13 +96,13 @@ pyproj = ">=3.6,<4.0"
 pystac = ">=1.8,<2.0"
 rioxarray = ">=0.15,<1.0"
 planetary-computer = ">=1.0,<2.0"
-odc-stac = ">=0.4.0,<1.0"
-torchgeo = ">=0.7.0,<1.0"
+odc-stac = ">=0.4.0,<1.0" # see https://github.com/fieldsoftheworld/ftw-baselines/issues/77
+torchgeo = ">=0.7.0,<1.0" # see https://github.com/fieldsoftheworld/ftw-baselines/issues/79
 ultralytics = ">=8.3.163,<9"
 
 [tool.pixi.pypi-dependencies]
 # Version-constrained packages (MUST remain PyPI)
-pyarrow = "==16.1.0"  # CRITICAL: filesystem registration error with newer versions
+pyarrow = "==16.1.0"  # CRITICAL: filesystem registration error with newer versions, see https://github.com/apache/arrow/issues/44696
 fiboa-cli = "==0.7.0"  # Not available on conda-forge
 
 # Parallel processing (kept on PyPI to avoid pyarrow version conflicts)

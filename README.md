@@ -14,7 +14,7 @@ This repository provides the codebase for working with the [FTW dataset](https:/
   - [Pixi (Recommended)](#pixi-recommended)
   - [Conda/Mamba (Alternative)](#condamamba-alternative)
 - [Predicting field boundaries](#predicting-field-boundaries)
-  - [1. Download the model (using `wget`)](#1-download-the-model-using-wget)
+  - [1. Download the model](#1-download-the-model)
   - [2. Download S2 image scene (using `ftw inference download`)](#2-download-s2-image-scene-using-ftw-inference-download)
   - [3. Run inference (using `ftw inference run`)](#3-run-inference-using-ftw-inference-run)
   - [4. Polygonize the output (using `ftw inference polygonize`)](#4-polygonize-the-output-using-ftw-inference-polygonize)
@@ -162,7 +162,7 @@ The following commands show the steps for using the FTW CLI to obtain the FTW mo
 
 > **Note**: If using pixi, you can either use `pixi run` for individual commands (e.g., `pixi run ftw inference download ...`) or activate the environment first with `pixi shell` and then use commands directly. All examples below show the direct commands.
 
-### 1. Download the model (using `wget`)
+### 1. Download the model
 
 In order to use `ftw inference`, you need a trained model. You can either download a pre-trained model (FTW pre-trained models can be found in the [Releases](https://github.com/fieldsoftheworld/ftw-baselines/releases) list) or you can train your own model as explained in the [Training](./EXPERIMENTS.md#training) section. This example will use an FTW pre-trained model (with options for either 3 Class or 2 Class).
 

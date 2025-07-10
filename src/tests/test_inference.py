@@ -2,7 +2,7 @@ import os
 
 from click.testing import CliRunner
 
-from ftw_cli.cli import inference_download, inference_polygonize, inference_run
+from ftw_cli.cli import inference_download, inference_polygonize, inference_run, model_download
 
 
 def test_inference_download():  # create_input
@@ -30,9 +30,12 @@ def test_inference_download():  # create_input
 def test_inference_run():
     runner = CliRunner()
 
-    # Check required files are present
+    # Download the pretrained model
+    runner.invoke(model_download, ["--type=THREE_CLASS_FULL"])
     model_path = "3_Class_FULL_FTW_Pretrained.ckpt"
     assert os.path.exists(model_path)
+
+    # Check required files are present
     inf_input_path = "./src/tests/data-files/inference-img.tif"
     assert os.path.exists(inf_input_path)
 
@@ -58,6 +61,7 @@ def test_inference_run():
     assert "Using custom trainer" in result.output
     assert "Finished inference and saved output" in result.output
     assert os.path.exists(inf_output_path)
+    os.remove(model_path)
 
 
 def test_inference_polygonize():
@@ -74,3 +78,4 @@ def test_inference_polygonize():
     assert "Polygonizing input file:" in result.output
     assert "Finished polygonizing output" in result.output
     assert os.path.exists(out_path)
+    os.remove(out_path)
