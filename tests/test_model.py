@@ -4,7 +4,6 @@ import subprocess
 import pytest
 import torch
 from click.testing import CliRunner
-
 from ftw_cli.cli import data_download, model_download, model_fit, model_test
 
 CKPT_FILE = "logs/FTW-CI/lightning_logs/version_0/checkpoints/last.ckpt"

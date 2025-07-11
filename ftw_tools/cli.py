@@ -1,6 +1,7 @@
+import enum
+
 import click
 import wget
-import enum
 
 from .settings import ALL_COUNTRIES, SUPPORTED_POLY_FORMATS_TXT
 from .types import ModelVersions
@@ -9,6 +10,7 @@ from .types import ModelVersions
 # Some of the ML related imports (presumable torch) are very slow
 # See https://github.com/fieldsoftheworld/ftw-baselines/issues/40
 
+
 class ModelVersions(enum.StrEnum):
     """Mapping from short_name to .ckpt file in github."""
 
@@ -16,7 +18,6 @@ class ModelVersions(enum.StrEnum):
     TWO_CLASS_FULL = "2_Class_FULL_FTW_Pretrained.ckpt"
     THREE_CLASS_CCBY = "3_Class_CCBY_FTW_Pretrained.ckpt"
     THREE_CLASS_FULL = "3_Class_FULL_FTW_Pretrained.ckpt"
-
 
 
 @click.group()
@@ -62,6 +63,7 @@ def data():
 )
 def data_download(out, clean_download, countries, no_unpack):
     from ftw_cli.download_ftw import download
+
     from ftw_tools.download.unpack import unpack
 
     download(out, clean_download, countries)
