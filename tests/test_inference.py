@@ -41,7 +41,7 @@ def test_inference_run():
     assert os.path.exists(model_path)
 
     # Check required files are present
-    inf_input_path = "./src/tests/data-files/inference-img.tif"
+    inf_input_path = "./tests/data-files/inference-img.tif"
     assert os.path.exists(inf_input_path)
 
     # Run inference
@@ -73,7 +73,7 @@ def test_inference_polygonize():
     runner = CliRunner()
 
     # Check required files are present
-    mask = "./src/tests/data-files/mask.tif"
+    mask = "./tests/data-files/mask.tif"
     assert os.path.exists(mask)
 
     # Polygonize the file

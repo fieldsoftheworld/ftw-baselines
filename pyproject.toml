@@ -47,16 +47,11 @@ all = [
 ftw = "ftw_cli.cli:ftw"
 
 [tool.setuptools]
-packages = { find = { where = ["src"] } }
+packages = { find = { where = ["ftw_tools"] } }
 include-package-data = true  # Includes non-Python files specified in MANIFEST.in
 
 [tool.ruff]
 extend-exclude = ["*.ipynb"]
-
-[tool.pytest.ini_options]
-pythonpath = [
-  "src",
-]
 
 # ===============================================================================
 # Pixi Configuration
@@ -131,9 +126,9 @@ dev = {features = ["dev"], solve-group = "default"}
 
 [tool.pixi.tasks]
 # Code quality
-format = "ruff format src/"
-lint = "ruff check src/ --fix --select I"
-test = "pytest src/tests/"
+format = "ruff format ftw_tools/"
+lint = "ruff check ftw_tools/ --fix --select I"
+test = "pytest tests/"
 check-all = {depends-on = ["format", "lint", "test"]}
 
 # FTW commands

@@ -8,7 +8,7 @@ from click.testing import CliRunner
 from ftw_cli.cli import data_download, model_download, model_fit, model_test
 
 CKPT_FILE = "logs/FTW-CI/lightning_logs/version_0/checkpoints/last.ckpt"
-CONFIG_FILE = "src/tests/data-files/min_config.yaml"
+CONFIG_FILE = "tests/data-files/min_config.yaml"
 
 
 def test_model_download1():
