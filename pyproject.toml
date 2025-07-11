@@ -44,7 +44,7 @@ all = [
 ]
 
 [project.scripts]
-ftw = "ftw_cli.cli:ftw"
+ftw = "ftw_tools.cli:ftw"
 
 [tool.setuptools]
 packages = { find = { where = ["ftw_tools"] } }
