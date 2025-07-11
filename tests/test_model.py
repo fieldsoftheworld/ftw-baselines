@@ -74,7 +74,7 @@ def test_model_test():
 )
 @torch.inference_mode()
 def test_model_archs(arch: str):
-    from ftw.trainers import CustomSemanticSegmentationTask
+    from ftw_tools.torchgeo.trainers import CustomSemanticSegmentationTask
 
     params = {
         "class_weights": [0.04, 0.08, 0.88],

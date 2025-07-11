@@ -54,7 +54,7 @@ trainer:
         save_last: <TRUE / FALSE, WHETHER TO SAVE THE LAST MODEL OR NOT>
         filename: "{epoch}-{val_loss:.2f}"
 model:
-  class_path: ftw.trainers.CustomSemanticSegmentationTask
+  class_path: ftw_tools.torchgeo.trainers.CustomSemanticSegmentationTask
   init_args:
     loss: <E.G. "jaccard", LOSS FUNCTION>
     model: <E.G. "unet", MODEL>
