@@ -53,6 +53,11 @@ include-package-data = true  # Includes non-Python files specified in MANIFEST.i
 [tool.ruff]
 extend-exclude = ["*.ipynb"]
 
+[tool.pytest.ini_options]
+pythonpath = [
+  ".",
+]
+
 # ===============================================================================
 # Pixi Configuration
 # ===============================================================================
