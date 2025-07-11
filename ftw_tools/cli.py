@@ -1,12 +1,22 @@
+import enum
+
 import click
 import wget
 
-from .cfg import ALL_COUNTRIES, SUPPORTED_POLY_FORMATS_TXT
-from .types import ModelVersions
+from ftw_tools.settings import ALL_COUNTRIES, SUPPORTED_POLY_FORMATS_TXT
 
 # Imports are in the functions below to speed-up CLI startup time
 # Some of the ML related imports (presumable torch) are very slow
 # See https://github.com/fieldsoftheworld/ftw-baselines/issues/40
+
+
+class ModelVersions(enum.StrEnum):
+    """Mapping from short_name to .ckpt file in github."""
+
+    TWO_CLASS_CCBY = "2_Class_CCBY_FTW_Pretrained.ckpt"
+    TWO_CLASS_FULL = "2_Class_FULL_FTW_Pretrained.ckpt"
+    THREE_CLASS_CCBY = "3_Class_CCBY_FTW_Pretrained.ckpt"
+    THREE_CLASS_FULL = "3_Class_FULL_FTW_Pretrained.ckpt"
 
 
 @click.group()
@@ -51,8 +61,8 @@ def data():
     help="If set, the script will NOT unpack the downloaded files.",
 )
 def data_download(out, clean_download, countries, no_unpack):
-    from ftw_cli.download_ftw import download
-    from ftw_cli.unpack import unpack
+    from ftw_tools.download.download_ftw import download
+    from ftw_tools.download.unpack import unpack
 
     download(out, clean_download, countries)
     if not no_unpack:
@@ -65,7 +75,7 @@ def data_download(out, clean_download, countries, no_unpack):
 )
 @click.argument("input", type=str, default="./data")
 def data_unpack(input):
-    from ftw_cli.unpack import unpack
+    from ftw_tools.download.unpack import unpack
 
     unpack(input)
 
@@ -96,7 +106,7 @@ def model():
     "cli_args", nargs=-1, type=click.UNPROCESSED
 )  # Capture all remaining arguments
 def model_fit(config, ckpt_path, cli_args):
-    from ftw_cli.model import fit
+    from ftw_tools.models.baseline_eval import fit
 
     fit(config, ckpt_path, cli_args)
 
@@ -156,7 +166,7 @@ def model_test(
     temporal_options,
     cli_args,
 ):
-    from ftw_cli.model import test
+    from ftw_tools.models.baseline_eval import test
 
     test(
         model,
@@ -216,7 +226,7 @@ def inference():
     help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'",
 )
 def inference_download(win_a, win_b, out, overwrite, bbox):
-    from ftw_cli.download_img import create_input
+    from ftw_tools.download.download_img import create_input
 
     create_input(win_a, win_b, out, overwrite, bbox)
 
@@ -285,7 +295,7 @@ def inference_run(
     overwrite,
     mps_mode,
 ):
-    from ftw_cli.inference import run
+    from ftw_tools.models.baseline_inference import run
 
     run(
         input,
@@ -346,7 +356,7 @@ def inference_run(
 def inference_polygonize(
     input, out, simplify, min_size, max_size, overwrite, close_interiors
 ):
-    from ftw_cli.polygonize import polygonize
+    from ftw_tools.postprocess.polygonize import polygonize
 
     polygonize(input, out, simplify, min_size, max_size, overwrite, close_interiors)
 

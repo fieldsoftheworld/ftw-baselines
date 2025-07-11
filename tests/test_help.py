@@ -1,8 +1,8 @@
 from click.testing import CliRunner
 
-from ftw_cli.cli import data_download as download
-from ftw_cli.cli import data_unpack as unpack
-from ftw_cli.cli import (
+from ftw_tools.cli import data_download as download
+from ftw_tools.cli import data_unpack as unpack
+from ftw_tools.cli import (
     inference_download,
     inference_polygonize,
     inference_run,

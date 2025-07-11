@@ -10,7 +10,7 @@ import xarray as xr
 from shapely.geometry import shape
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
-from .cfg import BANDS_OF_INTEREST, COLLECTION_ID, MSPC_URL
+from ftw_tools.settings import BANDS_OF_INTEREST, COLLECTION_ID, MSPC_URL
 
 
 @retry(wait=wait_random_exponential(max=3), stop=stop_after_attempt(2))

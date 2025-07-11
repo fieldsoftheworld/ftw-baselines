@@ -2,8 +2,8 @@ import os
 
 from click.testing import CliRunner
 
-from ftw_cli.cli import data_download as download
-from ftw_cli.cli import data_unpack as unpack
+from ftw_tools.cli import data_download as download
+from ftw_tools.cli import data_unpack as unpack
 
 
 def test_data_download():

@@ -7,7 +7,7 @@ import time
 import wget
 from tqdm import tqdm
 
-from .cfg import ALL_COUNTRIES
+from ftw_tools.settings import ALL_COUNTRIES
 
 
 def load_checksums(local_md5_file_path):

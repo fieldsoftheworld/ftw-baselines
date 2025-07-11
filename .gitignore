@@ -7,7 +7,7 @@ results/
 logs_old/
 build/
 inference_imagery/
-src/ftw_tools.egg-info/
+ftw_tools.egg-info/
 *.ckpt
 *.aux.xml
 *.gpkg
