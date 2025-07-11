@@ -29,7 +29,7 @@ model:
     lr: 1e-3
     patience: 100
 data:
-  class_path: ftw.datamodules.FTWDataModule
+  class_path: ftw_tools.torchgeo.datamodules.FTWDataModule
   init_args:
     batch_size: 32
     num_workers: 4

@@ -68,7 +68,7 @@ model:
     lr: <E.G. 1e-3, LEARNING RATE>
     patience: <E.G. 100, PATIENCE FOR COSINE ANNEALING>
 data:
-  class_path: ftw.datamodules.FTWDataModule
+  class_path: ftw_tools.torchgeo.datamodules.FTWDataModule
   init_args:
     batch_size: 32
     num_workers: 8
