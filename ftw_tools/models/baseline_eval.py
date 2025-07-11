@@ -10,10 +10,10 @@ from torchgeo.trainers import BaseTask
 from torchmetrics import JaccardIndex, MetricCollection, Precision, Recall
 from tqdm import tqdm
 
-from ftw.datamodules import preprocess
-from ftw.datasets import FTW
-from ftw.metrics import get_object_level_metrics
-from ftw.trainers import CustomSemanticSegmentationTask
+from ftw_tools.torchgeo.datamodules import preprocess
+from ftw_tools.torchgeo.datasets import FTW
+from ftw_tools.postprocess.metrics import get_object_level_metrics
+from ftw_tools.torchgeo.trainers import CustomSemanticSegmentationTask
 
 
 def fit(config, ckpt_path, cli_args):

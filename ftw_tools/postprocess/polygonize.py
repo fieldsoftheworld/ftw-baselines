@@ -15,7 +15,7 @@ from pyproj import CRS, Transformer
 from shapely.ops import transform
 from tqdm import tqdm
 
-from .cfg import SUPPORTED_POLY_FORMATS_TXT
+from ftw_tools.settings import SUPPORTED_POLY_FORMATS_TXT
 
 
 def polygonize(input, out, simplify, min_size, max_size, overwrite, close_interiors):
