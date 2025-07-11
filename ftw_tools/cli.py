@@ -62,8 +62,7 @@ def data():
     help="If set, the script will NOT unpack the downloaded files.",
 )
 def data_download(out, clean_download, countries, no_unpack):
-    from ftw_cli.download_ftw import download
-
+    from ftw_tools.download.download_ftw import download
     from ftw_tools.download.unpack import unpack
 
     download(out, clean_download, countries)
@@ -228,7 +227,7 @@ def inference():
     help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'",
 )
 def inference_download(win_a, win_b, out, overwrite, bbox):
-    from ftw_cli.download_img import create_input
+    from ftw_tools.download.download_img import create_input
 
     create_input(win_a, win_b, out, overwrite, bbox)
 

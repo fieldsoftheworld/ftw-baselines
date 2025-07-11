@@ -1,7 +1,8 @@
 import os
 
 from click.testing import CliRunner
-from ftw_cli.cli import (
+
+from ftw_tools.cli import (
     inference_download,
     inference_polygonize,
     inference_run,

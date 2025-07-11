@@ -12,7 +12,15 @@ This repository provides the codebase for working with the [FTW dataset](https:/
 
 - [System setup](#system-setup)
   - [Pixi (Recommended)](#pixi-recommended)
+    - [Installation](#installation)
+    - [Environment Setup](#environment-setup)
+    - [Usage](#usage)
+    - [Available Environments](#available-environments)
+    - [Verify Installation](#verify-installation)
   - [Conda/Mamba (Alternative)](#condamamba-alternative)
+    - [Development with Conda](#development-with-conda)
+    - [Common Issues with Conda](#common-issues-with-conda)
+    - [Verify Installation](#verify-installation-1)
 - [Predicting field boundaries](#predicting-field-boundaries)
   - [1. Download the model](#1-download-the-model)
   - [2. Download S2 image scene (using `ftw inference download`)](#2-download-s2-image-scene-using-ftw-inference-download)
@@ -88,7 +96,7 @@ pixi run python -c "import torch; print('PyTorch:', torch.__version__); print('C
 pixi run python -c "from osgeo import gdal; import rasterio, geopandas; print('Geospatial stack working')"
 
 # Check FTW CLI import
-pixi run python -c "from ftw_cli.cli import ftw; print('FTW CLI ready')"
+pixi run python -c "from ftw_tools.cli import ftw; print('FTW CLI ready')"
 ```
 
 ### Conda/Mamba (Alternative)
