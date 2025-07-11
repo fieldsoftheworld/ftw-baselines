@@ -3,8 +3,7 @@ import enum
 import click
 import wget
 
-from .settings import ALL_COUNTRIES, SUPPORTED_POLY_FORMATS_TXT
-from .types import ModelVersions
+from ftw_tools.settings import ALL_COUNTRIES, SUPPORTED_POLY_FORMATS_TXT
 
 # Imports are in the functions below to speed-up CLI startup time
 # Some of the ML related imports (presumable torch) are very slow
