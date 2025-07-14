@@ -21,6 +21,4 @@ def test_get_harvest_integer_from_bbox(bbox_iowa_aoi):
 def test_harvest_to_datetime():
     # Test for a valid harvest day and year
     result = harvest_to_datetime(100, 2023)
-    assert result == pytest.approx(
-        pd.Timestamp("2023-04-10"), abs=pd.Timedelta("1 day")
-    )
+    assert result == pd.Timestamp("2023-04-10")
