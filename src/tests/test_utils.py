@@ -1,12 +1,13 @@
-import pytest
 import pandas as pd
+import pytest
 
 from ftw.utils import get_harvest_integer_from_bbox, harvest_to_datetime
 
 
 @pytest.fixture()
 def bbox_iowa_aoi():
-    return [-93.68708939,  41.9530844 , -93.64078526,  41.98070608]
+    return [-93.68708939, 41.9530844, -93.64078526, 41.98070608]
+
 
 def test_get_harvest_integer_from_bbox(bbox_iowa_aoi):
     # Test for a valid bounding box
@@ -17,8 +18,9 @@ def test_get_harvest_integer_from_bbox(bbox_iowa_aoi):
     assert result[1] == 316
 
 
-
 def test_harvest_to_datetime():
     # Test for a valid harvest day and year
     result = harvest_to_datetime(100, 2023)
-    assert result == pytest.approx(pd.Timestamp("2023-04-10"), abs=pd.Timedelta("1 day"))
+    assert result == pytest.approx(
+        pd.Timestamp("2023-04-10"), abs=pd.Timedelta("1 day")
+    )

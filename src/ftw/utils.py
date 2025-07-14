@@ -1,9 +1,9 @@
 import hashlib
 import os
+
+import numpy as np
 import pandas as pd
 import xarray as xr
-import numpy as np
-
 
 # Harvest day raster paths from https://github.com/ucg-uv/research_products/tree/main
 SUMMER_START_RASTER_PATH = "assets/global_crop_calendar/sc_sos_3x3_v2_cog.tiff"
@@ -45,14 +45,15 @@ def validate_checksums(checksum_file, root_directory):
             return False
     return True
 
+
 def harvest_to_datetime(harvest_day: int, year: int) -> pd.Timestamp:
     """
     Convert a harvest integer (day of the year) to a datetime object.
-    
+
     Args:
         harvest_day (int): Day of the year (1-365).
         year (int): The year for which the date is to be calculated.
-    
+
     Returns:
         pd.Timestamp: Corresponding datetime object.
     """
@@ -60,40 +61,41 @@ def harvest_to_datetime(harvest_day: int, year: int) -> pd.Timestamp:
 
 
 # to-do func to get harvest integer from user provided bbox
-def get_harvest_integer_from_bbox(bbox: list[int], start_year_raster_path:str = SUMMER_START_RASTER_PATH, 
-                                  end_year_raster_path:str = SUMMER_END_RASTER_PATH) -> list[int]:
+def get_harvest_integer_from_bbox(
+    bbox: list[int],
+    start_year_raster_path: str = SUMMER_START_RASTER_PATH,
+    end_year_raster_path: str = SUMMER_END_RASTER_PATH,
+) -> list[int]:
     """
-    Gets harvest integer from a user-provided bounding box. Note currently just uses summer crops. 
-    
+    Gets harvest integer from a user-provided bounding box. Note currently just uses summer crops.
+
     Args:
         bbox (str): Bounding box in the format 'minx,miny,maxx,maxy'.
-    
+
     Returns:
         list: start and end harvest integer (day of the year).
     """
 
-    start_harvest_dset = xr.open_dataset(start_year_raster_path, engine='rasterio')
-    end_harvest_dset = xr.open_dataset(end_year_raster_path, engine='rasterio')
+    start_harvest_dset = xr.open_dataset(start_year_raster_path, engine="rasterio")
+    end_harvest_dset = xr.open_dataset(end_year_raster_path, engine="rasterio")
 
     # Clip the datasets to the bounding box
-    start_value = start_harvest_dset.rio.clip_box(bbox[0],
-                bbox[1],
-                bbox[2],
-                bbox[3], allow_one_dimensional_raster=True)
-    
-    if len(start_value['band_data'][0][0]) > 1:
-        start_value = int(np.mean(start_value['band_data'][0][0]))
-    else: 
-        start_value = int(start_value['band_data'].values[0][0][0])
-    
-    end_value = end_harvest_dset.rio.clip_box(bbox[0],
-                bbox[1],
-                bbox[2],
-                bbox[3], allow_one_dimensional_raster=True)
-    if len(end_value['band_data'][0][0]) > 1:
-        end_value = int(np.mean(end_value['band_data'][0][0]))
+    start_value = start_harvest_dset.rio.clip_box(
+        bbox[0], bbox[1], bbox[2], bbox[3], allow_one_dimensional_raster=True
+    )
 
-    else: 
-        end_value = int(end_value['band_data'].values[0][0][0])
+    if len(start_value["band_data"][0][0]) > 1:
+        start_value = int(np.mean(start_value["band_data"][0][0]))
+    else:
+        start_value = int(start_value["band_data"].values[0][0][0])
 
-    return [start_value, end_value] 
+    end_value = end_harvest_dset.rio.clip_box(
+        bbox[0], bbox[1], bbox[2], bbox[3], allow_one_dimensional_raster=True
+    )
+    if len(end_value["band_data"][0][0]) > 1:
+        end_value = int(np.mean(end_value["band_data"][0][0]))
+
+    else:
+        end_value = int(end_value["band_data"].values[0][0][0])
+
+    return [start_value, end_value]
