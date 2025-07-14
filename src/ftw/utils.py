@@ -60,7 +60,8 @@ def harvest_to_datetime(harvest_day: int, year: int) -> pd.Timestamp:
 
 
 # to-do func to get harvest integer from user provided bbox
-def get_harvest_integer_from_bbox(bbox: list[int], start_year_raster_path:str, end_year_raster_path:str) -> list[int]:
+def get_harvest_integer_from_bbox(bbox: list[int], start_year_raster_path:str = SUMMER_START_RASTER_PATH, 
+                                  end_year_raster_path:str = SUMMER_END_RASTER_PATH) -> list[int]:
     """
     Gets harvest integer from a user-provided bounding box. Note currently just uses summer crops. 
     
@@ -71,8 +72,8 @@ def get_harvest_integer_from_bbox(bbox: list[int], start_year_raster_path:str, e
         list: start and end harvest integer (day of the year).
     """
 
-    start_harvest_dset = xr.open_file(SUMMER_START_RASTER_PATH, engine='rasterio')
-    end_harvest_dset = xr.open_file(SUMMER_END_RASTER_PATH, engine='rasterio')
+    start_harvest_dset = xr.open_dataset(start_year_raster_path, engine='rasterio')
+    end_harvest_dset = xr.open_dataset(end_year_raster_path, engine='rasterio')
 
     # Clip the datasets to the bounding box
     start_value = start_harvest_dset.rio.clip_box(bbox[0],
