@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from ftw.utils import get_harvest_integer_from_bbox, harvest_to_datetime
+from ftw_tools.utils import get_harvest_integer_from_bbox, harvest_to_datetime
 
 
 @pytest.fixture()

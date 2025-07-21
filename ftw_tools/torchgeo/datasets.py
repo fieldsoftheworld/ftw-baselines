@@ -14,7 +14,7 @@ from matplotlib.figure import Figure
 from torch import Tensor
 from torchgeo.datasets import NonGeoDataset, RasterDataset
 
-from .utils import validate_checksums
+from ftw_tools.utils import validate_checksums
 
 
 class SingleRasterDataset(RasterDataset):

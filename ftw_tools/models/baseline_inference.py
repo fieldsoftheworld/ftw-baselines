@@ -5,7 +5,6 @@ import time
 import kornia.augmentation as K
 import numpy as np
 import rasterio
-import rasterio.features
 import torch
 from kornia.constants import Resample
 from rasterio.enums import ColorInterp
@@ -14,9 +13,9 @@ from torchgeo.datasets import stack_samples
 from torchgeo.samplers import GridGeoSampler
 from tqdm import tqdm
 
-from ftw.datamodules import preprocess
-from ftw.datasets import SingleRasterDataset
-from ftw.trainers import CustomSemanticSegmentationTask
+from ftw_tools.torchgeo.datamodules import preprocess
+from ftw_tools.torchgeo.datasets import SingleRasterDataset
+from ftw_tools.torchgeo.trainers import CustomSemanticSegmentationTask
 
 
 def run(

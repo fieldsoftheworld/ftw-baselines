@@ -9,7 +9,7 @@ from torch.utils.data import Subset
 from torchgeo.datamodules import NonGeoDataModule
 from torchgeo.transforms import AugmentationSequential
 
-from .datasets import FTW
+from ftw_tools.torchgeo.datasets import FTW
 
 
 def preprocess(sample):

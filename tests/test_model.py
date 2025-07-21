@@ -5,10 +5,10 @@ import pytest
 import torch
 from click.testing import CliRunner
 
-from ftw_cli.cli import data_download, model_download, model_fit, model_test
+from ftw_tools.cli import data_download, model_download, model_fit, model_test
 
 CKPT_FILE = "logs/FTW-CI/lightning_logs/version_0/checkpoints/last.ckpt"
-CONFIG_FILE = "src/tests/data-files/min_config.yaml"
+CONFIG_FILE = "tests/data-files/min_config.yaml"
 
 
 def test_model_download1():
@@ -74,7 +74,7 @@ def test_model_test():
 )
 @torch.inference_mode()
 def test_model_archs(arch: str):
-    from ftw.trainers import CustomSemanticSegmentationTask
+    from ftw_tools.torchgeo.trainers import CustomSemanticSegmentationTask
 
     params = {
         "class_weights": [0.04, 0.08, 0.88],
