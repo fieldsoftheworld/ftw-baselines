@@ -3,6 +3,7 @@ import enum
 import click
 import wget
 
+from ftw.download_img import scence_selection
 from ftw_tools.settings import ALL_COUNTRIES, SUPPORTED_POLY_FORMATS_TXT
 
 # Imports are in the functions below to speed-up CLI startup time
@@ -211,8 +212,15 @@ def inference():
     "download",
     help="Download 2 Sentinel-2 scenes & stack them in a single file for inference.",
 )
-@click.option("--win_a", type=str, required=True, help=WIN_HELP.format(x="A"))
-@click.option("--win_b", type=str, required=True, help=WIN_HELP.format(x="B"))
+@click.option(
+    "--year", type=int, required=True, help="Year to run model inference over"
+)
+@click.option(
+    "--cloud-cover-max",
+    type=int,
+    default=20,
+    help="Max percent cloud cover in sentinel2 scene",
+)
 @click.option(
     "--out", "-o", type=str, required=True, help="Filename to save results to"
 )
@@ -228,6 +236,9 @@ def inference():
 def inference_download(win_a, win_b, out, overwrite, bbox):
     from ftw_tools.download.download_img import create_input
 
+    win_a, win_b = scene_selection(
+        bbox=bbox, year=year, cloud_cover_max=cloud_cover_max
+    )
     create_input(win_a, win_b, out, overwrite, bbox)
 
 
