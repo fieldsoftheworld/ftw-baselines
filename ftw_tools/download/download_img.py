@@ -1,16 +1,24 @@
+import logging
 import os
 import time
+from typing import Tuple
 
 import dask.diagnostics.progress
 import odc.stac
+import pandas as pd
 import planetary_computer as pc
 import pystac
+import pystac_client
 import rioxarray  # seems unused but is needed
 import xarray as xr
+from pystac.extensions.eo import EOExtension as eo
 from shapely.geometry import shape
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
 from ftw_tools.settings import BANDS_OF_INTEREST, COLLECTION_ID, MSPC_URL
+from ftw_tools.utils import get_harvest_integer_from_bbox, harvest_to_datetime
+
+logger = logging.getLogger()
 
 
 @retry(wait=wait_random_exponential(max=3), stop=stop_after_attempt(2))
@@ -26,6 +34,88 @@ def get_item(id):
         item = pc.sign(item)
 
     return item
+
+
+def scene_selection(
+    bbox: list[int], year: int, cloud_cover_max: int = 20
+) -> Tuple[str, str]:
+    """
+    Returns sentinel 2 image id for start and end date within +/- 1 week
+    of crop calendar indicated dates. If there are multiple images within the date
+    range, lowest cloud cover will be returned.
+
+    Args:
+        bbox (list[int]): Bounding box in [minx, miny, maxx, maxy] format.
+        year (int): Year for filtering scenes.
+        cloud_cover_max (int, optional): Maximum allowed cloud cover percentage. Defaults to 20.
+
+    Returns:
+        tuple: Sentinel2 image ids to be used as input into the 2 image crop model
+    """
+    # get crop calendar days
+    start_day, end_day = get_harvest_integer_from_bbox(bbox=bbox)
+
+    start_dt = harvest_to_datetime(harvest_day=start_day, year=year)
+    end_dt = harvest_to_datetime(
+        harvest_day=end_day, year=year + 1 if end_day < start_day else year
+    )  # to account for southern hemisphere harvest
+
+    # search for +/- 1 week of the crop calendar indicated start and end days
+
+    win_a = query_stac(bbox=bbox, date=start_dt, cloud_cover_max=cloud_cover_max)
+    win_b = query_stac(bbox=bbox, date=end_dt, cloud_cover_max=cloud_cover_max)
+
+    return (win_a, win_b)
+
+
+def query_stac(bbox: list[int], date: pd.Timestamp, cloud_cover_max: int = 20) -> str:
+    """
+    Queries Sentinel-2 imagery hosted on planetary computer via pystac.
+    sentinel 2 image id for start and end date within +/- 1 week
+    of crop calendar indicated dates, with the lowest percent cloud cover is returned.
+
+    Args:
+        bbox: Bounding box in [minx, miny, maxx, maxy] format.
+        date: crop calendar indicated date
+        cloud_cover_max: threshold for maximum percent cloud cover.
+
+    Returns:
+        Sentinel-2 image id.
+    """
+    # make +/- 1 week datetime range to query over
+    start = (date - pd.Timedelta(days=14)).strftime("%Y-%m-%d")
+    end = (date + pd.Timedelta(days=14)).strftime("%Y-%m-%d")
+
+    # Format as string
+    date_range = f"{start}/{end}"
+
+    catalog = pystac_client.Client.open(
+        "https://planetarycomputer.microsoft.com/api/stac/v1", modifier=pc.sign_inplace
+    )
+
+    search = catalog.search(
+        collections=[COLLECTION_ID],
+        bbox=bbox,
+        datetime=date_range,
+        query={"eo:cloud_cover": {"lt": cloud_cover_max}},
+    )
+
+    items = search.item_collection()
+    logger.info(f"Returned {len(items)} Items")
+
+    if len(items) == 0:
+        raise ValueError(
+            f"No sentinel scenes within this area for {date_range} with {cloud_cover_max}"
+        )
+
+    # sort by percent cloud cover
+    least_cloudy_item = min(items, key=lambda item: eo.ext(item).cloud_cover)
+
+    logger.info(
+        f"Choosing {least_cloudy_item.id} from {least_cloudy_item.datetime.date()}"
+        f" with {eo.ext(least_cloudy_item).cloud_cover}% cloud cover"
+    )
+    return least_cloudy_item.id
 
 
 def create_input(win_a, win_b, out, overwrite, bbox=None):
@@ -64,8 +154,9 @@ def create_input(win_a, win_b, out, overwrite, bbox=None):
             proc_version = 0
         if proc_version > 0:
             if version > 0 and version != proc_version:
-                print("Processing version of imagery differs. Exiting.")
-                return
+                print(
+                    f"Warning: Processing version of imagery differs: {version} vs {proc_version}. Continuing anyway."
+                )
             version = proc_version
 
     shapes = [shape(item.geometry) for item in items]
