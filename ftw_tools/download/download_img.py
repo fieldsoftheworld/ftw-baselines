@@ -154,8 +154,9 @@ def create_input(win_a, win_b, out, overwrite, bbox=None):
             proc_version = 0
         if proc_version > 0:
             if version > 0 and version != proc_version:
-                print("Processing version of imagery differs. Exiting.")
-                return
+                print(
+                    f"Warning: Processing version of imagery differs: {version} vs {proc_version}. Continuing anyway."
+                )
             version = proc_version
 
     shapes = [shape(item.geometry) for item in items]
