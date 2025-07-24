@@ -15,8 +15,8 @@ from pystac.extensions.eo import EOExtension as eo
 from shapely.geometry import shape
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
-from ftw.utils import get_harvest_integer_from_bbox, harvest_to_datetime
 from ftw_tools.settings import BANDS_OF_INTEREST, COLLECTION_ID, MSPC_URL
+from ftw_tools.utils import get_harvest_integer_from_bbox, harvest_to_datetime
 
 logger = logging.getLogger()
 
@@ -64,7 +64,7 @@ def scene_selection(
     return (win_a, win_b)
 
 
-def query_stac(bbox: list[int], date: pd.Datetime, cloud_cover_max: int = 20):
+def query_stac(bbox: list[int], date: pd.Timestamp, cloud_cover_max: int = 20):
     # make +/- 1 week datetime range to query over
     start = (date - pd.Timedelta(days=7)).strftime("%Y-%m-%d")
     end = (date + pd.Timedelta(days=7)).strftime("%Y-%m-%d")

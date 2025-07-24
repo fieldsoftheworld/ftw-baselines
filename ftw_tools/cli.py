@@ -3,7 +3,7 @@ import enum
 import click
 import wget
 
-from ftw.download_img import scence_selection
+from ftw_tools.download.download_img import scene_selection
 from ftw_tools.settings import ALL_COUNTRIES, SUPPORTED_POLY_FORMATS_TXT
 
 # Imports are in the functions below to speed-up CLI startup time
@@ -233,7 +233,7 @@ def inference():
     default=None,
     help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'",
 )
-def inference_download(win_a, win_b, out, overwrite, bbox):
+def inference_download(year, cloud_cover_max, out, overwrite, bbox):
     from ftw_tools.download.download_img import create_input
 
     win_a, win_b = scene_selection(
