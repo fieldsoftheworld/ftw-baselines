@@ -40,13 +40,17 @@ def scene_selection(
     bbox: list[int], year: int, cloud_cover_max: int = 20
 ) -> Tuple[str, str]:
     """
+    Returns sentinel 2 image id for start and end date within +/- 1 week
+    of crop calendar indicated dates. If there are multiple images within the date
+    range, lowest cloud cover will be returned.
+
     Args:
-    bbox (list[int]): Bounding box in [minx, miny, maxx, maxy] format.
-    year (int): Year for filtering scenes.
-    cloud_cover_max (int, optional): Maximum allowed cloud cover percentage. Defaults to 20.
+        bbox (list[int]): Bounding box in [minx, miny, maxx, maxy] format.
+        year (int): Year for filtering scenes.
+        cloud_cover_max (int, optional): Maximum allowed cloud cover percentage. Defaults to 20.
 
     Returns:
-    tuple: Sentinel2 image ids to be used as input into the 2 image crop model
+        tuple: Sentinel2 image ids to be used as input into the 2 image crop model
     """
     # get crop calendar days
     start_day, end_day = get_harvest_integer_from_bbox(bbox=bbox)
@@ -64,10 +68,23 @@ def scene_selection(
     return (win_a, win_b)
 
 
-def query_stac(bbox: list[int], date: pd.Timestamp, cloud_cover_max: int = 20):
+def query_stac(bbox: list[int], date: pd.Timestamp, cloud_cover_max: int = 20) -> str:
+    """
+    Queries Sentinel-2 imagery hosted on planetary computer via pystac.
+    sentinel 2 image id for start and end date within +/- 1 week
+    of crop calendar indicated dates, with the lowest percent cloud cover is returned.
+
+    Args:
+        bbox: Bounding box in [minx, miny, maxx, maxy] format.
+        date: crop calendar indicated date
+        cloud_cover_max: threshold for maximum percent cloud cover.
+
+    Returns:
+        Sentinel-2 image id.
+    """
     # make +/- 1 week datetime range to query over
-    start = (date - pd.Timedelta(days=7)).strftime("%Y-%m-%d")
-    end = (date + pd.Timedelta(days=7)).strftime("%Y-%m-%d")
+    start = (date - pd.Timedelta(days=14)).strftime("%Y-%m-%d")
+    end = (date + pd.Timedelta(days=14)).strftime("%Y-%m-%d")
 
     # Format as string
     date_range = f"{start}/{end}"
@@ -78,7 +95,7 @@ def query_stac(bbox: list[int], date: pd.Timestamp, cloud_cover_max: int = 20):
 
     search = catalog.search(
         collections=[COLLECTION_ID],
-        intersects=bbox,
+        bbox=bbox,
         datetime=date_range,
         query={"eo:cloud_cover": {"lt": cloud_cover_max}},
     )

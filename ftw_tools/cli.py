@@ -236,8 +236,9 @@ def inference():
 def inference_download(year, cloud_cover_max, out, overwrite, bbox):
     from ftw_tools.download.download_img import create_input
 
+    bbox_formatted = [float(x) for x in bbox.split(",")]
     win_a, win_b = scene_selection(
-        bbox=bbox, year=year, cloud_cover_max=cloud_cover_max
+        bbox=bbox_formatted, year=year, cloud_cover_max=cloud_cover_max
     )
     create_input(win_a, win_b, out, overwrite, bbox)
 
