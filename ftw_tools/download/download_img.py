@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+from typing import Tuple
 
 import dask.diagnostics.progress
 import odc.stac
@@ -35,10 +36,9 @@ def get_item(id):
     return item
 
 
-# stac query with dates and bbox
-def scene_selection(bbox: list[int], year: int, cloud_cover_max: int = 20) -> tuple(
-    str, str
-):
+def scene_selection(
+    bbox: list[int], year: int, cloud_cover_max: int = 20
+) -> Tuple[str, str]:
     """
     Args:
     bbox (list[int]): Bounding box in [minx, miny, maxx, maxy] format.
@@ -52,7 +52,9 @@ def scene_selection(bbox: list[int], year: int, cloud_cover_max: int = 20) -> tu
     start_day, end_day = get_harvest_integer_from_bbox(bbox=bbox)
 
     start_dt = harvest_to_datetime(harvest_day=start_day, year=year)
-    end_dt = harvest_to_datetime(harvest_day=end_day, year=year)
+    end_dt = harvest_to_datetime(
+        harvest_day=end_day, year=year + 1 if end_day < start_day else year
+    )  # to account for southern hemisphere harvest
 
     # search for +/- 1 week of the crop calendar indicated start and end days
 
