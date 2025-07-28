@@ -107,7 +107,14 @@ def query_stac(bbox: list[int], date: pd.Timestamp, cloud_cover_max: int = 20) -
         raise ValueError(
             f"No sentinel scenes within this area for {date_range} with {cloud_cover_max}"
         )
-
+    # check if aoi spans multiple S2 tiles
+    if len(items) > 1:
+        s2_tile_ids = [item.properties["s2:mgrs_tile"] for item in items]
+        if len(set(s2_tile_ids)) > 1:
+            raise ValueError(
+                f"Multiple MGRS tiles found: {set(s2_tile_ids)}. Please chose a smaller "
+                f"search area, support coming soon for multiple Sentinel 2 scenes."
+            )
     # sort by percent cloud cover
     least_cloudy_item = min(items, key=lambda item: eo.ext(item).cloud_cover)
 
