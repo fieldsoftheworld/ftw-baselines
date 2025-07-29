@@ -4,6 +4,7 @@ import time
 from typing import Tuple
 
 import dask.diagnostics.progress
+import geopandas as gpd
 import odc.stac
 import pandas as pd
 import planetary_computer as pc
@@ -12,7 +13,7 @@ import pystac_client
 import rioxarray  # seems unused but is needed
 import xarray as xr
 from pystac.extensions.eo import EOExtension as eo
-from shapely.geometry import shape
+from shapely.geometry import box, shape
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
 from ftw_tools.settings import BANDS_OF_INTEREST, COLLECTION_ID, MSPC_URL
@@ -105,10 +106,15 @@ def query_stac(bbox: list[int], date: pd.Timestamp, cloud_cover_max: int = 20) -
 
     if len(items) == 0:
         raise ValueError(
-            f"No sentinel scenes within this area for {date_range} with {cloud_cover_max}"
+            f"No sentinel scenes within this area for {date_range} with less than {cloud_cover_max} percent cloud cover."
         )
-    # check if aoi spans multiple S2 tiles
-    if len(items) > 1:
+    # check if aoi is approximately greater than 100 km x 100 km and spans multiple Sentinel 2 MGRS tiles
+    if len(items) > 1 and (
+        gpd.GeoDataFrame(geometry=[box(*bbox)], crs="EPSG:4326")
+        .to_crs("EPSG:32633")
+        .area[0]
+        > 10000000000
+    ):
         s2_tile_ids = [item.properties["s2:mgrs_tile"] for item in items]
         if len(set(s2_tile_ids)) > 1:
             raise ValueError(
