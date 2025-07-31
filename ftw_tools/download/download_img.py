@@ -38,10 +38,10 @@ def get_item(id):
 
 
 def scene_selection(
-    bbox: list[int], year: int, cloud_cover_max: int = 20
+    bbox: list[int], year: int, cloud_cover_max: int = 20, buffer_days: int = 14
 ) -> Tuple[str, str]:
     """
-    Returns sentinel 2 image id for start and end date within +/- 1 week
+    Returns sentinel 2 image id for start and end date within +/- number of days
     of crop calendar indicated dates. If there are multiple images within the date
     range, lowest cloud cover will be returned.
 
@@ -49,6 +49,9 @@ def scene_selection(
         bbox (list[int]): Bounding box in [minx, miny, maxx, maxy] format.
         year (int): Year for filtering scenes.
         cloud_cover_max (int, optional): Maximum allowed cloud cover percentage. Defaults to 20.
+        buffer_days (int, optional): Number of days to buffer the date for querying to help balance
+            decreasing cloud cover and selecting a date near the crop calendar indicated date.
+            Defaults to 14.
 
     Returns:
         tuple: Sentinel2 image ids to be used as input into the 2 image crop model
@@ -61,31 +64,37 @@ def scene_selection(
         harvest_day=end_day, year=year + 1 if end_day < start_day else year
     )  # to account for southern hemisphere harvest
 
-    # search for +/- 1 week of the crop calendar indicated start and end days
-
-    win_a = query_stac(bbox=bbox, date=start_dt, cloud_cover_max=cloud_cover_max)
+    # search for +/- number of days the crop calendar indicated start and end days
+    win_a = query_stac(
+        bbox=bbox,
+        date=start_dt,
+        cloud_cover_max=cloud_cover_max,
+        buffer_days=buffer_days,
+    )
     win_b = query_stac(bbox=bbox, date=end_dt, cloud_cover_max=cloud_cover_max)
 
     return (win_a, win_b)
 
 
-def query_stac(bbox: list[int], date: pd.Timestamp, cloud_cover_max: int = 20) -> str:
+def query_stac(
+    bbox: list[int], date: pd.Timestamp, cloud_cover_max: int = 20, buffer_days=14
+) -> str:
     """
     Queries Sentinel-2 imagery hosted on planetary computer via pystac.
-    sentinel 2 image id for start and end date within +/- 1 week
+    sentinel 2 image id for start and end date within +/- number of days
     of crop calendar indicated dates, with the lowest percent cloud cover is returned.
 
     Args:
         bbox: Bounding box in [minx, miny, maxx, maxy] format.
         date: crop calendar indicated date
         cloud_cover_max: threshold for maximum percent cloud cover.
+        buffer_days: Number of days to buffer the date for querying.
 
     Returns:
         Sentinel-2 image id.
     """
-    # make +/- 1 week datetime range to query over
-    start = (date - pd.Timedelta(days=14)).strftime("%Y-%m-%d")
-    end = (date + pd.Timedelta(days=14)).strftime("%Y-%m-%d")
+    start = (date - pd.Timedelta(days=buffer_days)).strftime("%Y-%m-%d")
+    end = (date + pd.Timedelta(days=buffer_days)).strftime("%Y-%m-%d")
 
     # Format as string
     date_range = f"{start}/{end}"
