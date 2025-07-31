@@ -122,7 +122,7 @@ def query_stac(
         .area[0]
         > 10000000000
     ):
-        s2_tile_ids = [item.properties["s2:mgrs_tile"] for item in items]
+        s2_tile_ids = [item.properties["grid:code"] for item in items]
         if len(set(s2_tile_ids)) > 1:
             raise ValueError(
                 f"Multiple MGRS tiles found: {set(s2_tile_ids)}. Please chose a smaller "
