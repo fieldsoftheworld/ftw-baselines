@@ -99,9 +99,7 @@ def query_stac(
     # Format as string
     date_range = f"{start}/{end}"
 
-    catalog = pystac_client.Client.open(
-        "https://planetarycomputer.microsoft.com/api/stac/v1", modifier=pc.sign_inplace
-    )
+    catalog = pystac_client.Client.open("https://earth-search.aws.element84.com/v1")
 
     search = catalog.search(
         collections=[COLLECTION_ID],
