@@ -3,6 +3,7 @@ import enum
 import click
 import wget
 
+from ftw_tools.download.download_img import scene_selection
 from ftw_tools.settings import ALL_COUNTRIES, SUPPORTED_POLY_FORMATS_TXT
 
 # Imports are in the functions below to speed-up CLI startup time
@@ -205,6 +206,45 @@ WIN_HELP = "URL to or Microsoft Planetary Computer ID of an Sentinel-2 L2A STAC 
 def inference():
     """Inference-related commands."""
     pass
+
+
+@inference.command(
+    "scene_selection", help="Select Sentinel-2 scenes for inference with crop calendar"
+)
+@click.option(
+    "--bbox",
+    type=str,
+    default=None,
+    help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'",
+)
+@click.option(
+    "--year", type=int, required=True, help="Year to run model inference over"
+)
+@click.option(
+    "--cloud_cover_max",
+    type=int,
+    default=20,
+    help="Max percent cloud cover in sentinel2 scene",
+)
+@click.option(
+    "--buffer_days",
+    type=int,
+    default=14,
+    help="Number of days to buffer the date for querying to help balance decreasing cloud cover "
+    "and selecting a date near the crop calendar indicated date.",
+)
+def scene_selection(year, cloud_cover_max, bbox, buffer_days):
+    """Download Sentinel-2 scenes for inference."""
+    from ftw_tools.download.download_img import scene_selection
+
+    bbox_formatted = [float(x) for x in bbox.split(",")]
+    win_a, win_b = scene_selection(
+        bbox=bbox_formatted,
+        year=year,
+        cloud_cover_max=cloud_cover_max,
+        buffer_days=buffer_days,
+    )
+    print(f"Window A: {win_a}, Window B: {win_b}")
 
 
 @inference.command(
