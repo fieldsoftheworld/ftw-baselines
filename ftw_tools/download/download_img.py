@@ -41,7 +41,7 @@ def scene_selection(
     bbox: list[int], year: int, cloud_cover_max: int = 20, buffer_days: int = 14
 ) -> Tuple[str, str]:
     """
-    Returns sentinel 2 image id for start and end date within +/- number of days
+    Returns sentinel 2 image S3 URL for start and end date within +/- number of days
     of crop calendar indicated dates. If there are multiple images within the date
     range, lowest cloud cover will be returned.
 
