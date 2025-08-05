@@ -91,7 +91,7 @@ def query_stac(
         buffer_days: Number of days to buffer the date for querying.
 
     Returns:
-        Sentinel-2 image id.
+        Sentinel-2 image S3 URL.
     """
     start = (date - pd.Timedelta(days=buffer_days)).strftime("%Y-%m-%d")
     end = (date + pd.Timedelta(days=buffer_days)).strftime("%Y-%m-%d")
@@ -135,7 +135,7 @@ def query_stac(
         f"Choosing {least_cloudy_item.id} from {least_cloudy_item.datetime.date()}"
         f" with {eo.ext(least_cloudy_item).cloud_cover}% cloud cover"
     )
-    return least_cloudy_item.id
+    return least_cloudy_item.properties["earthsearch:s3_path"]
 
 
 def create_input(win_a, win_b, out, overwrite, bbox=None):
