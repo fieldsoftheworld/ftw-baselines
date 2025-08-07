@@ -1,5 +1,6 @@
-# Microsoft Planetary Computer API URL + collection id + bands for inference download command
-MSPC_URL = "https://planetarycomputer.microsoft.com/api/stac/v1"
+# Collection id + bands for inference download command
+
+AWS_SENTINEL_URL = "https://sentinel-cogs.s3.us-west-2.amazonaws.com"
 COLLECTION_ID = "sentinel-2-l2a"
 BANDS_OF_INTEREST = ["B04", "B03", "B02", "B08"]
 
