@@ -209,6 +209,131 @@ def inference():
 
 
 @inference.command(
+    "ftw_inference_all",
+    help="Run all inference commands from crop calendar scene selection,"
+    "then download, inference and polygonize.",
+)
+@click.option(
+    "--bbox",
+    type=str,
+    default=None,
+    help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'",
+)
+@click.option(
+    "--year", type=int, required=True, help="Year to run model inference over"
+)
+@click.option(
+    "--cloud_cover_max",
+    type=int,
+    default=20,
+    help="Max percent cloud cover in sentinel2 scene",
+)
+@click.option(
+    "--buffer_days",
+    type=int,
+    default=14,
+    help="Number of days to buffer the date for querying to help balance decreasing cloud cover "
+    "and selecting a date near the crop calendar indicated date.",
+)
+@click.option(
+    "--out", "-o", type=str, required=True, help="Filename to save results to"
+)
+@click.option(
+    "--overwrite", "-f", is_flag=True, help="Overwrites the outputs if they exist"
+)
+@click.option(
+    "--model",
+    "-m",
+    type=click.Path(exists=True),
+    required=True,
+    help="Path to the model checkpoint.",
+)
+@click.option(
+    "--resize_factor",
+    type=int,
+    default=2,
+    show_default=True,
+    help="Resize factor to use for inference.",
+)
+@click.option(
+    "--gpu",
+    type=int,
+    help="GPU ID to use. If not provided, CPU will be used by default.",
+)
+@click.option(
+    "--patch_size",
+    type=int,
+    default=None,
+    help="Size of patch to use for inference. Defaults to 1024 unless the image is < 1024x1024px.",
+)
+@click.option(
+    "--batch_size", type=int, default=2, show_default=True, help="Batch size."
+)
+@click.option(
+    "--padding",
+    type=int,
+    default=None,
+    help="Pixels to discard from each side of the patch.",
+)
+@click.option(
+    "--overwrite", "-f", is_flag=True, help="Overwrite outputs if they exist."
+)
+@click.option(
+    "--mps_mode", is_flag=True, help="Run inference in MPS mode (Apple GPUs)."
+)
+def ftw_inference_all(
+    bbox,
+    year,
+    cloud_cover_max,
+    buffer_days,
+    out,
+    overwrite,
+    model,
+    resize_factor,
+    gpu,
+    patch_size,
+    batch_size,
+    padding,
+    mps_mode,
+):
+    """Run all inference commands from crop calendar scene selection, then download, inference and polygonize."""
+    from ftw_tools.download.download_img import create_input, scene_selection
+    from ftw_tools.models.baseline_inference import run
+    from ftw_tools.postprocess.polygonize import polygonize
+
+    bbox_formatted = [float(x) for x in bbox.split(",")]
+
+    # Scene selection
+    win_a, win_b = scene_selection(
+        bbox=bbox_formatted,
+        year=year,
+        cloud_cover_max=cloud_cover_max,
+        buffer_days=buffer_days,
+    )
+
+    # Download imagery
+    create_input(win_a, win_b, out, overwrite, bbox)
+
+    # Run inference
+    inf_output_path = f"{out}_output.tif"
+    run(
+        out,
+        model,
+        inf_output_path,
+        resize_factor,
+        gpu,
+        patch_size,
+        batch_size,
+        padding,
+        overwrite,
+        mps_mode,
+    )
+
+    # Polygonize the output
+    polygonize(inf_output_path, f"{out}_polygons.parquet", 15, 500, None, overwrite)
+
+
+@inference.command(
     "scene_selection", help="Select Sentinel-2 scenes for inference with crop calendar"
 )
 @click.option(
