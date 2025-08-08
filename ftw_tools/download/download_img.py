@@ -37,16 +37,16 @@ def get_item(id: str) -> pystac.Item:
 
         year = date_str[:4]
         month = date_str[4:6]
+        # Remove leading zero from month to get valid S3 path
+        month = str(int(month))
 
         uri = (
             f"{AWS_SENTINEL_URL}/"
             f"sentinel-s2-l2a-cogs/{utm_zone}/{lat_band}/{grid_square}/"
             f"{year}/{month}/{id}/{id}.json"
         )
-
     else:
         uri = id
-
     item = pystac.Item.from_file(uri)
 
     return item
