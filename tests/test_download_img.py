@@ -1,7 +1,8 @@
+import pandas as pd
 import pystac
 import pytest
 
-from ftw_tools.download.download_img import get_item
+from ftw_tools.download.download_img import get_item, query_stac
 
 
 def test_get_item_from_s3_url():
@@ -29,3 +30,13 @@ def test_get_item_from_s3_url_single_digit_month():
     item = get_item(s3_url)
     assert type(item) is pystac.Item
     assert item.id == "S2B_33UUP_20210925_0_L2A"
+
+
+@pytest.fixture
+def large_aoi():
+    return [13.83984671, -6.73397741, 15.0, -5]
+
+
+def test_query_stac_large_aoi(large_aoi):
+    with pytest.raises(ValueError):
+        query_stac(bbox=large_aoi, date=pd.Timestamp("2020-01-01"))
