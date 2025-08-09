@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 import dask.diagnostics.progress
 import geopandas as gpd
 import odc.stac
+import pandas as pd
 import pystac
 import pystac_client
 import rioxarray  # seems unused but is needed
