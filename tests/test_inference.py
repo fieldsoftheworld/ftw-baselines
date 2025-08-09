@@ -1,4 +1,6 @@
 import os
+import shutil
+import tempfile
 
 from click.testing import CliRunner
 
@@ -108,26 +110,31 @@ def test_inference_polygonize():
 def test_ftw_inference_all():
     runner = CliRunner()
 
-    # Download the pretrained model
-    runner.invoke(model_download, ["--type=THREE_CLASS_FULL"])
-    model_path = "3_Class_FULL_FTW_Pretrained.ckpt"
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Create temporary model file path
+        model_path = os.path.join(temp_dir, "3_Class_FULL_FTW_Pretrained.ckpt")
 
-    # Run the full inference pipeline
-    out_path = "./tests/data-files/inference_all.tif"
-    result = runner.invoke(
-        ftw_inference_all,
-        [
-            "--bbox=13.0,48.0,13.2,48.2",
-            "--year=2024",
-            "--out=" + out_path,
-            "--cloud_cover_max=20",
-            "--buffer_days=14",
-            "--model=" + model_path,
-            "--resize_factor=2",
-            "--overwrite",
-        ],
-    )
-    assert result.exit_code == 0, result.output
-    assert "Finished inference and saved output" in result.output
-    assert os.path.exists(out_path)
-    os.remove(out_path)
+        # Download the pretrained model
+        runner.invoke(model_download, ["--type=THREE_CLASS_FULL"])
+        downloaded_model = "3_Class_FULL_FTW_Pretrained.ckpt"
+        if os.path.exists(downloaded_model):
+            shutil.move(downloaded_model, model_path)
+
+        out_path = os.path.join(temp_dir, "inference_output")
+
+        # Run the full inference pipeline
+        result = runner.invoke(
+            ftw_inference_all,
+            [
+                "--bbox=13.0,48.0,13.2,48.2",
+                "--year=2024",
+                f"--out_dir={out_path}",
+                "--cloud_cover_max=20",
+                "--buffer_days=14",
+                f"--model={model_path}",
+                "--resize_factor=2",
+                "--overwrite",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "Finished inference and saved output" in result.output

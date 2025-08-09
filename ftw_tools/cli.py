@@ -1,4 +1,5 @@
 import enum
+import os
 
 import click
 import wget
@@ -236,11 +237,11 @@ def inference():
     "and selecting a date near the crop calendar indicated date.",
 )
 @click.option(
-    "--out",
+    "--out_dir",
     "-o",
     type=str,
     required=True,
-    help="Filename to save downloaded inference imagery to",
+    help="Directory to save downloaded inference imagery, and inference output to",
 )
 @click.option(
     "--overwrite", "-f", is_flag=True, help="Overwrites the outputs if they exist"
@@ -287,7 +288,7 @@ def ftw_inference_all(
     year,
     cloud_cover_max,
     buffer_days,
-    out,
+    out_dir,
     overwrite,
     model,
     resize_factor,
@@ -304,6 +305,14 @@ def ftw_inference_all(
 
     bbox_formatted = [float(x) for x in bbox.split(",")]
 
+    # Ensure output directory exists
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
+    # Set output paths
+    inference_data = os.path.join(out_dir, "inference_data.tif")
+    inf_output_path = os.path.join(out_dir, "inference_output.tif")
+
     # Scene selection
     win_a, win_b = scene_selection(
         bbox=bbox_formatted,
@@ -313,12 +322,14 @@ def ftw_inference_all(
     )
 
     # Download imagery
-    create_input(win_a=win_a, win_b=win_b, out=out, overwrite=overwrite, bbox=bbox)
+    create_input(
+        win_a=win_a, win_b=win_b, out=inference_data, overwrite=overwrite, bbox=bbox
+    )
 
     # Run inference
-    inf_output_path = f"{out}_output.tif"
+
     run(
-        input=out,
+        input=inference_data,
         model=model,
         out=inf_output_path,
         resize_factor=resize_factor,
@@ -333,7 +344,8 @@ def ftw_inference_all(
     # Polygonize the output
     polygonize(
         input=inf_output_path,
-        out=f"{out}_polygons.parquet",
+        out=f"{out_dir}/polygons.parquet",
+        simplify=True,
         min_size=15,
         max_size=500,
         overwrite=overwrite,
