@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+from typing import Tuple
 from urllib.parse import urlparse
 
 import dask.diagnostics.progress
@@ -20,7 +21,6 @@ from ftw_tools.settings import (
     AWS_SENTINEL_URL,
     BANDS_OF_INTEREST,
     COLLECTION_ID,
-    MSPC_URL,
 )
 from ftw_tools.utils import get_harvest_integer_from_bbox, harvest_to_datetime
 
