@@ -236,7 +236,11 @@ def inference():
     "and selecting a date near the crop calendar indicated date.",
 )
 @click.option(
-    "--out", "-o", type=str, required=True, help="Filename to save results to"
+    "--out",
+    "-o",
+    type=str,
+    required=True,
+    help="Filename to save downloaded inference imagery to",
 )
 @click.option(
     "--overwrite", "-f", is_flag=True, help="Overwrites the outputs if they exist"
@@ -276,9 +280,6 @@ def inference():
     help="Pixels to discard from each side of the patch.",
 )
 @click.option(
-    "--overwrite", "-f", is_flag=True, help="Overwrite outputs if they exist."
-)
-@click.option(
     "--mps_mode", is_flag=True, help="Run inference in MPS mode (Apple GPUs)."
 )
 def ftw_inference_all(
@@ -312,25 +313,32 @@ def ftw_inference_all(
     )
 
     # Download imagery
-    create_input(win_a, win_b, out, overwrite, bbox)
+    create_input(win_a=win_a, win_b=win_b, out=out, overwrite=overwrite, bbox=bbox)
 
     # Run inference
     inf_output_path = f"{out}_output.tif"
     run(
-        out,
-        model,
-        inf_output_path,
-        resize_factor,
-        gpu,
-        patch_size,
-        batch_size,
-        padding,
-        overwrite,
-        mps_mode,
+        input=out,
+        model=model,
+        out=inf_output_path,
+        resize_factor=resize_factor,
+        gpu=gpu,
+        patch_size=patch_size,
+        batch_size=batch_size,
+        padding=padding,
+        overwrite=overwrite,
+        mps_mode=mps_mode,
     )
 
     # Polygonize the output
-    polygonize(inf_output_path, f"{out}_polygons.parquet", 15, 500, None, overwrite)
+    polygonize(
+        input=inf_output_path,
+        out=f"{out}_polygons.parquet",
+        min_size=15,
+        max_size=500,
+        overwrite=overwrite,
+        close_interiors=True,
+    )
 
 
 @inference.command(

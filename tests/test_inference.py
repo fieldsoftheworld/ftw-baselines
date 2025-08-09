@@ -3,6 +3,7 @@ import os
 from click.testing import CliRunner
 
 from ftw_tools.cli import (
+    ftw_inference_all,
     inference_download,
     inference_polygonize,
     inference_run,
@@ -100,5 +101,33 @@ def test_inference_polygonize():
     assert result.exit_code == 0, result.output
     assert "Polygonizing input file:" in result.output
     assert "Finished polygonizing output" in result.output
+    assert os.path.exists(out_path)
+    os.remove(out_path)
+
+
+def test_ftw_inference_all():
+    runner = CliRunner()
+
+    # Download the pretrained model
+    runner.invoke(model_download, ["--type=THREE_CLASS_FULL"])
+    model_path = "3_Class_FULL_FTW_Pretrained.ckpt"
+
+    # Run the full inference pipeline
+    out_path = "./tests/data-files/inference_all.tif"
+    result = runner.invoke(
+        ftw_inference_all,
+        [
+            "--bbox=13.0,48.0,13.2,48.2",
+            "--year=2024",
+            "--out=" + out_path,
+            "--cloud_cover_max=20",
+            "--buffer_days=14",
+            "--model=" + model_path,
+            "--resize_factor=2",
+            "--overwrite",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert "Finished inference and saved output" in result.output
     assert os.path.exists(out_path)
     os.remove(out_path)
