@@ -2,12 +2,12 @@ import logging
 import os
 import time
 from typing import Tuple
+from urllib.parse import urlparse
 
 import dask.diagnostics.progress
 import geopandas as gpd
 import odc.stac
 import pandas as pd
-import planetary_computer as pc
 import pystac
 import pystac_client
 import rioxarray  # seems unused but is needed
@@ -16,23 +16,47 @@ from pystac.extensions.eo import EOExtension as eo
 from shapely.geometry import box, shape
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
-from ftw_tools.settings import BANDS_OF_INTEREST, COLLECTION_ID, MSPC_URL
+from ftw_tools.settings import AWS_SENTINEL_URL, BANDS_OF_INTEREST, COLLECTION_ID
 from ftw_tools.utils import get_harvest_integer_from_bbox, harvest_to_datetime
 
 logger = logging.getLogger()
 
 
 @retry(wait=wait_random_exponential(max=3), stop=stop_after_attempt(2))
-def get_item(id):
-    if "/" not in id:
-        uri = MSPC_URL + "/collections/" + COLLECTION_ID + "/items/" + id
+def get_item(id: str) -> pystac.Item:
+    """Get a STAC item from a given ID or S3 URL."""
+
+    if "s3://" in id:
+        parsed = urlparse(id)
+        path = parsed.path.strip("/")  # remove leading slash
+        item_id = os.path.basename(path)
+
+        uri = f"{AWS_SENTINEL_URL}/{path}/{item_id}.json"
+
+    elif "/" not in id:
+        # Convert ID into full URL
+
+        parts = id.split("_")
+        mgrs_tile = parts[1]
+        date_str = parts[2]
+
+        utm_zone = mgrs_tile[:2]
+        lat_band = mgrs_tile[2]
+        grid_square = mgrs_tile[3:]
+
+        year = date_str[:4]
+        month = date_str[4:6]
+        # Remove leading zero from month to get valid S3 path
+        month = str(int(month))
+
+        uri = (
+            f"{AWS_SENTINEL_URL}/"
+            f"sentinel-s2-l2a-cogs/{utm_zone}/{lat_band}/{grid_square}/"
+            f"{year}/{month}/{id}/{id}.json"
+        )
     else:
         uri = id
-
     item = pystac.Item.from_file(uri)
-
-    if uri.startswith(MSPC_URL):
-        item = pc.sign(item)
 
     return item
 

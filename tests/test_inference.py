@@ -31,13 +31,13 @@ def test_scene_selection():
 def test_inference_download():  # create_input
     runner = CliRunner()
 
-    # Download imagery by ID from MS Planetary Computer
+    # Download imagery by ID from EarthSearch
     inference_image = "inference_imagery/austria_example.tif"
     result = runner.invoke(
         inference_download,
         [
-            "--win_a=S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729",
-            "--win_b=S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923",
+            "--win_a=S2B_33UUP_20210617_1_L2A",
+            "--win_b=S2B_33UUP_20210925_1_L2A",
             "--bbox=13.0,48.0,13.2,48.2",
             "-o",
             inference_image,
