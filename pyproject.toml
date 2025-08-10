@@ -122,12 +122,13 @@ pytest = ">=7.4,<9.0"
 pre-commit = ">=4.0,<=5.0"
 
 
-[tool.pixi.system-requirements]
-cuda = "12"
+#[tool.pixi.feature.gpu.system-requirements]
+#cuda = "12"
 
 [tool.pixi.environments]
 default = {solve-group = "default"}
 dev = {features = ["dev"], solve-group = "default"}
+#gpu = {features = ["gpu"], solve-group = "default"}
 
 [tool.pixi.tasks]
 # Code quality
