@@ -382,11 +382,20 @@ def inference_polygonize(
     default="io-lulc-annual-v02",
     help="Name of the LULC collection to use. Available collections: io-lulc-annual-v02 (default) and esa-worldcover",
 )
-def inference_lulc_filtering(input, out, overwrite, collection_name):
+@click.option(
+    "--save_lulc_tif",
+    is_flag=True,
+    help="Save the LULC mask as a GeoTIFF.",
+)
+def inference_lulc_filtering(input, out, overwrite, collection_name, save_lulc_tif):
     from ftw_tools.postprocess.lulc_filtering import lulc_filtering
 
     lulc_filtering(
-        input=input, out=out, overwrite=overwrite, collection_name=collection_name
+        input=input,
+        out=out,
+        overwrite=overwrite,
+        collection_name=collection_name,
+        save_lulc_tif=save_lulc_tif,
     )
 
 

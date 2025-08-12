@@ -297,6 +297,7 @@ Options:
   --collection_name TEXT  Name of the LULC collection to use. Available
                           collections: io-lulc-annual-v02 (default) and esa-
                           worldcover
+  --save_lulc_tif         Save the LULC mask as a GeoTIFF.
   --help                  Show this message and exit.
 ```
 

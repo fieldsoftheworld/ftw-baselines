@@ -28,6 +28,7 @@ class RasterLULCFilter:
         input_path: str,
         output_path: str,
         collection_name: str = "io-lulc-annual-v02",
+        save_lulc_tif: bool = False,
     ):
         assert collection_name in self.LULC_PROVIDER, (
             f"Collection name must be one of {self.LULC_PROVIDER}"
@@ -51,7 +52,7 @@ class RasterLULCFilter:
             )
             self.src_crs = src.crs
         lulc = self.load_lulc(collection_name)
-        self.filter_raster_by_lulc(self.input_path, lulc, output_path)
+        self.filter_raster_by_lulc(self.input_path, lulc, output_path, save_lulc_tif)
 
     def load_lulc(self, collection_name: str) -> xr.Dataset:
         """
@@ -87,7 +88,11 @@ class RasterLULCFilter:
         return clipped_ds
 
     def filter_raster_by_lulc(
-        self, input_path: str, lulc: xr.Dataset, output_path: str
+        self,
+        input_path: str,
+        lulc: xr.Dataset,
+        output_path: str,
+        save_lulc_tif: bool,
     ) -> str:
         """
         Filters raster by LULC class
@@ -109,6 +114,27 @@ class RasterLULCFilter:
 
         # Create mask where LULC is equal to agro class
         lulc_mask = lulc_array == self.LULC_CLASS
+
+        # Optionally save the LULC mask
+        if save_lulc_tif:
+            lulc_output_path = output_path.split(".")[0] + "-mask.tif"
+            with rio.open(
+                lulc_output_path,
+                "w",
+                driver="GTiff",
+                height=lulc_mask.shape[0],
+                width=lulc_mask.shape[1],
+                count=1,
+                dtype=lulc.dtype,
+                crs=lulc.rio.crs,
+                compress="lzw",
+                blockxsize=512,
+                blockysize=512,
+                interleave="band",
+                transform=lulc.rio.transform(),
+            ) as dst:
+                dst.write(lulc_mask, 1)
+                print(f"Saved LULC mask to {lulc_output_path}")
 
         # Create copy of inference array
         inference_modified = inference_array.copy()
@@ -142,13 +168,19 @@ def lulc_filtering(
     out: str,
     overwrite: bool = False,
     collection_name: str = "io-lulc-annual-v02",
+    save_lulc_tif: bool = False,
 ) -> Union[str, None]:
     if os.path.exists(out) and not overwrite:
         logger.info(f"Output file {out} already exists. Use -f to overwrite.")
         return None
     elif os.path.exists(out) and overwrite:
         os.remove(out)  # GPKGs are sometimes weird about overwriting in-place
-    RasterLULCFilter(input_path=input, output_path=out, collection_name=collection_name)
+    RasterLULCFilter(
+        input_path=input,
+        output_path=out,
+        collection_name=collection_name,
+        save_lulc_tif=save_lulc_tif,
+    )
     return out
 
 
@@ -173,12 +205,18 @@ if __name__ == "__main__":
     parser.add_argument(
         "--collection_name", type=str, required=False, default="io-lulc-annual-v02"
     )
+    parser.add_argument("--save_lulc_tif", type=bool, required=False, default=False)
     args = parser.parse_args()
     input_file = args.input
     out = args.out
     overwrite = args.overwrite
     collection_name = args.collection_name
+    save_lulc_tif = args.save_lulc_tif
     output_path = lulc_filtering(
-        input=input_file, out=out, overwrite=overwrite, collection_name=collection_name
+        input=input_file,
+        out=out,
+        overwrite=overwrite,
+        collection_name=collection_name,
+        save_lulc_tif=save_lulc_tif,
     )
     print(f"Output path: {output_path}")
