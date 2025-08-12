@@ -1,10 +1,10 @@
 trainer:
-  max_epochs: 100
-  log_every_n_steps: 10
-  accelerator: gpu
-  default_root_dir: logs/FTW-Release-CC-BY-2-class
-  devices:
-    - 0
+  max_epochs: 1
+  log_every_n_steps: 5
+  accelerator: cpu
+  default_root_dir: logs/FTW-CI
+  devices: 1
+  strategy: ddp_find_unused_parameters_true
   callbacks:
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
@@ -32,55 +32,13 @@ data:
   class_path: ftw_tools.torchgeo.datamodules.FTWDataModule
   init_args:
     batch_size: 32
-    num_workers: 12 
+    num_workers: 4
     train_countries:
-      - austria
-      - brazil
-      - corsica
-      - denmark
-      - estonia
-      - finland
-      - france
-      - india
-      - kenya
-      - luxembourg
-      - netherlands
       - rwanda
-      - slovakia
-      - spain
-      - vietnam
     val_countries:
-      - austria
-      - brazil
-      - corsica
-      - denmark
-      - estonia
-      - finland
-      - france
-      - india
-      - kenya
-      - luxembourg
-      - netherlands
       - rwanda
-      - slovakia
-      - spain
-      - vietnam
     test_countries:
-      - austria
-      - brazil
-      - corsica
-      - denmark
-      - estonia
-      - finland
-      - france
-      - india
-      - kenya
-      - luxembourg
-      - netherlands
       - rwanda
-      - slovakia
-      - spain
-      - vietnam
   dict_kwargs:
     root: data/ftw
     load_boundaries: false

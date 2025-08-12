@@ -8,13 +8,32 @@
 
 ## CLI
 
-### 1.1.0
+### Unreleased
 
-- First public release to pypi
+### 1.3.0
+
+- Fixed the overwrite check in `ftw run inference`
+- Make inference more robust against Sentinel-2 processing versions 4 and 5
+- Warn if the input imagery for inference is not processing version 3 (which was used to train the models)
+- Handle patch size and padding inputs more gracefully for smaller images/bboxes < 1024x1024px
+- Changed default value of the `padding` parameter in `ftw run inference` (for images < 1024x1024px)
+
+### 1.2.0
+
+- Requires Python 3.10 or 3.11
+- Updates dependencies (especially torchgeo and odc-stac)
+- Inderence: Parameter `out` is not required any longer
+- Polygonization: Reprojects polygons for GeoJSON output to WGS84
+- Polygonization: Add `max_size` parameter
+- Polygonization: Support NDJSON
 
 ### 1.1.1
 
 - Fixed `fiboa inference run` to not show `GDAL signalled an error: Cannot modify tag "PhotometricInterpretation" while writing` any longer
+
+### 1.1.0
+
+- First public release to pypi
 
 ### internal legacy non-pypi releases
 

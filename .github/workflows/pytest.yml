@@ -7,30 +7,32 @@ on:
   pull_request: {}
 
 jobs:
-  tests:
-    # See https://stackoverflow.com/questions/72703363/how-to-activate-conda-environment-in-github-actions
-    defaults:
-      run:
-        shell: bash -l {0}
-    name: python-matrix
+  lint:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/setup-python@v4
       - uses: actions/checkout@v4
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: pre-commit/action@v3.0.0
+
+  tests:
+    name: Run tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version:
+          - "3.11"
+          - "3.12"
+#         - "3.13"
+      fail-fast: false
+    env:
+      CONDA_OVERRIDE_CUDA: 12.0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.8.10
         with:
-          activate-environment: ftw
-          environment-file: env.yml
-          auto-activate-base: false
-      - name: Install Python dependencies
-        run: pip install -e .[dev]
-      - name: Download model
-        run: wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/v1/3_Class_FULL_FTW_Pretrained.ckpt
-      - name: Execute help tests
-        run: pytest src/tests/test_help.py
-      - name: Execute data tests
-        run: pytest src/tests/test_data.py
-      - name: Execute model tests
-        run: pytest src/tests/test_model.py
-      - name: Execute inference tests
-        run: pytest src/tests/test_inference.py
-      
+          pixi-version: v0.49.0
+          cache: true
+      - name: Install Python dev dependencies
+        run: pixi run install-dev
+      - name: Execute tests
+        run: pixi run -e dev test
