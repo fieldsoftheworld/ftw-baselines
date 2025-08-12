@@ -362,31 +362,32 @@ def inference_polygonize(
 
 
 @inference.command(
-    "filter_by_lulc", 
-    help="Filter the output raster in GeoTIFF format by LULC mask."
-    )
-@click.argument('input', type=click.Path(exists=True), required=True)
+    "filter_by_lulc", help="Filter the output raster in GeoTIFF format by LULC mask."
+)
+@click.argument("input", type=click.Path(exists=True), required=True)
 @click.option(
-    "--out", 
-    "-o", 
-    type=str, 
-    default=None, 
-    help="Output filename for the (filtered) polygonized data. Defaults to the name of the input file with parquet extension. " 
+    "--out",
+    "-o",
+    type=str,
+    default=None,
+    help="Output filename for the (filtered) polygonized data. Defaults to the name of the input file with parquet extension. "
     + SUPPORTED_POLY_FORMATS_TXT,
 )
-@click.option('--overwrite', '-f', is_flag=True, help="Overwrite outputs if they exist.")
 @click.option(
-    '--collection_name', 
-    type=str, 
-    default="io-lulc-annual-v02", 
+    "--overwrite", "-f", is_flag=True, help="Overwrite outputs if they exist."
+)
+@click.option(
+    "--collection_name",
+    type=str,
+    default="io-lulc-annual-v02",
     help="Name of the LULC collection to use. Available collections: io-lulc-annual-v02 (default) and esa-worldcover",
 )
-def inference_lulc_filtering(
-    input, out, overwrite, collection_name
-):
+def inference_lulc_filtering(input, out, overwrite, collection_name):
     from ftw_tools.postprocess.lulc_filtering import lulc_filtering
 
-    lulc_filtering(input=input, out=out, overwrite=overwrite, collection_name=collection_name)
+    lulc_filtering(
+        input=input, out=out, overwrite=overwrite, collection_name=collection_name
+    )
 
 
 if __name__ == "__main__":

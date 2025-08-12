@@ -4,7 +4,6 @@ import logging
 import os
 from typing import Union
 
-import numpy as np
 import planetary_computer
 import pystac_client
 import rasterio as rio
@@ -30,9 +29,9 @@ class RasterLULCFilter:
         output_path: str,
         collection_name: str = "io-lulc-annual-v02",
     ):
-        assert (
-            collection_name in self.LULC_PROVIDER
-        ), f"Collection name must be one of {self.LULC_PROVIDER}"
+        assert collection_name in self.LULC_PROVIDER, (
+            f"Collection name must be one of {self.LULC_PROVIDER}"
+        )
         self.LULC_CLASS = (
             self.LULC_CLASS_IO
             if collection_name == "io-lulc-annual-v02"
@@ -83,9 +82,7 @@ class RasterLULCFilter:
         minx, miny, maxx, maxy = warp.transform_bounds(
             self.src_crs, ds.rio.crs, *self.src_bounds
         )
-        clipped_ds = ds.rio.clip_box(
-            minx=minx, miny=miny, maxx=maxx, maxy=maxy
-        )  # type: ignore
+        clipped_ds = ds.rio.clip_box(minx=minx, miny=miny, maxx=maxx, maxy=maxy)  # type: ignore
 
         return clipped_ds
 
@@ -146,7 +143,6 @@ def lulc_filtering(
     overwrite: bool = False,
     collection_name: str = "io-lulc-annual-v02",
 ) -> Union[str, None]:
-
     if os.path.exists(out) and not overwrite:
         logger.info(f"Output file {out} already exists. Use -f to overwrite.")
         return None
