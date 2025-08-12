@@ -64,8 +64,8 @@ pixi shell
 
 ```bash
 # Use pixi run for individual commands
-pixi run ftw --help
 pixi run install-dev
+pixi run ftw --help
 pixi run -e dev test
 
 # Or activate environment first, then use commands directly
