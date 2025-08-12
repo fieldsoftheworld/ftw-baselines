@@ -47,7 +47,7 @@ all = [
 ftw = "ftw_tools.cli:ftw"
 
 [tool.setuptools]
-packages = { find = { where = ["ftw_tools"] } }
+packages = { find = { where = ["."] } }
 include-package-data = true  # Includes non-Python files specified in MANIFEST.in
 
 [tool.ruff]
