@@ -28,7 +28,7 @@ def test_scene_selection():
     assert "S2B_15TVG_20221125_0_L2A" in result.output  # window b
 
 
-def test_inference_download():  # create_input
+def test_inference_download_via_earthsearch():  # create_input
     runner = CliRunner()
 
     # Download imagery by ID from EarthSearch
@@ -42,6 +42,29 @@ def test_inference_download():  # create_input
             "-o",
             inference_image,
             "-f",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert "Writing output" in result.output
+    assert "Finished merging and writing output" in result.output
+    assert os.path.exists(inference_image)
+
+
+def test_inference_download_via_mcp():
+    runner = CliRunner()
+
+    # Download imagery by ID from Microsoft Planetary Computer
+    inference_image = "inference_imagery/austria_example.tif"
+    result = runner.invoke(
+        inference_download,
+        [
+            "--win_a=S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729",
+            "--win_b=S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923",
+            "--bbox=13.0,48.0,13.2,48.2",
+            "-o",
+            inference_image,
+            "-f",
+            "--use_mcp",
         ],
     )
     assert result.exit_code == 0, result.output
