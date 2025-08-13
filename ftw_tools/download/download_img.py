@@ -21,6 +21,7 @@ from ftw_tools.settings import (
     AWS_SENTINEL_URL,
     BANDS_OF_INTEREST,
     COLLECTION_ID,
+    MSPC_BANDS_OF_INTEREST,
     MSPC_URL,
 )
 from ftw_tools.utils import get_harvest_integer_from_bbox, harvest_to_datetime
@@ -246,10 +247,14 @@ def create_input(win_a, win_b, out, overwrite, use_mcp, bbox=None):
         print("The provided images do not intersect. Exiting.")
         return
 
+    if use_mcp:
+        bands = MSPC_BANDS_OF_INTEREST
+    else:
+        bands = BANDS_OF_INTEREST
     tic = time.time()
     data = odc.stac.load(
         [items[0], items[1]],
-        bands=BANDS_OF_INTEREST,
+        bands=bands,
         dtype="uint16",
         resampling="bilinear",
         bbox=bbox,
