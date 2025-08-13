@@ -283,6 +283,11 @@ def inference():
 @click.option(
     "--mps_mode", is_flag=True, help="Run inference in MPS mode (Apple GPUs)."
 )
+@click.option(
+    "--use_mcp",
+    is_flag=True,
+    help="Use Microsoft Planetary Computer to download the images. Defaults to True. Earth search used if not set.",
+)
 def ftw_inference_all(
     bbox,
     year,
@@ -297,6 +302,7 @@ def ftw_inference_all(
     batch_size,
     padding,
     mps_mode,
+    use_mcp,
 ):
     """Run all inference commands from crop calendar scene selection, then download, inference and polygonize."""
     from ftw_tools.download.download_img import create_input, scene_selection
@@ -323,7 +329,12 @@ def ftw_inference_all(
 
     # Download imagery
     create_input(
-        win_a=win_a, win_b=win_b, out=inference_data, overwrite=overwrite, bbox=bbox
+        win_a=win_a,
+        win_b=win_b,
+        out=inference_data,
+        overwrite=overwrite,
+        bbox=bbox,
+        use_mcp=use_mcp,
     )
 
     # Run inference
@@ -410,10 +421,22 @@ def scene_selection(year, cloud_cover_max, bbox, buffer_days):
     default=None,
     help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'",
 )
-def inference_download(win_a, win_b, out, overwrite, bbox):
+@click.option(
+    "--use_mcp",
+    is_flag=True,
+    help="Use Microsoft Planetary Computer to download the images. Defaults to True. Earth search used if set to false.",
+)
+def inference_download(win_a, win_b, out, overwrite, bbox, use_mcp):
     from ftw_tools.download.download_img import create_input
 
-    create_input(win_a, win_b, out, overwrite, bbox)
+    create_input(
+        win_a=win_a,
+        win_b=win_b,
+        out=out,
+        overwrite=overwrite,
+        bbox=bbox,
+        use_mcp=use_mcp,
+    )
 
 
 @inference.command(

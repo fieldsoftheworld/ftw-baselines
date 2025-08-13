@@ -21,15 +21,47 @@ from ftw_tools.settings import (
     AWS_SENTINEL_URL,
     BANDS_OF_INTEREST,
     COLLECTION_ID,
+    MSPC_URL,
 )
 from ftw_tools.utils import get_harvest_integer_from_bbox, harvest_to_datetime
 
 logger = logging.getLogger()
 
 
+def _get_item_from_mcp(id: str) -> pystac.Item:
+    """Get a STAC item from Microsoft Planetary Computer.
+
+    Args:
+        id (str): The ID or URL of the STAC item.
+
+    Returns:
+        pystac.Item: The retrieved and signed STAC item.
+    """
+    if "/" not in id:
+        uri = MSPC_URL + "/collections/" + COLLECTION_ID + "/items/" + id
+    else:
+        uri = id
+
+    item = pystac.Item.from_file(uri)
+
+    if uri.startswith(MSPC_URL):
+        item = pc.sign(item)
+
+    return item
+
+
 @retry(wait=wait_random_exponential(max=3), stop=stop_after_attempt(2))
-def get_item(id: str) -> pystac.Item:
-    """Get a STAC item from a given ID or S3 URL."""
+def get_item(id: str, use_mcp: bool) -> pystac.Item:
+    """Get a STAC item from a given ID or URL.
+    Args:
+        id (str): The ID or URL of the STAC item.
+        use_mcp (bool): If true uses Microsoft Planetary Computer if false uses Earth Search for item retrieval.
+    Returns:
+        pystac.Item: The retrieved STAC item.
+    """
+
+    if use_mcp:
+        return _get_item_from_mcp(id)
 
     if "s3://" in id:
         parsed = urlparse(id)
@@ -167,7 +199,7 @@ def query_stac(
     return least_cloudy_item.properties["earthsearch:s3_path"]
 
 
-def create_input(win_a, win_b, out, overwrite, bbox=None):
+def create_input(win_a, win_b, out, overwrite, use_mcp, bbox=None):
     """Main function for creating input for inference."""
     out = os.path.abspath(out)
     if os.path.exists(out) and not overwrite:
@@ -187,7 +219,7 @@ def create_input(win_a, win_b, out, overwrite, bbox=None):
     timestamp = None
     version = 0
     for i in identifiers:
-        item = get_item(i)
+        item = get_item(i, use_mcp=use_mcp)
         items.append(item)
 
         datetime = item.datetime or item.start_datetime or item.end_datetime
