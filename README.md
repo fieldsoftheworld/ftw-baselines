@@ -190,7 +190,7 @@ In order to use `ftw inference`, you need a trained model. You can either downlo
     ftw model download --type TWO_CLASS_FULL
     ```
 
-**Note**: If you want more control ie provide specific Sentinel2 scenes to work with follow steps 3-5 to run each part of the inference pipeline sequentially. There is the option to run step 2 `ftw_inference_all` which links together the distinct inference steps. If you decide to run step 2 you have extracted field boundaries and don't need to proceed with steps 3-5.
+**Note**: If you want more control ie provide specific Sentinel2 scenes to work with follow steps 3-5 to run each part of the inference pipeline sequentially. There is the option to run step 2 `ftw_inference_all` which links together the distinct inference steps. If you decide to run step 2 you will get extracted field boundaries as polygons and don't need to proceed with steps 3-5.
 
 ### 2. FTW Inference all (using `ftw inference ftw_inference_all`)
 
