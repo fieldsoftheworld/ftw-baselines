@@ -338,7 +338,6 @@ def ftw_inference_all(
     )
 
     # Run inference
-
     run(
         input=inference_data,
         model=model,
