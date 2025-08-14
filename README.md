@@ -275,7 +275,33 @@ Let's run inference on the entire downloaded scene.
   ftw inference run inference_imagery/austria_example.tif --model 3_Class_FULL_FTW_Pretrained.ckpt --out austria_example_output_full.tif --gpu 0 --overwrite
   ```
 
-### 4. Polygonize the output (using `ftw inference polygonize`)
+### 4. Filter predictions by land cover (using `ftw inference filter_by_lulc`)
+
+FTW models are known to make some errors where land parcels that are not cropland (for example, pasture) are segmented as fields. You can try to filter out these errors by filtering the predicted map using a land cover/land use map. The `ftw inference filter_by_lulc` command filters the GeoTIFF predictions raster to only include pixels that are cropland in the land cover map.
+
+```text
+ftw inference filter_by_lulc --help
+
+Usage: ftw inference filter_by_lulc [OPTIONS] INPUT
+
+  Filter the output raster in GeoTIFF format by LULC mask.
+
+Options:
+  -o, --out TEXT          Output filename for the (filtered) polygonized data.
+                          Defaults to the name of the input file with parquet
+                          extension. Available file extensions: .parquet
+                          (GeoParquet, fiboa-compliant), .fgb (FlatGeoBuf),
+                          .gpkg (GeoPackage), .geojson / .json / .ndjson
+                          (GeoJSON)
+  -f, --overwrite         Overwrite outputs if they exist.
+  --collection_name TEXT  Name of the LULC collection to use. Available
+                          collections: io-lulc-annual-v02 (default) and esa-
+                          worldcover
+  --save_lulc_tif         Save the LULC mask as a GeoTIFF.
+  --help                  Show this message and exit.
+```
+
+### 5. Polygonize the output (using `ftw inference polygonize`)
 
 You can then use the `ftw inference polygonize` command to convert the output of the inference into a vector format (defaults to GeoParquet/[fiboa](https://github.com/fiboa/), with GeoPackage, FlatGeobuf and GeoJSON as other options).
 
