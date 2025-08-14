@@ -1,4 +1,5 @@
 import enum
+import json
 
 import click
 import wget
@@ -233,7 +234,14 @@ def inference():
     help="Number of days to buffer the date for querying to help balance decreasing cloud cover "
     "and selecting a date near the crop calendar indicated date.",
 )
-def scene_selection(year, cloud_cover_max, bbox, buffer_days):
+@click.option(
+    "--out",
+    "-o",
+    type=str,
+    default=None,
+    help="Output JSON file to save the scene selection results. If not provided, prints to stdout.",
+)
+def scene_selection(year, cloud_cover_max, bbox, buffer_days, out):
     """Download Sentinel-2 scenes for inference."""
     from ftw_tools.download.download_img import scene_selection
 
@@ -244,7 +252,18 @@ def scene_selection(year, cloud_cover_max, bbox, buffer_days):
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
     )
-    print(f"Window A: {win_a}, Window B: {win_b}")
+
+    if out:
+        # persist results to json
+        result = {
+            "window_a": win_a,
+            "window_b": win_b,
+        }
+        with open(out, "w") as f:
+            json.dump(result, f, indent=2)
+        print(f"Results saved to {out}")
+    else:
+        print(f"Window A: {win_a}, Window B: {win_b}")
 
 
 @inference.command(
