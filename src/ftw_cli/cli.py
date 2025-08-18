@@ -378,7 +378,7 @@ def inference_polygonize(
     help="Save the LULC mask as a GeoTIFF.",
 )
 def inference_lulc_filtering(input, out, overwrite, collection_name, save_lulc_tif):
-    from ftw_tools.postprocess.lulc_filtering import lulc_filtering
+    from ftw_cli.lulc_filtering import lulc_filtering
 
     lulc_filtering(
         input=input,
