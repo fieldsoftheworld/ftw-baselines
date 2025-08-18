@@ -64,8 +64,8 @@ pixi shell
 
 ```bash
 # Use pixi run for individual commands
-pixi run ftw --help
 pixi run install-dev
+pixi run ftw --help
 pixi run -e dev test
 
 # Or activate environment first, then use commands directly
@@ -190,7 +190,7 @@ In order to use `ftw inference`, you need a trained model. You can either downlo
     ftw model download --type TWO_CLASS_FULL
     ```
 
-**Note**: If you want more control ie provide specific Sentinel2 scenes to work with follow steps 3-5 to run each part of the inference pipeline sequentially. There is the option to run step 2 `ftw_inference_all` which links together the distinct inference steps. If you decide to run step 2 you will get extracted field boundaries as polygons and don't need to proceed with steps 3-5.
+**Note**: If you want more control ie provide specific Sentinel2 scenes to work with follow steps 3-6 to run each part of the inference pipeline sequentially. There is the option to run step 2 `ftw_inference_all` which links together the distinct inference steps. If you decide to run step 2 you will get extracted field boundaries as polygons and don't need to proceed with steps 3-6.
 
 ### 2. FTW Inference all (using `ftw inference ftw_inference_all`)
 
@@ -335,7 +335,33 @@ Let's run inference on the entire downloaded scene.
   ftw inference run inference_imagery/austria_example.tif --model 3_Class_FULL_FTW_Pretrained.ckpt --out austria_example_output_full.tif --gpu 0 --overwrite
   ```
 
-### 5. Polygonize the output (using `ftw inference polygonize`)
+### 5. Filter predictions by land cover (using `ftw inference filter_by_lulc`)
+
+FTW models are known to make some errors where land parcels that are not cropland (for example, pasture) are segmented as fields. You can try to filter out these errors by filtering the predicted map using a land cover/land use map. The `ftw inference filter_by_lulc` command filters the GeoTIFF predictions raster to only include pixels that are cropland in the land cover map.
+
+```text
+ftw inference filter_by_lulc --help
+
+Usage: ftw inference filter_by_lulc [OPTIONS] INPUT
+
+  Filter the output raster in GeoTIFF format by LULC mask.
+
+Options:
+  -o, --out TEXT          Output filename for the (filtered) polygonized data.
+                          Defaults to the name of the input file with parquet
+                          extension. Available file extensions: .parquet
+                          (GeoParquet, fiboa-compliant), .fgb (FlatGeoBuf),
+                          .gpkg (GeoPackage), .geojson / .json / .ndjson
+                          (GeoJSON)
+  -f, --overwrite         Overwrite outputs if they exist.
+  --collection_name TEXT  Name of the LULC collection to use. Available
+                          collections: io-lulc-annual-v02 (default) and esa-
+                          worldcover
+  --save_lulc_tif         Save the LULC mask as a GeoTIFF.
+  --help                  Show this message and exit.
+```
+
+### 6. Polygonize the output (using `ftw inference polygonize`)
 
 You can then use the `ftw inference polygonize` command to convert the output of the inference into a vector format (defaults to GeoParquet/[fiboa](https://github.com/fiboa/), with GeoPackage, FlatGeobuf and GeoJSON as other options).
 

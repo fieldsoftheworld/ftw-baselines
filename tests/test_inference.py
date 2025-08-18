@@ -45,6 +45,7 @@ def test_inference_download_via_earthsearch():
             "-o",
             inference_image,
             "-f",
+            "--stac_host=earthsearch",
         ],
     )
     assert result.exit_code == 0, result.output
@@ -67,7 +68,7 @@ def test_inference_download_via_mcp():
             "-o",
             inference_image,
             "-f",
-            "--use_mcp",
+            "--stac_host=mspc",
         ],
     )
     assert result.exit_code == 0, result.output

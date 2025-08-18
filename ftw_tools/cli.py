@@ -1,4 +1,5 @@
 import enum
+import json
 import os
 
 import click
@@ -389,7 +390,14 @@ def ftw_inference_all(
     help="Number of days to buffer the date for querying to help balance decreasing cloud cover "
     "and selecting a date near the crop calendar indicated date.",
 )
-def scene_selection(year, cloud_cover_max, bbox, buffer_days):
+@click.option(
+    "--out",
+    "-o",
+    type=str,
+    default=None,
+    help="Output JSON file to save the scene selection results. If not provided, prints to stdout.",
+)
+def scene_selection(year, cloud_cover_max, bbox, buffer_days, out):
     """Download Sentinel-2 scenes for inference."""
     from ftw_tools.download.download_img import scene_selection
 
@@ -400,7 +408,17 @@ def scene_selection(year, cloud_cover_max, bbox, buffer_days):
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
     )
-    print(f"Window A: {win_a}, Window B: {win_b}")
+    if out:
+        # persist results to json
+        result = {
+            "window_a": win_a,
+            "window_b": win_b,
+        }
+        with open(out, "w") as f:
+            json.dump(result, f, indent=2)
+        print(f"Results saved to {out}")
+    else:
+        print(f"Window A: {win_a}, Window B: {win_b}")
 
 
 @inference.command(
@@ -422,11 +440,13 @@ def scene_selection(year, cloud_cover_max, bbox, buffer_days):
     help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'",
 )
 @click.option(
-    "--use_mcp",
-    is_flag=True,
-    help="Use Microsoft Planetary Computer to download the images. Defaults to True. Earth search used if set to false.",
+    "--stac_host",
+    type=click.Choice(["mspc", "earthsearch"]),
+    default="mspc",
+    show_default=True,
+    help="The host to download the imagery from. mspc = Microsoft Planetary Computer, earthsearch = EarthSearch (Element84/AWS).",
 )
-def inference_download(win_a, win_b, out, overwrite, bbox, use_mcp):
+def inference_download(win_a, win_b, out, overwrite, bbox, stac_host):
     from ftw_tools.download.download_img import create_input
 
     create_input(
@@ -435,7 +455,7 @@ def inference_download(win_a, win_b, out, overwrite, bbox, use_mcp):
         out=out,
         overwrite=overwrite,
         bbox=bbox,
-        use_mcp=use_mcp,
+        stac_host=stac_host,
     )
 
 
@@ -567,6 +587,44 @@ def inference_polygonize(
     from ftw_tools.postprocess.polygonize import polygonize
 
     polygonize(input, out, simplify, min_size, max_size, overwrite, close_interiors)
+
+
+@inference.command(
+    "filter_by_lulc", help="Filter the output raster in GeoTIFF format by LULC mask."
+)
+@click.argument("input", type=click.Path(exists=True), required=True)
+@click.option(
+    "--out",
+    "-o",
+    type=str,
+    default=None,
+    help="Output filename for the (filtered) polygonized data. Defaults to the name of the input file with parquet extension. "
+    + SUPPORTED_POLY_FORMATS_TXT,
+)
+@click.option(
+    "--overwrite", "-f", is_flag=True, help="Overwrite outputs if they exist."
+)
+@click.option(
+    "--collection_name",
+    type=str,
+    default="io-lulc-annual-v02",
+    help="Name of the LULC collection to use. Available collections: io-lulc-annual-v02 (default) and esa-worldcover",
+)
+@click.option(
+    "--save_lulc_tif",
+    is_flag=True,
+    help="Save the LULC mask as a GeoTIFF.",
+)
+def inference_lulc_filtering(input, out, overwrite, collection_name, save_lulc_tif):
+    from ftw_tools.postprocess.lulc_filtering import lulc_filtering
+
+    lulc_filtering(
+        input=input,
+        out=out,
+        overwrite=overwrite,
+        collection_name=collection_name,
+        save_lulc_tif=save_lulc_tif,
+    )
 
 
 if __name__ == "__main__":
