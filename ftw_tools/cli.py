@@ -219,6 +219,7 @@ def inference():
     type=str,
     default=None,
     help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'",
+    required=True,
 )
 @click.option(
     "--year", type=int, required=True, help="Year to run model inference over"
