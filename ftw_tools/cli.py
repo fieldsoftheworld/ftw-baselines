@@ -284,11 +284,13 @@ def scene_selection(year, cloud_cover_max, bbox, buffer_days, out):
     help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'",
 )
 @click.option(
-    "--use_mcp",
-    is_flag=True,
-    help="Use Microsoft Planetary Computer to download the images. Defaults to True. Earth search used if set to false.",
+    "--stac_host",
+    type=click.Choice(["mspc", "earthsearch"]),
+    default="mspc",
+    show_default=True,
+    help="The host to download the imagery from. mspc = Microsoft Planetary Computer, earthsearch = EarthSearch (Element84/AWS).",
 )
-def inference_download(win_a, win_b, out, overwrite, bbox, use_mcp):
+def inference_download(win_a, win_b, out, overwrite, bbox, stac_host):
     from ftw_tools.download.download_img import create_input
 
     create_input(
@@ -297,7 +299,7 @@ def inference_download(win_a, win_b, out, overwrite, bbox, use_mcp):
         out=out,
         overwrite=overwrite,
         bbox=bbox,
-        use_mcp=use_mcp,
+        stac_host=stac_host,
     )
 
 

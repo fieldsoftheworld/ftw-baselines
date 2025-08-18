@@ -51,19 +51,15 @@ def _get_item_from_mcp(id: str) -> pystac.Item:
     return item
 
 
-@retry(wait=wait_random_exponential(max=3), stop=stop_after_attempt(2))
-def get_item(id: str, use_mcp: bool) -> pystac.Item:
-    """Get a STAC item from a given ID or URL.
+def _get_item_from_earthsearch(id: str) -> pystac.Item:
+    """Get a STAC item from EarthSearch.
+
     Args:
         id (str): The ID or URL of the STAC item.
-        use_mcp (bool): If true uses Microsoft Planetary Computer if false uses Earth Search for item retrieval.
+
     Returns:
         pystac.Item: The retrieved STAC item.
     """
-
-    if use_mcp:
-        return _get_item_from_mcp(id)
-
     if "s3://" in id:
         parsed = urlparse(id)
         path = parsed.path.strip("/")  # remove leading slash
@@ -73,7 +69,6 @@ def get_item(id: str, use_mcp: bool) -> pystac.Item:
 
     elif "/" not in id:
         # Convert ID into full URL
-
         parts = id.split("_")
         mgrs_tile = parts[1]
         date_str = parts[2]
@@ -94,9 +89,30 @@ def get_item(id: str, use_mcp: bool) -> pystac.Item:
         )
     else:
         uri = id
+
     item = pystac.Item.from_file(uri)
 
     return item
+
+
+@retry(wait=wait_random_exponential(max=3), stop=stop_after_attempt(2))
+def get_item(id: str, stac_host: str) -> pystac.Item:
+    """Get a STAC item from a given ID or URL.
+    Args:
+        id (str): The ID or URL of the STAC item.
+        stac_host (str): The STAC host to use for item retrieval either 'mspc' or 'earthsearch'.
+    Returns:
+        pystac.Item: The retrieved STAC item.
+    """
+
+    if stac_host == "mspc":
+        return _get_item_from_mcp(id)
+    if stac_host == "earthsearch":
+        return _get_item_from_earthsearch(id)
+    else:
+        raise ValueError(
+            f"Unsupported STAC host: {stac_host}. Use 'mspc' or 'earthsearch'."
+        )
 
 
 def scene_selection(
@@ -200,7 +216,7 @@ def query_stac(
     return least_cloudy_item.properties["earthsearch:s3_path"]
 
 
-def create_input(win_a, win_b, out, overwrite, use_mcp, bbox=None):
+def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None):
     """Main function for creating input for inference."""
     out = os.path.abspath(out)
     if os.path.exists(out) and not overwrite:
@@ -220,7 +236,7 @@ def create_input(win_a, win_b, out, overwrite, use_mcp, bbox=None):
     timestamp = None
     version = 0
     for i in identifiers:
-        item = get_item(i, use_mcp=use_mcp)
+        item = get_item(i, stac_host=stac_host)
         items.append(item)
 
         datetime = item.datetime or item.start_datetime or item.end_datetime
@@ -247,10 +263,10 @@ def create_input(win_a, win_b, out, overwrite, use_mcp, bbox=None):
         print("The provided images do not intersect. Exiting.")
         return
 
-    if use_mcp:
+    if stac_host == "mspc":
         bands = MSPC_BANDS_OF_INTEREST
     else:
-        bands = BANDS_OF_INTEREST
+        bands = BANDS_OF_INTEREST  # for EarthSearch
     tic = time.time()
     data = odc.stac.load(
         [items[0], items[1]],
