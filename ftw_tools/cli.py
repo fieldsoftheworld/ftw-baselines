@@ -210,7 +210,7 @@ def inference():
 
 
 @inference.command(
-    "scene_selection", help="Select Sentinel-2 scenes for inference with crop calendar"
+    "scene-selection", help="Select Sentinel-2 scenes for inference with crop calendar"
 )
 @click.option(
     "--bbox",
