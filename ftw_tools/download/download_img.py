@@ -118,7 +118,7 @@ def query_stac(
     # check if aoi is approximately greater than 100 km x 100 km and spans multiple Sentinel 2 MGRS tiles
     if len(items) > 1 and (
         gpd.GeoDataFrame(geometry=[box(*bbox)], crs="EPSG:4326")
-        .to_crs("EPSG:32633")
+        .to_crs("EPSG:6933")
         .area[0]
         > 10000000000
     ):
