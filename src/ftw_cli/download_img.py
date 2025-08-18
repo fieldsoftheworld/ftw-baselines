@@ -93,7 +93,7 @@ def create_input(win_a, win_b, out, overwrite, bbox=None):
 
     if version < 3 or version >= 4:
         print(
-            f"Processing version {version} unknown or untested (< 3.0 or >= 6.0). Inference quality might decrease."
+            f"Processing version {version} unknown or untested (< 3.0 or >= 4.0). Inference quality might decrease."
         )
     if version >= 4:
         print(
