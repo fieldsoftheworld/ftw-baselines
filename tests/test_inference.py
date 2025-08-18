@@ -102,7 +102,6 @@ def test_inference_run():
             "--resize_factor",
             "2",
             "--overwrite",
-            "--stac_host=earthsearch",
         ],
     )
     assert result.exit_code == 0, result.output
