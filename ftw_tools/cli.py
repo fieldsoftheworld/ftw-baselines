@@ -1,4 +1,5 @@
 import enum
+import json
 
 import click
 import wget
@@ -209,7 +210,7 @@ def inference():
 
 
 @inference.command(
-    "scene_selection", help="Select Sentinel-2 scenes for inference with crop calendar"
+    "scene-selection", help="Select Sentinel-2 scenes for inference with crop calendar"
 )
 @click.option(
     "--bbox",
@@ -233,7 +234,14 @@ def inference():
     help="Number of days to buffer the date for querying to help balance decreasing cloud cover "
     "and selecting a date near the crop calendar indicated date.",
 )
-def scene_selection(year, cloud_cover_max, bbox, buffer_days):
+@click.option(
+    "--out",
+    "-o",
+    type=str,
+    default=None,
+    help="Output JSON file to save the scene selection results. If not provided, prints to stdout.",
+)
+def scene_selection(year, cloud_cover_max, bbox, buffer_days, out):
     """Download Sentinel-2 scenes for inference."""
     from ftw_tools.download.download_img import scene_selection
 
@@ -244,7 +252,17 @@ def scene_selection(year, cloud_cover_max, bbox, buffer_days):
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
     )
-    print(f"Window A: {win_a}, Window B: {win_b}")
+    if out:
+        # persist results to json
+        result = {
+            "window_a": win_a,
+            "window_b": win_b,
+        }
+        with open(out, "w") as f:
+            json.dump(result, f, indent=2)
+        print(f"Results saved to {out}")
+    else:
+        print(f"Window A: {win_a}, Window B: {win_b}")
 
 
 @inference.command(
@@ -411,6 +429,44 @@ def inference_polygonize(
     from ftw_tools.postprocess.polygonize import polygonize
 
     polygonize(input, out, simplify, min_size, max_size, overwrite, close_interiors)
+
+
+@inference.command(
+    "filter_by_lulc", help="Filter the output raster in GeoTIFF format by LULC mask."
+)
+@click.argument("input", type=click.Path(exists=True), required=True)
+@click.option(
+    "--out",
+    "-o",
+    type=str,
+    default=None,
+    help="Output filename for the (filtered) polygonized data. Defaults to the name of the input file with parquet extension. "
+    + SUPPORTED_POLY_FORMATS_TXT,
+)
+@click.option(
+    "--overwrite", "-f", is_flag=True, help="Overwrite outputs if they exist."
+)
+@click.option(
+    "--collection_name",
+    type=str,
+    default="io-lulc-annual-v02",
+    help="Name of the LULC collection to use. Available collections: io-lulc-annual-v02 (default) and esa-worldcover",
+)
+@click.option(
+    "--save_lulc_tif",
+    is_flag=True,
+    help="Save the LULC mask as a GeoTIFF.",
+)
+def inference_lulc_filtering(input, out, overwrite, collection_name, save_lulc_tif):
+    from ftw_tools.postprocess.lulc_filtering import lulc_filtering
+
+    lulc_filtering(
+        input=input,
+        out=out,
+        overwrite=overwrite,
+        collection_name=collection_name,
+        save_lulc_tif=save_lulc_tif,
+    )
 
 
 if __name__ == "__main__":

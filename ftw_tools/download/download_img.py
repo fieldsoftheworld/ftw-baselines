@@ -180,7 +180,7 @@ def query_stac(
     # check if aoi is approximately greater than 100 km x 100 km and spans multiple Sentinel 2 MGRS tiles
     if len(items) > 1 and (
         gpd.GeoDataFrame(geometry=[box(*bbox)], crs="EPSG:4326")
-        .to_crs("EPSG:32633")
+        .to_crs("EPSG:6933")
         .area[0]
         > 10000000000
     ):
@@ -270,7 +270,7 @@ def create_input(win_a, win_b, out, overwrite, use_mcp, bbox=None):
 
     if version < 3 or version >= 4:
         print(
-            f"Processing version {version} unknown or untested (< 3.0 or >= 6.0). Inference quality might decrease."
+            f"Processing version {version} unknown or untested (< 3.0 or >= 4.0). Inference quality might decrease."
         )
     if version >= 4:
         print(
