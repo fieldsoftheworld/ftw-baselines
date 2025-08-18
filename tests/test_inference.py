@@ -42,6 +42,7 @@ def test_inference_download_via_earthsearch():  # create_input
             "-o",
             inference_image,
             "-f",
+            "--stac_host=earthsearch",
         ],
     )
     assert result.exit_code == 0, result.output
