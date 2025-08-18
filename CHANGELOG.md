@@ -10,6 +10,10 @@
 
 ### Unreleased
 
+### 1.4.0
+
+- Add command `filter_by_lulc`
+
 ### 1.3.0
 
 - Fixed the overwrite check in `ftw run inference`
