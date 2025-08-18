@@ -10,6 +10,10 @@
 
 ### Unreleased
 
+### 1.4.1
+
+- Fix missing dependencies in package, removing Pixi as dependency manager for now
+
 ### 1.4.0
 
 - Add command `filter_by_lulc`

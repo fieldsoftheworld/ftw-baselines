@@ -13,14 +13,15 @@ This repository provides the codebase for working with the [FTW dataset](https:/
 - [System setup](#system-setup)
   - [(Ana)conda](#anaconda)
   - [Mamba](#mamba)
-  - [Verify PyTorch installation and CUDA availability](#verify-pytorch-installation-and-cuda-availability)
   - [Setup FTW CLI](#setup-ftw-cli)
+  - [Verify PyTorch installation and CUDA availability](#verify-pytorch-installation-and-cuda-availability)
   - [Development](#development)
 - [Predicting field boundaries](#predicting-field-boundaries)
   - [1. Download the model (using `wget`)](#1-download-the-model-using-wget)
   - [2. Download S2 image scene (using `ftw inference download`)](#2-download-s2-image-scene-using-ftw-inference-download)
   - [3. Run inference (using `ftw inference run`)](#3-run-inference-using-ftw-inference-run)
-  - [4. Polygonize the output (using `ftw inference polygonize`)](#4-polygonize-the-output-using-ftw-inference-polygonize)
+  - [4. Filter predictions by land cover (using `ftw inference filter_by_lulc`)](#4-filter-predictions-by-land-cover-using-ftw-inference-filter_by_lulc)
+  - [5. Polygonize the output (using `ftw inference polygonize`)](#5-polygonize-the-output-using-ftw-inference-polygonize)
 - [FTW Baseline Dataset](#ftw-baseline-dataset)
   - [Download the FTW Baseline Dataset](#download-the-ftw-baseline-dataset)
   - [Visualize the FTW Baseline Dataset](#visualize-the-ftw-baseline-dataset)
@@ -51,14 +52,6 @@ mamba env create -f env.yml
 mamba activate ftw
 ```
 
-### Verify PyTorch installation and CUDA availability
-
-If you are using GPU, verify that PyTorch and CUDA are installed correctly:
-
-```bash
-python -c "import torch; print(torch.cuda.is_available())"
-```
-
 ### Setup FTW CLI
 
 To install the `ftw` command-line tool on your computer, run the following:
@@ -67,10 +60,17 @@ To install the `ftw` command-line tool on your computer, run the following:
 pip install ftw-tools
 ```
 
+### Verify PyTorch installation and CUDA availability
+
+If you are using GPU, verify that PyTorch and CUDA are installed correctly:
+
+```bash
+python -c 'import torch; print(torch.cuda.is_available())'
+```
+
 ### Development
 
 If you plan to make changes to the FTW CLI at all, you will run one of the following commands from within your cloned repository:
-
 
 ```bash
 pip install -e .
