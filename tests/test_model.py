@@ -1,5 +1,6 @@
 import os
 import subprocess
+from pathlib import Path
 
 import pytest
 import torch
@@ -7,27 +8,52 @@ from click.testing import CliRunner
 
 from ftw_tools.cli import data_download, model_download, model_fit, model_test
 
-CKPT_FILE = "logs/FTW-CI/lightning_logs/version_0/checkpoints/last.ckpt"
+# todo: if you are not running tests in a clean environment, there might already be a version_0
+# and your results may reside in version_1 or version_2 or so, which make the tests fail.
+CKPT_FILE = Path("logs/FTW-CI/lightning_logs/version_0/checkpoints/last.ckpt")
 CONFIG_FILE = "tests/data-files/min_config.yaml"
 
 
 def test_model_download1():
+    target = "test.ckpt"
+    assert not os.path.exists(target), (
+        f"{target} should not exist before running the test"
+    )
+
+    # Download the model
     runner = CliRunner()
-    runner.invoke(model_download, ["--type=TWO_CLASS_FULL"])
-    filepath = "2_Class_FULL_FTW_Pretrained.ckpt"
-    assert os.path.exists(filepath)
-    os.remove(filepath)
+    runner.invoke(model_download, ["--type=TWO_CLASS_FULL", "-o", target])
+    assert os.path.exists(target), f"Failed to download model to {target}"
+
+    # cleanup
+    os.remove(target)
 
 
 def test_model_download2():
+    filepath = "3_Class_CCBY_FTW_Pretrained.ckpt"
+    assert not os.path.exists(filepath), (
+        f"{filepath} should not exist before running the test"
+    )
+
+    # Download the model
     runner = CliRunner()
     runner.invoke(model_download, ["--type=THREE_CLASS_CCBY"])
-    filepath = "3_Class_CCBY_FTW_Pretrained.ckpt"
-    assert os.path.exists(filepath)
+    assert os.path.exists(filepath), f"Failed to download model to {filepath}"
+
+    # Test that it does not download again if the file already exists
+    result = runner.invoke(model_download, ["--type=THREE_CLASS_CCBY"])
+    assert f"File {filepath} already exists, skipping download." in result.output
+
+    # cleanup
     os.remove(filepath)
 
 
 def test_model_fit(caplog):
+    versioned_folder = CKPT_FILE.parent.parent
+    assert not versioned_folder.exists(), (
+        f"{versioned_folder} should not exist before running the test"
+    )
+
     runner = CliRunner()
 
     # Download required data for the fit command
@@ -41,7 +67,7 @@ def test_model_fit(caplog):
     assert "Train countries: ['rwanda']" in result.output
     assert "`Trainer.fit` stopped: `max_epochs=1` reached." in caplog.text
     assert "Finished" in result.output
-    assert os.path.exists(CKPT_FILE)
+    assert CKPT_FILE.exists()
 
 
 def test_model_test():

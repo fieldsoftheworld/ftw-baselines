@@ -116,7 +116,7 @@ def get_item(id: str, stac_host: str) -> pystac.Item:
 
 
 def scene_selection(
-    bbox: list[int], year: int, cloud_cover_max: int = 20, buffer_days: int = 14
+    bbox: list[float], year: int, cloud_cover_max: int = 20, buffer_days: int = 14
 ) -> Tuple[str, str]:
     """
     Returns sentinel 2 image S3 URL for start and end date within +/- number of days
@@ -225,10 +225,6 @@ def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None):
 
     # Ensure that the base directory exists
     os.makedirs(os.path.dirname(out), exist_ok=True)
-
-    # Parse the bounding box
-    if bbox is not None:
-        bbox = list(map(float, bbox.split(",")))
 
     # Load the items
     identifiers = [win_a, win_b]

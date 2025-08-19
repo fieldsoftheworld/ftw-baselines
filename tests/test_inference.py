@@ -152,7 +152,7 @@ def test_ftw_inference_all():
             [
                 "--bbox=13.0,48.0,13.2,48.2",
                 "--year=2024",
-                f"--out_dir={out_path}",
+                f"--out={out_path}",
                 "--cloud_cover_max=20",
                 "--buffer_days=14",
                 f"--model={model_path}",

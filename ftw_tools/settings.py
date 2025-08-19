@@ -12,29 +12,42 @@ SUPPORTED_POLY_FORMATS_TXT = "Available file extensions: .parquet (GeoParquet, f
 
 # List of all available countries
 ALL_COUNTRIES = [
-    "belgium",
-    "cambodia",
-    "croatia",
-    "estonia",
-    "portugal",
-    "slovakia",
-    "south_africa",
-    "sweden",
     "austria",
+    "belgium",
     "brazil",
+    "cambodia",
     "corsica",
+    "croatia",
     "denmark",
-    "france",
-    "india",
-    "latvia",
-    "luxembourg",
+    "estonia",
     "finland",
+    "france",
     "germany",
+    "india",
     "kenya",
+    "latvia",
     "lithuania",
+    "luxembourg",
     "netherlands",
+    "portugal",
     "rwanda",
+    "slovakia",
     "slovenia",
+    "south_africa",
     "spain",
+    "sweden",
     "vietnam",
+]
+
+TEMPORAL_OPTIONS = [
+    "stacked",
+    "windowA",
+    "windowB",
+    "median",
+    "rgb",
+]
+
+LULC_COLLECTIONS = [
+    "io-lulc-annual-v02",
+    "esa-worldcover",
 ]
