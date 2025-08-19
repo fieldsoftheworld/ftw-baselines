@@ -431,6 +431,7 @@ def ftw_inference_all(
     win_a, win_b = scene_selection(
         bbox=bbox,
         year=year,
+        stac_host=stac_host,
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
     )
@@ -507,13 +508,22 @@ def ftw_inference_all(
     default=None,
     help="Output JSON file to save the scene selection results. If not provided, prints to stdout.",
 )
-def scene_selection(year, bbox, cloud_cover_max, buffer_days, out):
+@click.option(
+    "--stac_host",
+    "-h",
+    type=click.Choice(["mspc", "earthsearch"]),
+    default="mspc",
+    show_default=True,
+    help="The host to download the imagery from. mspc = Microsoft Planetary Computer, earthsearch = EarthSearch (Element84/AWS).",
+)
+def scene_selection(year, bbox, cloud_cover_max, buffer_days, out, stac_host):
     """Download Sentinel-2 scenes for inference."""
     from ftw_tools.download.download_img import scene_selection
 
     win_a, win_b = scene_selection(
         bbox=bbox,
         year=year,
+        stac_host=stac_host,
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
     )

@@ -14,21 +14,44 @@ from ftw_tools.cli import (
 )
 
 
-def test_scene_selection():
+def test_scene_selection_earthsearch():
     runner = CliRunner()
 
     result = runner.invoke(
         scene_selection,
         [
-            "--bbox=-93.68708939,  41.9530844 , -93.64078526,  41.98070608",
+            "--bbox=-93.68708939,41.9530844,-93.64078526,41.98070608",
             "--year=2022",
             "--cloud_cover_max=20",
             "--buffer_days=14",
+            "--stac_host=earthsearch",
         ],
     )
     assert result.exit_code == 0, result.output
     assert "S2B_15TVG_20220327_0_L2A" in result.output  # window a
     assert "S2B_15TVG_20221125_0_L2A" in result.output  # window b
+
+
+def test_scene_selection_mspc():
+    runner = CliRunner()
+
+    result = runner.invoke(
+        scene_selection,
+        [
+            "--bbox=-93.68708939,41.9530844,-93.64078526,41.98070608",
+            "--year=2022",
+            "--cloud_cover_max=20",
+            "--buffer_days=14",
+            "--stac_host=mspc",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert (
+        "S2A_MSIL2A_20220315T171051_R112_T15TVG_20220316T083617" in result.output
+    )  # window a
+    assert (
+        "S2B_MSIL2A_20221125T171639_R112_T15TVG_20221202T081730" in result.output
+    )  # window b
 
 
 def test_inference_download_via_earthsearch():
@@ -54,7 +77,7 @@ def test_inference_download_via_earthsearch():
     assert os.path.exists(inference_image)
 
 
-def test_inference_download_via_mcp():
+def test_inference_download_via_mspc():
     runner = CliRunner()
 
     # Download imagery by ID from Microsoft Planetary Computer

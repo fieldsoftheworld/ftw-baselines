@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -71,6 +72,8 @@ def test_model_fit(caplog):
 
 
 def test_model_test():
+    assert CKPT_FILE.exists()
+
     runner = CliRunner()
 
     # Check model for Rwanda
@@ -93,6 +96,11 @@ def test_model_test():
     assert "Object level recall: 0.0000" in result.output
     assert os.path.exists("results.csv")
     os.remove("results.csv")
+
+    # cleanup
+    versioned_folder = CKPT_FILE.parent.parent
+    if versioned_folder.exists():
+        shutil.rmtree(versioned_folder)
 
 
 @pytest.mark.parametrize(

@@ -7,6 +7,8 @@ BANDS_OF_INTEREST = ["red", "green", "blue", "nir"]
 MSPC_URL = "https://planetarycomputer.microsoft.com/api/stac/v1"
 MSPC_BANDS_OF_INTEREST = ["B04", "B03", "B02", "B08"]
 
+EARTHSEARCH_URL = "https://earth-search.aws.element84.com/v1"
+
 # Supported file formats for the inference polygon command
 SUPPORTED_POLY_FORMATS_TXT = "Available file extensions: .parquet (GeoParquet, fiboa-compliant), .fgb (FlatGeoBuf), .gpkg (GeoPackage), .geojson / .json / .ndjson (GeoJSON)"
 
