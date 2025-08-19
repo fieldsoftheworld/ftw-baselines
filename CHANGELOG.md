@@ -12,21 +12,11 @@
 
 ### 1.4.3
 
-- Rename command `filter_by_lulc` to `filter-by-lulc`
+- Add command `filter-by-lulc`
 - Allow to specifiy output file for `ftw model download`
 - Don't download models multiple times
 
-### 1.4.2
-
-- Fix command `filter_by_lulc`, invalid import
-
-### 1.4.1
-
-- Fix missing dependencies in package, removing Pixi as dependency manager for now
-
-### 1.4.0
-
-- Add command `filter_by_lulc`
+**Note:** Versions 1.4.0 - 1.4.2 were remove from pypi
 
 ### 1.3.0
 

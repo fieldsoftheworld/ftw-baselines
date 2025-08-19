@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ftw-tools"
-version = "1.4.2"
+version = "1.4.3"
 license = "MIT"
 license-files = ["LICENSE"]
 description = "Fields of The World (FTW) Command Line Interface (CLI) for data management, ML processing, and more."
