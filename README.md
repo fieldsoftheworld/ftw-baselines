@@ -20,7 +20,7 @@ This repository provides the codebase for working with the [FTW dataset](https:/
   - [1. Download the model (using `wget`)](#1-download-the-model-using-wget)
   - [2. Download S2 image scene (using `ftw inference download`)](#2-download-s2-image-scene-using-ftw-inference-download)
   - [3. Run inference (using `ftw inference run`)](#3-run-inference-using-ftw-inference-run)
-  - [4. Filter predictions by land cover (using `ftw inference filter_by_lulc`)](#4-filter-predictions-by-land-cover-using-ftw-inference-filter_by_lulc)
+  - [4. Filter predictions by land cover (using `ftw inference filter-by-lulc`)](#4-filter-predictions-by-land-cover-using-ftw-inference-filter-by-lulc)
   - [5. Polygonize the output (using `ftw inference polygonize`)](#5-polygonize-the-output-using-ftw-inference-polygonize)
 - [FTW Baseline Dataset](#ftw-baseline-dataset)
   - [Download the FTW Baseline Dataset](#download-the-ftw-baseline-dataset)
@@ -207,14 +207,14 @@ Let's run inference on the entire downloaded scene.
   ftw inference run inference_imagery/austria_example.tif --model 3_Class_FULL_FTW_Pretrained.ckpt --out austria_example_output_full.tif --gpu 0 --overwrite
   ```
 
-### 4. Filter predictions by land cover (using `ftw inference filter_by_lulc`)
+### 4. Filter predictions by land cover (using `ftw inference filter-by-lulc`)
 
-FTW models are known to make some errors where land parcels that are not cropland (for example, pasture) are segmented as fields. You can try to filter out these errors by filtering the predicted map using a land cover/land use map. The `ftw inference filter_by_lulc` command filters the GeoTIFF predictions raster to only include pixels that are cropland in the land cover map.
+FTW models are known to make some errors where land parcels that are not cropland (for example, pasture) are segmented as fields. You can try to filter out these errors by filtering the predicted map using a land cover/land use map. The `ftw inference filter-by-lulc` command filters the GeoTIFF predictions raster to only include pixels that are cropland in the land cover map.
 
 ```text
-ftw inference filter_by_lulc --help
+ftw inference filter-by-lulc --help
 
-Usage: ftw inference filter_by_lulc [OPTIONS] INPUT
+Usage: ftw inference filter-by-lulc [OPTIONS] INPUT
 
   Filter the output raster in GeoTIFF format by LULC mask.
 

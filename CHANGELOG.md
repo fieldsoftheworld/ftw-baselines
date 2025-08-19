@@ -10,6 +10,12 @@
 
 ### Unreleased
 
+### 1.4.3
+
+- Rename command `filter_by_lulc` to `filter-by-lulc`
+- Allow to specifiy output file for `ftw model download`
+- Don't download models multiple times
+
 ### 1.4.2
 
 - Fix command `filter_by_lulc`, invalid import

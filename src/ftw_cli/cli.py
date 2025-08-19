@@ -1,3 +1,6 @@
+from pathlib import Path
+from typing import Optional
+
 import click
 import wget
 
@@ -180,10 +183,24 @@ def model_test(
     required=True,
     help="Short model name corresponding to a .ckpt file in github.",
 )
-def model_download(type: ModelVersions):
+@click.option(
+    "--out",
+    "-o",
+    type=click.Path(exists=False),
+    default=None,
+    show_default=True,
+    help="File where the file will be stored to. Defaults to the original filename of the selected model.",
+)
+def model_download(type: ModelVersions, out: Optional[str] = None):
     github_url = f"https://github.com/fieldsoftheworld/ftw-baselines/releases/download/v1/{type.value}"
-    print(f"Downloading {github_url} to {type.value}")
-    wget.download(github_url)
+    target = Path(out or type.value)
+    if target.exists():
+        print(f"File {target} already exists, skipping download.")
+        return
+
+    print(f"Downloading {github_url} to {target}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    wget.download(github_url, str(target.resolve()))
 
 
 ### Inference group
@@ -352,7 +369,7 @@ def inference_polygonize(
 
 
 @inference.command(
-    "filter_by_lulc", help="Filter the output raster in GeoTIFF format by LULC mask."
+    "filter-by-lulc", help="Filter the output raster in GeoTIFF format by LULC mask."
 )
 @click.argument("input", type=click.Path(exists=True), required=True)
 @click.option(
