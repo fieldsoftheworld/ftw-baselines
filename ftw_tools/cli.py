@@ -443,6 +443,7 @@ def scene_selection(year, cloud_cover_max, bbox, buffer_days, out):
 )
 @click.option(
     "--stac_host",
+    "-h",
     type=click.Choice(["mspc", "earthsearch"]),
     default="mspc",
     show_default=True,
