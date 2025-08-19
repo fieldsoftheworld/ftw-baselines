@@ -1,8 +1,11 @@
 import os
+import shutil
+import tempfile
 
 from click.testing import CliRunner
 
 from ftw_tools.cli import (
+    ftw_inference_all,
     inference_download,
     inference_polygonize,
     inference_run,
@@ -28,10 +31,33 @@ def test_scene_selection():
     assert "S2B_15TVG_20221125_0_L2A" in result.output  # window b
 
 
-def test_inference_download():  # create_input
+def test_inference_download_via_earthsearch():
     runner = CliRunner()
 
-    # Download imagery by ID from MS Planetary Computer
+    # Download imagery by ID from EarthSearch
+    inference_image = "inference_imagery/austria_example.tif"
+    result = runner.invoke(
+        inference_download,
+        [
+            "--win_a=S2B_33UUP_20210617_1_L2A",
+            "--win_b=S2B_33UUP_20210925_1_L2A",
+            "--bbox=13.0,48.0,13.2,48.2",
+            "-o",
+            inference_image,
+            "-f",
+            "--stac_host=earthsearch",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert "Writing output" in result.output
+    assert "Finished merging and writing output" in result.output
+    assert os.path.exists(inference_image)
+
+
+def test_inference_download_via_mcp():
+    runner = CliRunner()
+
+    # Download imagery by ID from Microsoft Planetary Computer
     inference_image = "inference_imagery/austria_example.tif"
     result = runner.invoke(
         inference_download,
@@ -42,6 +68,7 @@ def test_inference_download():  # create_input
             "-o",
             inference_image,
             "-f",
+            "--stac_host=mspc",
         ],
     )
     assert result.exit_code == 0, result.output
@@ -102,3 +129,36 @@ def test_inference_polygonize():
     assert "Finished polygonizing output" in result.output
     assert os.path.exists(out_path)
     os.remove(out_path)
+
+
+def test_ftw_inference_all():
+    runner = CliRunner()
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Create temporary model file path
+        model_path = os.path.join(temp_dir, "3_Class_FULL_FTW_Pretrained.ckpt")
+
+        # Download the pretrained model
+        runner.invoke(model_download, ["--type=THREE_CLASS_FULL"])
+        downloaded_model = "3_Class_FULL_FTW_Pretrained.ckpt"
+        if os.path.exists(downloaded_model):
+            shutil.move(downloaded_model, model_path)
+
+        out_path = os.path.join(temp_dir, "inference_output")
+
+        # Run the full inference pipeline
+        result = runner.invoke(
+            ftw_inference_all,
+            [
+                "--bbox=13.0,48.0,13.2,48.2",
+                "--year=2024",
+                f"--out_dir={out_path}",
+                "--cloud_cover_max=20",
+                "--buffer_days=14",
+                f"--model={model_path}",
+                "--resize_factor=2",
+                "--overwrite",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "Finished inference and saved output" in result.output

@@ -190,9 +190,69 @@ In order to use `ftw inference`, you need a trained model. You can either downlo
     ftw model download --type TWO_CLASS_FULL
     ```
 
-### 2. Download S2 image scene (using `ftw inference download`)
+**Note**: If you want more control ie provide specific Sentinel2 scenes to work with follow steps 3-6 to run each part of the inference pipeline sequentially. There is the option to run step 2 `ftw_inference_all` which links together the distinct inference steps. If you decide to run step 2 you will get extracted field boundaries as polygons and don't need to proceed with steps 3-6.
 
-Steps 2-4 all use `ftw inference`. We provide the `inference` CLI commands to allow users to run models that have been pre-trained on FTW on any temporal pair of S2 images.
+### 2. FTW Inference all (using `ftw inference ftw_inference_all`)
+
+This single CLI call handles the complete inference pipeline: Sentinel-2 scene selection, imagery download, model inference, and polygonization. Sentinel-2 data is selected based on the crop [calendar harvest dates](https://github.com/ucg-uv/research_products/tree/main?tab=readme-ov-file#-citation).
+
+```text
+ftw inference ftw_inference_all --help
+
+Usage: ftw inference ftw_inference_all [OPTIONS]
+
+  Run all inference commands from crop calendar scene selection, then
+  download, inference and polygonize.
+
+Options:
+  --bbox TEXT              Bounding box to use for the download in the format
+                           'minx,miny,maxx,maxy'
+  --year INTEGER           Year to run model inference over  [required]
+  --cloud_cover_max INTEGER
+                           Max percent cloud cover in sentinel2 scene
+                           [default: 20]
+  --buffer_days INTEGER    Number of days to buffer the date for querying to
+                           help balance decreasing cloud cover and selecting a
+                           date near the crop calendar indicated date.
+                           [default: 14]
+  -o, --out_dir TEXT       Directory to save downloaded inference imagery, and
+                           inference output to  [required]
+  -f, --overwrite          Overwrites the outputs if they exist
+  -m, --model PATH         Path to the model checkpoint.  [required]
+  --resize_factor INTEGER  Resize factor to use for inference.  [default: 2]
+  --gpu INTEGER            GPU ID to use. If not provided, CPU will be used by
+                           default.
+  --patch_size INTEGER     Size of patch to use for inference. Defaults to
+                           1024 unless the image is < 1024x1024px.
+  --batch_size INTEGER     Batch size.  [default: 2]
+  --padding INTEGER        Pixels to discard from each side of the patch.
+  --mps_mode               Run inference in MPS mode (Apple GPUs).
+  --help                   Show this message and exit.
+```
+
+
+Example usage:
+
+```bash
+ftw inference ftw_inference_all \
+    --bbox=13.0,48.0,13.2,48.2 \
+    --year=2024 \
+    --out_dir=/path/to/output \
+    --cloud_cover_max=20 \
+    --buffer_days=14 \
+    --model=/path/to/model.ckpt \
+    --resize_factor=2 \
+    --overwrite
+```
+
+This will create the following files in the output directory:
+- `inference_data.tif` - The downloaded and stacked Sentinel-2 imagery
+- `inference_output.tif` - The raw model inference output 
+- `polygons.parquet` - The final polygonized field boundaries
+
+### 3. Download S2 image scene (using `ftw inference download`)
+
+Steps 3-5 all use `ftw inference`. We provide the `inference` CLI commands to allow users to run models that have been pre-trained on FTW on any temporal pair of S2 images.
 
 ```text
 ftw inference --help
@@ -241,7 +301,7 @@ Run this line to download our S2 scenes of interest. This line specifies a bound
 
   If you are looking to download data from the FTW Baseline Dataset, you would use `ftw data download`. You can see an example of this lower on this README in the [FTW Baseline Dataset](#ftw-baseline-dataset) section.
 
-### 3. Run inference (using `ftw inference run`)
+### 4. Run inference (using `ftw inference run`)
 
 `ftw inference run` is the command that will run a given model on overlapping patches of input imagery (i.e. the output of `ftw inference download`) and stitch the results together in GeoTIFF format.
 
@@ -275,7 +335,7 @@ Let's run inference on the entire downloaded scene.
   ftw inference run inference_imagery/austria_example.tif --model 3_Class_FULL_FTW_Pretrained.ckpt --out austria_example_output_full.tif --gpu 0 --overwrite
   ```
 
-### 4. Filter predictions by land cover (using `ftw inference filter_by_lulc`)
+### 5. Filter predictions by land cover (using `ftw inference filter_by_lulc`)
 
 FTW models are known to make some errors where land parcels that are not cropland (for example, pasture) are segmented as fields. You can try to filter out these errors by filtering the predicted map using a land cover/land use map. The `ftw inference filter_by_lulc` command filters the GeoTIFF predictions raster to only include pixels that are cropland in the land cover map.
 
@@ -301,7 +361,7 @@ Options:
   --help                  Show this message and exit.
 ```
 
-### 5. Polygonize the output (using `ftw inference polygonize`)
+### 6. Polygonize the output (using `ftw inference polygonize`)
 
 You can then use the `ftw inference polygonize` command to convert the output of the inference into a vector format (defaults to GeoParquet/[fiboa](https://github.com/fiboa/), with GeoPackage, FlatGeobuf and GeoJSON as other options).
 
