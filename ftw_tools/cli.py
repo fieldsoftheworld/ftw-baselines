@@ -211,7 +211,7 @@ def inference():
 
 
 @inference.command(
-    "ftw_inference_all",
+    "ftw-inference-all",
     help="Run all inference commands from crop calendar scene selection,"
     "then download, inference and polygonize.",
 )
@@ -286,9 +286,11 @@ def inference():
     "--mps_mode", is_flag=True, help="Run inference in MPS mode (Apple GPUs)."
 )
 @click.option(
-    "--use_mcp",
-    is_flag=True,
-    help="Use Microsoft Planetary Computer to download the images. Defaults to True. Earth search used if not set.",
+    "--stac_host",
+    type=click.Choice(["mspc", "earthsearch"]),
+    default="earthsearch",
+    show_default=True,
+    help="The host to download the imagery from. mspc = Microsoft Planetary Computer, earthsearch = EarthSearch (Element84/AWS).",
 )
 def ftw_inference_all(
     bbox,
@@ -304,7 +306,7 @@ def ftw_inference_all(
     batch_size,
     padding,
     mps_mode,
-    use_mcp,
+    stac_host,
 ):
     """Run all inference commands from crop calendar scene selection, then download, inference and polygonize."""
     from ftw_tools.download.download_img import create_input, scene_selection
@@ -336,7 +338,7 @@ def ftw_inference_all(
         out=inference_data,
         overwrite=overwrite,
         bbox=bbox,
-        use_mcp=use_mcp,
+        stac_host=stac_host,
     )
 
     # Run inference
