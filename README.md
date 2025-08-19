@@ -25,7 +25,8 @@ This repository provides the codebase for working with the [FTW dataset](https:/
   - [1. Download the model](#1-download-the-model)
   - [2. Download S2 image scene (using `ftw inference download`)](#2-download-s2-image-scene-using-ftw-inference-download)
   - [3. Run inference (using `ftw inference run`)](#3-run-inference-using-ftw-inference-run)
-  - [4. Polygonize the output (using `ftw inference polygonize`)](#4-polygonize-the-output-using-ftw-inference-polygonize)
+  - [4. Filter predictions by land cover (using `ftw inference filter_by_lulc`)](#4-filter-predictions-by-land-cover-using-ftw-inference-filter_by_lulc)
+  - [5. Polygonize the output (using `ftw inference polygonize`)](#5-polygonize-the-output-using-ftw-inference-polygonize)
 - [FTW Baseline Dataset](#ftw-baseline-dataset)
   - [Download the FTW Baseline Dataset](#download-the-ftw-baseline-dataset)
   - [Visualize the FTW Baseline Dataset](#visualize-the-ftw-baseline-dataset)
@@ -90,13 +91,13 @@ pre-commit run --all-files # run manually
 
 ```bash
 # Check PyTorch and CUDA
-pixi run python -c "import torch; print('PyTorch:', torch.__version__); print('CUDA available:', torch.cuda.is_available())"
+pixi run python -c 'import torch; print("PyTorch:", torch.__version__); print("CUDA available:", torch.cuda.is_available())'
 
 # Check geospatial stack
-pixi run python -c "from osgeo import gdal; import rasterio, geopandas; print('Geospatial stack working')"
+pixi run python -c 'from osgeo import gdal; import rasterio, geopandas; print("Geospatial stack working")'
 
 # Check FTW CLI import
-pixi run python -c "from ftw_tools.cli import ftw; print('FTW CLI ready')"
+pixi run python -c 'from ftw_tools.cli import ftw; print("FTW CLI ready")'
 ```
 
 ### Conda/Mamba (Alternative)
