@@ -37,6 +37,13 @@ def large_aoi():
     return [13.83984671, -6.73397741, 15.0, -5]
 
 
-def test_query_stac_large_aoi(large_aoi):
+def test_query_stac_large_aoi_mspc(large_aoi):
     with pytest.raises(ValueError):
-        query_stac(bbox=large_aoi, date=pd.Timestamp("2020-01-01"))
+        query_stac(bbox=large_aoi, stac_host="mspc", date=pd.Timestamp("2020-01-01"))
+
+
+def test_query_stac_large_aoi_earthsearch(large_aoi):
+    with pytest.raises(ValueError):
+        query_stac(
+            bbox=large_aoi, stac_host="earthsearch", date=pd.Timestamp("2020-01-01")
+        )

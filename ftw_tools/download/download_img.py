@@ -21,6 +21,7 @@ from ftw_tools.settings import (
     AWS_SENTINEL_URL,
     BANDS_OF_INTEREST,
     COLLECTION_ID,
+    EARTHSEARCH_URL,
     MSPC_BANDS_OF_INTEREST,
     MSPC_URL,
 )
@@ -29,7 +30,7 @@ from ftw_tools.utils import get_harvest_integer_from_bbox, harvest_to_datetime
 logger = logging.getLogger()
 
 
-def _get_item_from_mcp(id: str) -> pystac.Item:
+def _get_item_from_mspc(id: str) -> pystac.Item:
     """Get a STAC item from Microsoft Planetary Computer.
 
     Args:
@@ -106,7 +107,7 @@ def get_item(id: str, stac_host: str) -> pystac.Item:
     """
 
     if stac_host == "mspc":
-        return _get_item_from_mcp(id)
+        return _get_item_from_mspc(id)
     if stac_host == "earthsearch":
         return _get_item_from_earthsearch(id)
     else:
@@ -116,7 +117,11 @@ def get_item(id: str, stac_host: str) -> pystac.Item:
 
 
 def scene_selection(
-    bbox: list[int], year: int, cloud_cover_max: int = 20, buffer_days: int = 14
+    bbox: list[float],
+    year: int,
+    stac_host: str,
+    cloud_cover_max: int = 20,
+    buffer_days: int = 14,
 ) -> Tuple[str, str]:
     """
     Returns sentinel 2 image S3 URL for start and end date within +/- number of days
@@ -146,16 +151,23 @@ def scene_selection(
     win_a = query_stac(
         bbox=bbox,
         date=start_dt,
+        stac_host=stac_host,
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
     )
-    win_b = query_stac(bbox=bbox, date=end_dt, cloud_cover_max=cloud_cover_max)
+    win_b = query_stac(
+        bbox=bbox, date=end_dt, stac_host=stac_host, cloud_cover_max=cloud_cover_max
+    )
 
     return (win_a, win_b)
 
 
 def query_stac(
-    bbox: list[int], date: pd.Timestamp, cloud_cover_max: int = 20, buffer_days=14
+    bbox: list[int],
+    date: pd.Timestamp,
+    stac_host: str,
+    cloud_cover_max: int = 20,
+    buffer_days=14,
 ) -> str:
     """
     Queries Sentinel-2 imagery hosted on planetary computer via pystac.
@@ -177,7 +189,8 @@ def query_stac(
     # Format as string
     date_range = f"{start}/{end}"
 
-    catalog = pystac_client.Client.open("https://earth-search.aws.element84.com/v1")
+    host = MSPC_URL if stac_host == "mspc" else EARTHSEARCH_URL
+    catalog = pystac_client.Client.open(host)
 
     search = catalog.search(
         collections=[COLLECTION_ID],
@@ -200,7 +213,13 @@ def query_stac(
         .area[0]
         > 10000000000
     ):
-        s2_tile_ids = [item.properties["grid:code"] for item in items]
+        s2_tile_ids = []
+        for item in items:
+            code = item.properties.get("grid:code")
+            if not code:
+                code = item.properties.get("s2:mgrs_tile")
+            if code:
+                s2_tile_ids.append(code)
         if len(set(s2_tile_ids)) > 1:
             raise ValueError(
                 f"Multiple MGRS tiles found: {set(s2_tile_ids)}. Please chose a smaller "
@@ -213,7 +232,7 @@ def query_stac(
         f"Choosing {least_cloudy_item.id} from {least_cloudy_item.datetime.date()}"
         f" with {eo.ext(least_cloudy_item).cloud_cover}% cloud cover"
     )
-    return least_cloudy_item.properties["earthsearch:s3_path"]
+    return least_cloudy_item.get_self_href()
 
 
 def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None):
@@ -225,10 +244,6 @@ def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None):
 
     # Ensure that the base directory exists
     os.makedirs(os.path.dirname(out), exist_ok=True)
-
-    # Parse the bounding box
-    if bbox is not None:
-        bbox = list(map(float, bbox.split(",")))
 
     # Load the items
     identifiers = [win_a, win_b]

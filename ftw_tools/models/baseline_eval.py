@@ -64,13 +64,14 @@ def test(
     model_predicts_3_classes,
     test_on_3_classes,
     temporal_options,
-    cli_args,
 ):
     """Command to test the model."""
     print("Running test command")
+    if gpu is None:
+        gpu = -1
 
     # Merge `test_model` function into this test command
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() and gpu >= 0:
         device = torch.device(f"cuda:{gpu}")
     else:
         device = torch.device("cpu")

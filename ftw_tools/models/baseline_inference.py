@@ -34,6 +34,8 @@ def run(
         out = os.path.join(
             os.path.dirname(input), "inference." + os.path.basename(input)
         )
+    if gpu is None:
+        gpu = -1
 
     # IO related sanity checks
     assert os.path.exists(model), f"Model file {model} does not exist."
@@ -50,7 +52,7 @@ def run(
     if mps_mode:
         assert torch.backends.mps.is_available(), "MPS mode is not available."
         device = torch.device("mps")
-    elif gpu is not None and torch.cuda.is_available():
+    elif torch.cuda.is_available() and gpu >= 0:
         device = torch.device(f"cuda:{gpu}")
     else:
         print("Neither GPU nor MPS mode is enabled, defaulting to CPU.")

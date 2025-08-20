@@ -18,7 +18,15 @@ from tqdm import tqdm
 from ftw_tools.settings import SUPPORTED_POLY_FORMATS_TXT
 
 
-def polygonize(input, out, simplify, min_size, max_size, overwrite, close_interiors):
+def polygonize(
+    input,
+    out,
+    simplify=True,
+    min_size=500,
+    max_size=None,
+    overwrite=False,
+    close_interiors=False,
+):
     """Polygonize the output from inference."""
 
     print(f"Polygonizing input file: {input}")
