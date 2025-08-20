@@ -26,7 +26,7 @@ This repository provides the codebase for working with the [FTW dataset](https:/
   - [2. FTW Inference all (using `ftw inference all`)](#2-ftw-inference-all-using-ftw-inference-all)
   - [3. Download S2 image scene (using `ftw inference download`)](#3-download-s2-image-scene-using-ftw-inference-download)
   - [4. Run inference (using `ftw inference run`)](#4-run-inference-using-ftw-inference-run)
-  - [4. Filter predictions by land cover (using `ftw inference filter-by-lulc`)](#4-filter-predictions-by-land-cover-using-ftw-inference-filter-by-lulc)
+  - [5. Filter predictions by land cover (using `ftw inference filter-by-lulc`)](#5-filter-predictions-by-land-cover-using-ftw-inference-filter-by-lulc)
   - [6. Polygonize the output (using `ftw inference polygonize`)](#6-polygonize-the-output-using-ftw-inference-polygonize)
 - [FTW Baseline Dataset](#ftw-baseline-dataset)
   - [Download the FTW Baseline Dataset](#download-the-ftw-baseline-dataset)
@@ -232,7 +232,6 @@ Options:
   --help                   Show this message and exit.
 ```
 
-
 Example usage:
 
 ```bash
@@ -248,8 +247,9 @@ ftw inference all \
 ```
 
 This will create the following files in the output directory:
+
 - `inference_data.tif` - The downloaded and stacked Sentinel-2 imagery
-- `inference_output.tif` - The raw model inference output 
+- `inference_output.tif` - The raw model inference output
 - `polygons.parquet` - The final polygonized field boundaries
 
 ### 3. Download S2 image scene (using `ftw inference download`)
@@ -337,7 +337,7 @@ Let's run inference on the entire downloaded scene.
   ftw inference run inference_imagery/austria_example.tif --model 3_Class_FULL_FTW_Pretrained.ckpt --out austria_example_output_full.tif --gpu 0 --overwrite
   ```
 
-### 4. Filter predictions by land cover (using `ftw inference filter-by-lulc`)
+### 5. Filter predictions by land cover (using `ftw inference filter-by-lulc`)
 
 FTW models are known to make some errors where land parcels that are not cropland (for example, pasture) are segmented as fields. You can try to filter out these errors by filtering the predicted map using a land cover/land use map. The `ftw inference filter-by-lulc` command filters the GeoTIFF predictions raster to only include pixels that are cropland in the land cover map.
 
