@@ -713,7 +713,7 @@ def inference_run_instance_segmentation(
 
 
 @inference.command(
-    "ftw-inference-instance-segmentation-all",
+    "instance-segmentation-all",
     help="Run all inference instance segmentation commands from download and inference.",
 )
 @click.argument("input", type=str, required=True)
