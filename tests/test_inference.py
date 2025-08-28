@@ -234,8 +234,6 @@ def test_instance_segmentation_inference_all():
                 "--gpu",
                 "0",
                 "--overwrite",
-                "--conf_threshold",
-                "0.01",
             ],
         )
         assert result.exit_code == 0, result.output

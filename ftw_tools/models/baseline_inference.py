@@ -261,7 +261,7 @@ def run_instance_segmentation(
     )
 
     # Load dataset
-    dataset = SingleRasterDataset(input, transforms=preprocess)
+    dataset = SingleRasterDataset(input)
     sampler = GridGeoSampler(dataset, size=patch_size, stride=stride)
     dataloader = DataLoader(
         dataset,
@@ -278,7 +278,6 @@ def run_instance_segmentation(
         total=len(dataloader),
         desc=f"Running FTW instance segmentation inference on {input}",
     ):
-        b, c, h, w = batch["image"].shape
         images = batch["image"].to(device)
         predictions = model(images)
 
@@ -290,6 +289,7 @@ def run_instance_segmentation(
 
         # Convert instance predictions to polygons
         for image, pred, bounds in zip(images, predictions, bboxes):
+            h, w = image.shape[:2]
             transform = from_bounds(
                 west=bounds.minx,
                 south=bounds.miny,
