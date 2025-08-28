@@ -428,7 +428,7 @@ def scene_selection(year, cloud_cover_max, bbox, buffer_days, out):
     help="Download 2 Sentinel-2 scenes & stack them in a single file for inference.",
 )
 @click.option("--win_a", type=str, required=True, help=WIN_HELP.format(x="A"))
-@click.option("--win_b", type=str, required=True, help=WIN_HELP.format(x="B"))
+@click.option("--win_b", type=str, default=None, help=WIN_HELP.format(x="B"))
 @click.option(
     "--out", "-o", type=str, required=True, help="Filename to save results to"
 )

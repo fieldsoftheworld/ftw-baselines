@@ -216,7 +216,7 @@ def query_stac(
     return least_cloudy_item.properties["earthsearch:s3_path"]
 
 
-def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None):
+def create_input(win_a, out, overwrite, stac_host, win_b=None, bbox=None):
     """Main function for creating input for inference."""
     out = os.path.abspath(out)
     if os.path.exists(out) and not overwrite:
@@ -231,7 +231,9 @@ def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None):
         bbox = list(map(float, bbox.split(",")))
 
     # Load the items
-    identifiers = [win_a, win_b]
+    identifiers = [win_a]
+    if win_b is not None:
+        identifiers.append(win_b)
     items = []
     timestamp = None
     version = 0
@@ -259,9 +261,10 @@ def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None):
 
     shapes = [shape(item.geometry) for item in items]
     # Ensure the images intersect
-    if not shapes[0].intersects(shapes[1]):
-        print("The provided images do not intersect. Exiting.")
-        return
+    if len(shapes) > 1:
+        if not shapes[0].intersects(shapes[1]):
+            print("The provided images do not intersect. Exiting.")
+            return
 
     if stac_host == "mspc":
         bands = MSPC_BANDS_OF_INTEREST
@@ -269,7 +272,7 @@ def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None):
         bands = BANDS_OF_INTEREST  # for EarthSearch
     tic = time.time()
     data = odc.stac.load(
-        [items[0], items[1]],
+        items,
         bands=bands,
         dtype="uint16",
         resampling="bilinear",
