@@ -588,7 +588,7 @@ def inference_run(
 )
 @click.option(
     "--image_size",
-    type=int,
+    type=click.IntRange(min=1),
     default=320,
     show_default=True,
     help="Image size to use for inference.",
