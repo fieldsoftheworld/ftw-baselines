@@ -617,7 +617,7 @@ def inference_run(
 )
 @click.option(
     "--max_detections",
-    type=int,
+    type=click.IntRange(min=1),
     default=50,
     show_default=True,
     help="Maximum number of detections to keep.",
