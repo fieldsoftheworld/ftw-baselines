@@ -792,7 +792,6 @@ def inference_run(
     default=None,
     help="Pixels to discard from each side of the patch.",
 )
-
 @click.option(
     "--overwrite",
     "-f",

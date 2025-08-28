@@ -13,6 +13,7 @@ import shapely
 import torch
 from fiboa_cli.parquet import create_parquet
 from kornia.constants import Resample
+from rasterio.crs import CRS
 from rasterio.enums import ColorInterp
 from rasterio.transform import from_bounds
 from torch.utils.data import DataLoader
@@ -92,7 +93,7 @@ def setup_inference(
         "Patch size minus two times the padding must be greater than 64."
     )
 
-    return device, transform, input_shape, patch_size, stride
+    return device, transform, input_shape, patch_size, stride, padding
 
 
 def run(
@@ -108,7 +109,7 @@ def run(
     overwrite,
     mps_mode,
 ):
-    device, transform, input_shape, patch_size, stride = setup_inference(
+    device, transform, input_shape, patch_size, stride, padding = setup_inference(
         input, out, gpu, patch_size, padding, overwrite, mps_mode
     )
 
@@ -125,7 +126,10 @@ def run(
 
     if mps_mode:
         up_sample = K.Resize(
-            (patch_size * resize_factor, patch_size * resize_factor)
+            (
+                patch_size * resize_factor,
+                patch_size * resize_factor,
+            )
         ).to("cpu")
         down_sample = (
             K.Resize((patch_size, patch_size), resample=Resample.NEAREST.name)
@@ -134,7 +138,10 @@ def run(
         )
     else:
         up_sample = K.Resize(
-            (patch_size * resize_factor, patch_size * resize_factor)
+            (
+                patch_size * resize_factor,
+                patch_size * resize_factor,
+            )
         ).to(device)
         down_sample = K.Resize(
             (patch_size, patch_size), resample=Resample.NEAREST.name
@@ -247,7 +254,7 @@ def run_instance_segmentation(
         "Model must be either DelineateAnything or DelineateAnything-S."
     )
 
-    device, _, _, patch_size, stride = setup_inference(
+    device, _, _, patch_size, stride, _ = setup_inference(
         input, out, gpu, patch_size, padding, overwrite, mps_mode
     )
 
@@ -290,7 +297,8 @@ def run_instance_segmentation(
             bboxes = batch["bbox"]
 
         # Convert instance predictions to polygons
-        for image, pred, bounds, crs in zip(images, predictions, bboxes, batch["crs"]):
+        crs = CRS.from_string(dataset.crs)
+        for image, pred, bounds in zip(images, predictions, bboxes):
             c, h, w = image.shape
             transform = from_bounds(
                 west=bounds.minx,
