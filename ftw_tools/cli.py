@@ -582,7 +582,8 @@ def inference_run(
 )
 @click.option(
     "--gpu",
-    type=int,
+    type=click.IntRange(min=0),
+    default=None,
     help="GPU ID to use. If not provided, CPU will be used by default.",
 )
 @click.option(
