@@ -658,7 +658,8 @@ def inference_run(
 )
 @click.option(
     "--max_size",
-    type=float,
+    "-sx",
+    type=click.FloatRange(min=0.0),
     default=None,
     show_default=True,
     help="Maximum area size in square meters to include in the output. Disabled by default.",
