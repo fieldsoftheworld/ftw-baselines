@@ -651,7 +651,8 @@ def inference_run(
 )
 @click.option(
     "--min_size",
-    type=float,
+    "-sn",
+    type=click.FloatRange(min=0.0),
     default=500,
     show_default=True,
     help="Minimum area size in square meters to include in the output. Set to 0 to disable.",
