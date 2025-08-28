@@ -601,7 +601,12 @@ def inference_run(
     help="Size of patch to use for inference. Defaults to 1024 unless the image is < 1024x1024px and a smaller value otherwise.",
 )
 @click.option(
-    "--batch_size", type=int, default=2, show_default=True, help="Batch size."
+    "--batch_size",
+    "-bs",
+    type=click.IntRange(min=1),
+    default=2,
+    show_default=True,
+    help="Batch size.",
 )
 @click.option(
     "--num_workers",
