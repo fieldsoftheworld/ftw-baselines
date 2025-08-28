@@ -716,7 +716,8 @@ def inference_run(
     "--model",
     "-m",
     type=click.Choice(["DelineateAnything", "DelineateAnything-S"]),
-    required=True,
+    default="DelineateAnything-S",
+    show_default=True,
     help="The model to use for inference.",
 )
 @click.option(
@@ -744,8 +745,8 @@ def inference_run(
     "--patch_size",
     "-ps",
     type=click.IntRange(min=128),
-    default=None,
-    help="Size of patch to use for inference. Defaults to 1024 unless the image is < 1024x1024px and a smaller value otherwise.",
+    default=256,
+    help="Size of patch to use for inference.",
 )
 @click.option(
     "--batch_size",
@@ -758,7 +759,7 @@ def inference_run(
 @click.option(
     "--num_workers",
     type=click.IntRange(min=1),
-    default=4,
+    default=2,
     show_default=True,
     help="Number of workers to use for inference.",
 )
@@ -820,7 +821,7 @@ def inference_run(
     "--min_size",
     "-sn",
     type=click.FloatRange(min=0.0),
-    default=500,
+    default=100,
     show_default=True,
     help="Minimum area size in square meters to include in the output. Set to 0 to disable.",
 )
@@ -893,7 +894,7 @@ def inference_run_instance_segmentation(
     type=str,
     default=None,
     help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'",
-    required=True,
+    callback=parse_bbox,
 )
 @click.option(
     "--out_dir",
@@ -904,8 +905,9 @@ def inference_run_instance_segmentation(
 )
 @click.option(
     "--stac_host",
+    "-h",
     type=click.Choice(["mspc", "earthsearch"]),
-    default="earthsearch",
+    default="mspc",
     show_default=True,
     help="The host to download the imagery from. mspc = Microsoft Planetary Computer, earthsearch = EarthSearch (Element84/AWS).",
 )
@@ -913,87 +915,111 @@ def inference_run_instance_segmentation(
     "--model",
     "-m",
     type=click.Choice(["DelineateAnything", "DelineateAnything-S"]),
-    required=True,
+    default="DelineateAnything-S",
+    show_default=True,
     help="The model to use for inference.",
 )
 @click.option(
     "--gpu",
-    type=int,
+    type=click.IntRange(min=0),
+    default=None,
     help="GPU ID to use. If not provided, CPU will be used by default.",
 )
 @click.option(
     "--image_size",
-    type=int,
+    type=click.IntRange(min=1),
     default=320,
     show_default=True,
     help="Image size to use for inference.",
 )
 @click.option(
     "--patch_size",
-    type=int,
-    default=None,
-    help="Size of patch to use for inference. Defaults to 1024 unless the image is < 1024x1024px.",
+    "-ps",
+    type=click.IntRange(min=128),
+    default=256,
+    help="Size of patch to use for inference.",
 )
 @click.option(
-    "--batch_size", type=int, default=2, show_default=True, help="Batch size."
+    "--batch_size",
+    "-bs",
+    type=click.IntRange(min=1),
+    default=2,
+    show_default=True,
+    help="Batch size.",
 )
 @click.option(
     "--num_workers",
-    type=int,
+    type=click.IntRange(min=1),
     default=2,
     show_default=True,
     help="Number of workers to use for inference.",
 )
 @click.option(
     "--max_detections",
-    type=int,
+    type=click.IntRange(min=1),
     default=50,
     show_default=True,
     help="Maximum number of detections to keep.",
 )
 @click.option(
     "--iou_threshold",
-    type=float,
-    default=0.6,
+    "-iou",
+    type=click.FloatRange(min=0.0, max=1.0),
+    default=0.5,
     show_default=True,
-    help="IoU threshold for matching detections to ground truths.",
+    help="IoU threshold for matching predictions to ground truths",
 )
 @click.option(
     "--conf_threshold",
-    type=float,
+    "-ct",
+    type=click.FloatRange(min=0.0, max=1.0),
     default=0.1,
     show_default=True,
     help="Confidence threshold for keeping detections.",
 )
 @click.option(
     "--padding",
-    type=int,
+    "-p",
+    type=click.IntRange(min=0),
     default=None,
     help="Pixels to discard from each side of the patch.",
 )
 @click.option(
-    "--overwrite", "-f", is_flag=True, help="Overwrite outputs if they exist."
+    "--overwrite",
+    "-f",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Overwrites the outputs if they exist",
 )
 @click.option(
-    "--mps_mode", is_flag=True, help="Run inference in MPS mode (Apple GPUs)."
+    "--mps_mode",
+    "-mps",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Run inference in MPS mode (Apple GPUs).",
 )
 @click.option(
     "--simplify",
-    type=float,
+    "-s",
+    type=click.FloatRange(min=0.0),
     default=15,
     show_default=True,
     help="Simplification factor to use when polygonizing in the unit of the CRS, e.g. meters for Sentinel-2 imagery in UTM. Set to 0 to disable simplification.",
 )
 @click.option(
     "--min_size",
-    type=float,
-    default=500,
+    "-sn",
+    type=click.FloatRange(min=0.0),
+    default=100,
     show_default=True,
     help="Minimum area size in square meters to include in the output. Set to 0 to disable.",
 )
 @click.option(
     "--max_size",
-    type=float,
+    "-sx",
+    type=click.FloatRange(min=0.0),
     default=None,
     show_default=True,
     help="Maximum area size in square meters to include in the output. Disabled by default.",
@@ -1001,6 +1027,8 @@ def inference_run_instance_segmentation(
 @click.option(
     "--close_interiors",
     is_flag=True,
+    default=False,
+    show_default=True,
     help="Remove the interiors holes in the polygons.",
 )
 def ftw_inference_instance_segmentation_all(

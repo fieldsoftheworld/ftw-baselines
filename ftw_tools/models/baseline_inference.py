@@ -297,8 +297,7 @@ def run_instance_segmentation(
             bboxes = batch["bbox"]
 
         # Convert instance predictions to polygons
-        crs = CRS.from_string(dataset.crs)
-        for image, pred, bounds in zip(images, predictions, bboxes):
+        for image, pred, bounds, crs in zip(images, predictions, bboxes, batch["crs"]):
             c, h, w = image.shape
             transform = from_bounds(
                 west=bounds.minx,
@@ -317,6 +316,10 @@ def run_instance_segmentation(
     with rasterio.open(input) as src:
         timestamp = src.tags().get("TIFFTAG_DATETIME", None)
 
+    polygons = postprocess_instance_polygons(
+        polygons, simplify, min_size, max_size, close_interiors
+    )
+
     polygons = convert_to_fiboa(
         polygons, out, timestamp, simplify, min_size, max_size, close_interiors
     )
@@ -324,20 +327,17 @@ def run_instance_segmentation(
     print(f"Finished inference and saved output to {out} in {time.time() - tic:.2f}s")
 
 
-def convert_to_fiboa(
+def postprocess_instance_polygons(
     polygons: gpd.GeoDataFrame,
-    output: str,
-    timestamp: str | None,
     simplify: int = 0,
     min_size: int | None = None,
     max_size: int | None = None,
     close_interiors: bool = True,
 ) -> gpd.GeoDataFrame:
-    """Convert polygons to fiboa format."""
+    """Postprocess polygons to remove small polygons, simplify them, and compute area and perimeter."""
     src_crs = polygons.crs
     polygons.to_crs("EPSG:6933", inplace=True)
 
-    # Filter polygons
     if close_interiors:
         polygons.geometry = polygons.geometry.exterior
         polygons.geometry = polygons.geometry.apply(
@@ -355,13 +355,24 @@ def convert_to_fiboa(
     if max_size is not None:
         polygons = polygons[polygons["area"] <= max_size]
 
-    polygons.reset_index(drop=True, inplace=True)
-    polygons["id"] = polygons.index + 1
-
     # Convert to hectares
     polygons["area"] = polygons["area"] * 0.0001
 
-    # Fiboa specific formatting
+    # Convert back to original CRS
+    polygons.to_crs(src_crs, inplace=True)
+
+    polygons.reset_index(drop=True, inplace=True)
+    polygons["id"] = polygons.index + 1
+
+    return polygons
+
+
+def convert_to_fiboa(
+    polygons: gpd.GeoDataFrame,
+    output: str,
+    timestamp: str | None,
+) -> gpd.GeoDataFrame:
+    """Convert polygons to fiboa format."""
     polygons["determination_method"] = "auto-imagery"
 
     config = collection = {"fiboa_version": "0.2.0"}
@@ -378,10 +389,6 @@ def convert_to_fiboa(
         else:
             print("WARNING: Unable to parse timestamp from TIFFTAG_DATETIME tag.")
 
-    # Convert back to original CRS
-    polygons.to_crs(src_crs, inplace=True)
-
-    # Create parquet
     create_parquet(polygons, columns, collection, output, config, compression="brotli")
 
     return polygons
