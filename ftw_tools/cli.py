@@ -655,7 +655,12 @@ def inference_run(
     help="Overwrites the outputs if they exist",
 )
 @click.option(
-    "--mps_mode", is_flag=True, help="Run inference in MPS mode (Apple GPUs)."
+    "--mps_mode",
+    "-mps",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Run inference in MPS mode (Apple GPUs).",
 )
 @click.option(
     "--simplify",
