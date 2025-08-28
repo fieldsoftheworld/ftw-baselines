@@ -643,7 +643,8 @@ def inference_run(
 )
 @click.option(
     "--simplify",
-    type=float,
+    "-s",
+    type=click.FloatRange(min=0.0),
     default=15,
     show_default=True,
     help="Simplification factor to use when polygonizing in the unit of the CRS, e.g. meters for Sentinel-2 imagery in UTM. Set to 0 to disable simplification.",
