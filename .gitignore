@@ -6,6 +6,7 @@ submission/
 results/
 logs_old/
 build/
+weights/
 inference_imagery/
 ftw_tools.egg-info/
 *.ckpt
@@ -16,4 +17,6 @@ ftw_tools.egg-info/
 /austria_example_output_full.gpkg
 /austria_example_output_full.tif
 /dist
-weights/
+/weights/
+/.ruff_cache/
+/.pixi/

@@ -14,6 +14,7 @@ from matplotlib.figure import Figure
 from torch import Tensor
 from torchgeo.datasets import NonGeoDataset, RasterDataset
 
+from ftw_tools.settings import ALL_COUNTRIES, TEMPORAL_OPTIONS
 from ftw_tools.utils import validate_checksums
 
 
@@ -34,34 +35,6 @@ class SingleRasterDataset(RasterDataset):
 
 
 class FTW(NonGeoDataset):
-    valid_countries = [
-        "austria",
-        "belgium",
-        "brazil",
-        "cambodia",
-        "corsica",
-        "croatia",
-        "denmark",
-        "estonia",
-        "finland",
-        "france",
-        "germany",
-        "india",
-        "kenya",
-        "latvia",
-        "lithuania",
-        "luxembourg",
-        "netherlands",
-        "portugal",
-        "rwanda",
-        "slovakia",
-        "slovenia",
-        "south_africa",
-        "spain",
-        "sweden",
-        "vietnam",
-    ]
-
     valid_splits = ["train", "val", "test"]
 
     def __init__(
@@ -96,12 +69,14 @@ class FTW(NonGeoDataset):
 
         if countries is None:
             raise ValueError("Please specify the countries to load the dataset from")
+        if temporal_options not in TEMPORAL_OPTIONS:
+            raise ValueError(f"Invalid temporal option {temporal_options}")
 
         if isinstance(countries, str):
             countries = [countries]
         countries = [country.lower() for country in countries]
         for country in countries:
-            assert country in self.valid_countries, f"Invalid country {country}"
+            assert country in ALL_COUNTRIES, f"Invalid country {country}"
 
         self.countries = countries
         assert split in self.valid_splits
@@ -200,7 +175,7 @@ class FTW(NonGeoDataset):
         Returns:
             True if the checksum matches, else False
         """
-        for country in self.valid_countries:
+        for country in ALL_COUNTRIES:
             print(f"Validating checksums for {country}")
             for checksum_file in [
                 "distances_checksums.md5",
@@ -224,7 +199,7 @@ class FTW(NonGeoDataset):
         """
 
         for country in self.countries:
-            if country not in self.valid_countries:
+            if country not in ALL_COUNTRIES:
                 print(f"Invalid country {country}")
                 return False
 

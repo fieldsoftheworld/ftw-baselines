@@ -1,16 +1,27 @@
+import datetime
 import enum
 import json
 import os
+from pathlib import Path
+from typing import Optional
 
 import click
 import wget
 
-from ftw_tools.download.download_img import scene_selection
-from ftw_tools.settings import ALL_COUNTRIES, SUPPORTED_POLY_FORMATS_TXT
+from ftw_tools.settings import (
+    ALL_COUNTRIES,
+    LULC_COLLECTIONS,
+    SUPPORTED_POLY_FORMATS_TXT,
+    TEMPORAL_OPTIONS,
+)
+from ftw_tools.utils import parse_bbox
 
 # Imports are in the functions below to speed-up CLI startup time
 # Some of the ML related imports (presumable torch) are very slow
 # See https://github.com/fieldsoftheworld/ftw-baselines/issues/40
+
+COUNTRIES_CHOICE = ALL_COUNTRIES.copy()
+COUNTRIES_CHOICE.append("all")
 
 
 class ModelVersions(enum.StrEnum):
@@ -20,6 +31,10 @@ class ModelVersions(enum.StrEnum):
     TWO_CLASS_FULL = "2_Class_FULL_FTW_Pretrained.ckpt"
     THREE_CLASS_CCBY = "3_Class_CCBY_FTW_Pretrained.ckpt"
     THREE_CLASS_FULL = "3_Class_FULL_FTW_Pretrained.ckpt"
+
+
+# All commands are meant to use dashes as separator for words.
+# All parameters are meant to use underscores as separator for words.
 
 
 @click.group()
@@ -41,26 +56,33 @@ def data():
 @click.option(
     "--out",
     "-o",
-    type=str,
+    type=click.Path(exists=False),
     default="./data",
-    help="Folder where the files will be downloaded to. Defaults to './data'.",
+    show_default=True,
+    help="Folder where the files will be downloaded to.",
 )
 @click.option(
     "--clean_download",
+    "--clean",
     "-f",
     is_flag=True,
-    help="If set, the script will delete the root folder before downloading.",
+    default=False,
+    show_default=True,
+    help="If set, the script will delete the folder before downloading.",
 )
 @click.option(
     "--countries",
-    type=str,
+    type=click.Choice(COUNTRIES_CHOICE, case_sensitive=False),
     default="all",
-    help="Comma-separated list of countries to download. If 'all' (default) is passed, downloads all available countries. Available countries: "
-    + ", ".join(ALL_COUNTRIES),
+    show_default=True,
+    help="Comma-separated list of countries to download. The default value 'all' downloads all available countries.",
 )
 @click.option(
-    "--no-unpack",
+    "--no-unpack",  # deprecated
+    "--no_unpack",
     is_flag=True,
+    default=False,
+    show_default=True,
     help="If set, the script will NOT unpack the downloaded files.",
 )
 def data_download(out, clean_download, countries, no_unpack):
@@ -74,9 +96,14 @@ def data_download(out, clean_download, countries, no_unpack):
 
 @data.command(
     "unpack",
-    help="Unpack the downloaded FTW dataset. Specify the folder where the data is located via INPUT. Defaults to './data'.",
+    help="Unpack the downloaded FTW dataset. Specify the folder where the data is located via INPUT, which defaults to './data'.",
 )
-@click.argument("input", type=str, default="./data")
+@click.argument(
+    "input",
+    type=click.Path(exists=True, dir_okay=True, file_okay=False),
+    default="./data",
+    required=False,
+)
 def data_unpack(input):
     from ftw_tools.download.unpack import unpack
 
@@ -97,12 +124,15 @@ def model():
     "--config",
     "-c",
     required=True,
-    type=click.Path(exists=True),
-    help="Path to the config file (required)",
+    type=click.Path(exists=True, dir_okay=False),
+    help="Path to the config file",
 )
 @click.option(
     "--ckpt_path",
-    type=click.Path(exists=True),
+    "-m",
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    show_default=True,
     help="Path to a checkpoint file to resume training from",
 )
 @click.argument(
@@ -115,59 +145,94 @@ def model_fit(config, ckpt_path, cli_args):
 
 
 @model.command("test", help="Test the model")
-@click.option("--model", "-m", required=True, type=str, help="Path to model checkpoint")
-@click.option("--dir", type=str, default="data/ftw", help="Directory of dataset")
-@click.option("--gpu", type=int, default=0, help="GPU to use")
+@click.option(
+    "--model",
+    "-m",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Path to model checkpoint",
+)
 @click.option(
     "--countries",
-    type=str,
+    "-c",
+    type=click.Choice(COUNTRIES_CHOICE, case_sensitive=False),
     multiple=True,
     required=True,
     help="Countries to evaluate on",
 )
 @click.option(
-    "--postprocess", is_flag=True, help="Apply postprocessing to the model output"
+    "--dir",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+    default="./data/ftw",
+    show_default=True,
+    help="Directory of the FTW dataset",
+)
+@click.option(
+    "--gpu",
+    type=int,
+    default=0,
+    show_default=True,
+    help="GPU to use, zero-based index. Set to -1 to use CPU. CPU is also always used if CUDA is not available.",
+)
+@click.option(
+    "--postprocess",
+    "-pp",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Apply postprocessing to the model output",
 )
 @click.option(
     "--iou_threshold",
-    type=float,
+    "-iou",
+    type=click.FloatRange(min=0.0, max=1.0),
     default=0.5,
+    show_default=True,
     help="IoU threshold for matching predictions to ground truths",
 )
 @click.option(
-    "--out", "-o", type=str, default="metrics.json", help="Output file for metrics"
+    "--out",
+    "-o",
+    type=click.Path(exists=False),
+    default="metrics.json",
+    show_default=True,
+    help="Output file for metrics",
 )
 @click.option(
     "--model_predicts_3_classes",
+    "-p3",
     is_flag=True,
-    help="Whether the model predicts 3 classes or 2 classes",
+    default=False,
+    show_default=True,
+    help="Whether the model predicts 3 classes or 2 classes (default)",
 )
 @click.option(
     "--test_on_3_classes",
+    "-t3",
     is_flag=True,
-    help="Whether to test on 3 classes or 2 classes",
+    default=False,
+    show_default=True,
+    help="Whether to test on 3 classes or 2 classes (default)",
 )
 @click.option(
     "--temporal_options",
-    type=str,
+    "-t",
+    type=click.Choice(TEMPORAL_OPTIONS),
     default="stacked",
-    help="Temporal option (stacked, windowA, windowB, etc.)",
+    show_default=True,
+    help="Temporal option",
 )
-@click.argument(
-    "cli_args", nargs=-1, type=click.UNPROCESSED
-)  # Capture all remaining arguments
 def model_test(
     model,
+    countries,
     dir,
     gpu,
-    countries,
     postprocess,
     iou_threshold,
     out,
     model_predicts_3_classes,
     test_on_3_classes,
     temporal_options,
-    cli_args,
 ):
     from ftw_tools.models.baseline_eval import test
 
@@ -182,7 +247,6 @@ def model_test(
         model_predicts_3_classes,
         test_on_3_classes,
         temporal_options,
-        cli_args,
     )
 
 
@@ -193,15 +257,29 @@ def model_test(
     required=True,
     help="Short model name corresponding to a .ckpt file in github.",
 )
-def model_download(type: ModelVersions):
+@click.option(
+    "--out",
+    "-o",
+    type=click.Path(exists=False),
+    default=None,
+    show_default=True,
+    help="File where the file will be stored to. Defaults to the original filename of the selected model.",
+)
+def model_download(type: ModelVersions, out: Optional[str] = None):
     github_url = f"https://github.com/fieldsoftheworld/ftw-baselines/releases/download/v1/{type.value}"
-    print(f"Downloading {github_url} to {type.value}")
-    wget.download(github_url)
+    target = Path(out or type.value)
+    if target.exists():
+        print(f"File {target} already exists, skipping download.")
+        return
+
+    print(f"Downloading {github_url} to {target}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    wget.download(github_url, str(target.resolve()))
 
 
 ### Inference group
 
-WIN_HELP = "URL to or Microsoft Planetary Computer ID of an Sentinel-2 L2A STAC item for the window {x} image"
+WIN_HELP = "URL to a Sentinel-2 L2A STAC item for the window {x} image. Alternatively, an ID of a STAC Item on Microsoft Planetary Computer."
 
 
 @ftw.group()
@@ -211,42 +289,16 @@ def inference():
 
 
 @inference.command(
-    "ftw-inference-all",
+    "all",
     help="Run all inference commands from crop calendar scene selection,"
     "then download, inference and polygonize.",
 )
 @click.option(
-    "--bbox",
-    type=str,
-    default=None,
-    help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'",
-    required=True,
-)
-@click.option(
-    "--year", type=int, required=True, help="Year to run model inference over"
-)
-@click.option(
-    "--cloud_cover_max",
-    type=int,
-    default=20,
-    help="Max percent cloud cover in sentinel2 scene",
-)
-@click.option(
-    "--buffer_days",
-    type=int,
-    default=14,
-    help="Number of days to buffer the date for querying to help balance decreasing cloud cover "
-    "and selecting a date near the crop calendar indicated date.",
-)
-@click.option(
-    "--out_dir",
+    "--out",
     "-o",
-    type=str,
+    type=click.Path(exists=False),
     required=True,
     help="Directory to save downloaded inference imagery, and inference output to",
-)
-@click.option(
-    "--overwrite", "-f", is_flag=True, help="Overwrites the outputs if they exist"
 )
 @click.option(
     "--model",
@@ -256,8 +308,47 @@ def inference():
     help="Path to the model checkpoint.",
 )
 @click.option(
+    "--year",
+    type=click.IntRange(min=2015, max=datetime.date.today().year),
+    required=True,
+    help="Year to run model inference over",
+)
+@click.option(
+    "--bbox",
+    type=str,
+    default=None,
+    help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'",
+    callback=parse_bbox,
+)
+@click.option(
+    "--cloud_cover_max",
+    "-ccx",
+    type=click.IntRange(min=0, max=100),
+    default=20,
+    show_default=True,
+    help="Maximum percentage of cloud cover allowed in the Sentinel-2 scene",
+)
+@click.option(
+    "--buffer_days",
+    "-b",
+    type=click.IntRange(min=0),
+    default=14,
+    show_default=True,
+    help="Number of days to buffer the date for querying to help balance decreasing cloud cover "
+    "and selecting a date near the crop calendar indicated date.",
+)
+@click.option(
+    "--overwrite",
+    "-f",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Overwrites the outputs if they exist",
+)
+@click.option(
     "--resize_factor",
-    type=int,
+    "-r",
+    type=click.IntRange(min=1),
     default=2,
     show_default=True,
     help="Resize factor to use for inference.",
@@ -265,16 +356,24 @@ def inference():
 @click.option(
     "--gpu",
     type=int,
-    help="GPU ID to use. If not provided, CPU will be used by default.",
+    default=-1,
+    show_default=True,
+    help="GPU to use, zero-based index. Set to -1 to use CPU. CPU is also always used if CUDA or MPS is not available.",
 )
 @click.option(
     "--patch_size",
-    type=int,
+    "-ps",
+    type=click.IntRange(min=128),
     default=None,
-    help="Size of patch to use for inference. Defaults to 1024 unless the image is < 1024x1024px.",
+    help="Size of patch to use for inference. Defaults to 1024 unless the image is < 1024x1024px and a smaller value otherwise.",
 )
 @click.option(
-    "--batch_size", type=int, default=2, show_default=True, help="Batch size."
+    "--batch_size",
+    "-bs",
+    type=click.IntRange(min=1),
+    default=2,
+    show_default=True,
+    help="Batch size.",
 )
 @click.option(
     "--num_workers",
@@ -285,28 +384,35 @@ def inference():
 )
 @click.option(
     "--padding",
-    type=int,
+    "-p",
+    type=click.IntRange(min=0),
     default=None,
-    help="Pixels to discard from each side of the patch.",
+    help="Pixels to discard from each side of the patch. Defaults to 64 unless the image is < 1024x1024px and a smaller value otherwise.",
 )
 @click.option(
-    "--mps_mode", is_flag=True, help="Run inference in MPS mode (Apple GPUs)."
+    "--mps_mode",
+    "-mps",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Run inference in MPS mode (Apple GPUs).",
 )
 @click.option(
     "--stac_host",
+    "-h",
     type=click.Choice(["mspc", "earthsearch"]),
-    default="earthsearch",
+    default="mspc",
     show_default=True,
     help="The host to download the imagery from. mspc = Microsoft Planetary Computer, earthsearch = EarthSearch (Element84/AWS).",
 )
 def ftw_inference_all(
-    bbox,
+    out,
+    model,
     year,
+    bbox,
     cloud_cover_max,
     buffer_days,
-    out_dir,
     overwrite,
-    model,
     resize_factor,
     gpu,
     patch_size,
@@ -321,20 +427,19 @@ def ftw_inference_all(
     from ftw_tools.models.baseline_inference import run
     from ftw_tools.postprocess.polygonize import polygonize
 
-    bbox_formatted = [float(x) for x in bbox.split(",")]
-
     # Ensure output directory exists
-    if not os.path.exists(out_dir):
-        os.makedirs(out_dir)
+    if not os.path.exists(out):
+        os.makedirs(out)
 
     # Set output paths
-    inference_data = os.path.join(out_dir, "inference_data.tif")
-    inf_output_path = os.path.join(out_dir, "inference_output.tif")
+    inference_data = os.path.join(out, "inference_data.tif")
+    inf_output_path = os.path.join(out, "inference_output.tif")
 
     # Scene selection
     win_a, win_b = scene_selection(
-        bbox=bbox_formatted,
+        bbox=bbox,
         year=year,
+        stac_host=stac_host,
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
     )
@@ -367,55 +472,67 @@ def ftw_inference_all(
     # Polygonize the output
     polygonize(
         input=inf_output_path,
-        out=f"{out_dir}/polygons.parquet",
-        simplify=True,
-        min_size=15,
-        max_size=500,
+        out=f"{out}/polygons.parquet",
         overwrite=overwrite,
-        close_interiors=True,
     )
 
 
 @inference.command(
-    "scene_selection", help="Select Sentinel-2 scenes for inference with crop calendar"
+    "scene-selection", help="Select Sentinel-2 scenes for inference with crop calendar"
+)
+@click.option(
+    "--year",
+    type=click.IntRange(min=2015, max=datetime.date.today().year),
+    required=True,
+    help="Year to run model inference over",
 )
 @click.option(
     "--bbox",
     type=str,
     default=None,
     help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'",
-)
-@click.option(
-    "--year", type=int, required=True, help="Year to run model inference over"
+    callback=parse_bbox,
 )
 @click.option(
     "--cloud_cover_max",
-    type=int,
+    "-ccx",
+    type=click.IntRange(min=0, max=100),
     default=20,
-    help="Max percent cloud cover in sentinel2 scene",
+    show_default=True,
+    help="Maximum percentage of cloud cover allowed in the Sentinel-2 scene",
 )
 @click.option(
     "--buffer_days",
-    type=int,
+    "-b",
+    type=click.IntRange(min=0),
     default=14,
+    show_default=True,
     help="Number of days to buffer the date for querying to help balance decreasing cloud cover "
     "and selecting a date near the crop calendar indicated date.",
 )
 @click.option(
     "--out",
     "-o",
-    type=str,
+    type=click.Path(exists=False),
     default=None,
     help="Output JSON file to save the scene selection results. If not provided, prints to stdout.",
 )
-def scene_selection(year, cloud_cover_max, bbox, buffer_days, out):
+@click.option(
+    "--stac_host",
+    "-h",
+    type=click.Choice(["mspc", "earthsearch"]),
+    default="mspc",
+    show_default=True,
+    help="The host to download the imagery from. mspc = Microsoft Planetary Computer, earthsearch = EarthSearch (Element84/AWS).",
+)
+def scene_selection(year, bbox, cloud_cover_max, buffer_days, out, stac_host):
     """Download Sentinel-2 scenes for inference."""
     from ftw_tools.download.download_img import scene_selection
 
-    bbox_formatted = [float(x) for x in bbox.split(",")]
     win_a, win_b = scene_selection(
-        bbox=bbox_formatted,
+        bbox=bbox,
         year=year,
+        stac_host=stac_host,
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
     )
@@ -436,19 +553,29 @@ def scene_selection(year, cloud_cover_max, bbox, buffer_days, out):
     "download",
     help="Download 2 Sentinel-2 scenes & stack them in a single file for inference.",
 )
-@click.option("--win_a", type=str, required=True, help=WIN_HELP.format(x="A"))
-@click.option("--win_b", type=str, default=None, help=WIN_HELP.format(x="B"))
+@click.option("--win_a", "-a", type=str, required=True, help=WIN_HELP.format(x="A"))
+@click.option("--win_b", "-b", type=str, default=None, help=WIN_HELP.format(x="B"))
 @click.option(
-    "--out", "-o", type=str, required=True, help="Filename to save results to"
+    "--out",
+    "-o",
+    type=click.Path(exists=False),
+    required=True,
+    help="Filename to save results to",
 )
 @click.option(
-    "--overwrite", "-f", is_flag=True, help="Overwrites the outputs if they exist"
+    "--overwrite",
+    "-f",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Overwrites the outputs if they exist",
 )
 @click.option(
     "--bbox",
     type=str,
     default=None,
     help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'",
+    callback=parse_bbox,
 )
 @click.option(
     "--stac_host",
@@ -486,13 +613,14 @@ def inference_download(win_a, win_b, out, overwrite, bbox, stac_host):
 @click.option(
     "--out",
     "-o",
-    type=str,
+    type=click.Path(exists=False),
     default=None,
     help="Output filename for the inference imagery. Defaults to the name of the input file name with 'inference.' prefix.",
 )
 @click.option(
     "--resize_factor",
-    type=int,
+    "-r",
+    type=click.IntRange(min=1),
     default=2,
     show_default=True,
     help="Resize factor to use for inference.",
@@ -500,16 +628,24 @@ def inference_download(win_a, win_b, out, overwrite, bbox, stac_host):
 @click.option(
     "--gpu",
     type=int,
-    help="GPU ID to use. If not provided, CPU will be used by default.",
+    default=-1,
+    show_default=True,
+    help="GPU to use, zero-based index. Set to -1 to use CPU. CPU is also always used if CUDA or MPS is not available.",
 )
 @click.option(
     "--patch_size",
-    type=int,
+    "-ps",
+    type=click.IntRange(min=128),
     default=None,
-    help="Size of patch to use for inference. Defaults to 1024 unless the image is < 1024x1024px.",
+    help="Size of patch to use for inference. Defaults to 1024 unless the image is < 1024x1024px and a smaller value otherwise.",
 )
 @click.option(
-    "--batch_size", type=int, default=2, show_default=True, help="Batch size."
+    "--batch_size",
+    "-bs",
+    type=click.IntRange(min=1),
+    default=2,
+    show_default=True,
+    help="Batch size.",
 )
 @click.option(
     "--num_workers",
@@ -520,15 +656,26 @@ def inference_download(win_a, win_b, out, overwrite, bbox, stac_host):
 )
 @click.option(
     "--padding",
-    type=int,
+    "-p",
+    type=click.IntRange(min=0),
     default=None,
-    help="Pixels to discard from each side of the patch.",
+    help="Pixels to discard from each side of the patch. Defaults to 64 unless the image is < 1024x1024px and a smaller value otherwise.",
 )
 @click.option(
-    "--overwrite", "-f", is_flag=True, help="Overwrite outputs if they exist."
+    "--overwrite",
+    "-f",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Overwrite outputs if they exist.",
 )
 @click.option(
-    "--mps_mode", is_flag=True, help="Run inference in MPS mode (Apple GPUs)."
+    "--mps_mode",
+    "-mps",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Run inference in MPS mode (Apple GPUs).",
 )
 def inference_run(
     input,
@@ -932,38 +1079,48 @@ def ftw_inference_instance_segmentation_all(
 @click.option(
     "--out",
     "-o",
-    type=str,
+    type=click.Path(exists=False),
     default=None,
-    help="Output filename for the polygonized data. Defaults to the name of the input file with parquet extension. "
+    help="Output filename for the polygonized data. Defaults to the name of the input file with '.parquet' file extension. "
     + SUPPORTED_POLY_FORMATS_TXT,
 )
 @click.option(
     "--simplify",
-    type=float,
+    "-s",
+    type=click.FloatRange(min=0.0),
     default=15,
     show_default=True,
     help="Simplification factor to use when polygonizing in the unit of the CRS, e.g. meters for Sentinel-2 imagery in UTM. Set to 0 to disable simplification.",
 )
 @click.option(
     "--min_size",
-    type=float,
+    "-sn",
+    type=click.FloatRange(min=0.0),
     default=500,
     show_default=True,
     help="Minimum area size in square meters to include in the output. Set to 0 to disable.",
 )
 @click.option(
     "--max_size",
-    type=float,
+    "-sx",
+    type=click.FloatRange(min=0.0),
     default=None,
     show_default=True,
     help="Maximum area size in square meters to include in the output. Disabled by default.",
 )
 @click.option(
-    "--overwrite", "-f", is_flag=True, help="Overwrite outputs if they exist."
+    "--overwrite",
+    "-f",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Overwrite output if it exists.",
 )
 @click.option(
     "--close_interiors",
     is_flag=True,
+    default=False,
+    show_default=True,
     help="Remove the interiors holes in the polygons.",
 )
 def inference_polygonize(
@@ -975,29 +1132,40 @@ def inference_polygonize(
 
 
 @inference.command(
-    "filter_by_lulc", help="Filter the output raster in GeoTIFF format by LULC mask."
+    "filter-by-lulc",
+    help="Filter the output raster in GeoTIFF format by LULC mask.",
 )
 @click.argument("input", type=click.Path(exists=True), required=True)
 @click.option(
     "--out",
     "-o",
-    type=str,
+    type=click.Path(exists=False),
     default=None,
-    help="Output filename for the (filtered) polygonized data. Defaults to the name of the input file with parquet extension. "
+    help="Output filename for the (filtered) polygonized data. Defaults to the name of the input file with '.parquet' file extension. "
     + SUPPORTED_POLY_FORMATS_TXT,
 )
 @click.option(
-    "--overwrite", "-f", is_flag=True, help="Overwrite outputs if they exist."
+    "--overwrite",
+    "-f",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Overwrite output if it exists.",
 )
 @click.option(
     "--collection_name",
-    type=str,
+    "-c",
+    type=click.Choice(LULC_COLLECTIONS),
     default="io-lulc-annual-v02",
-    help="Name of the LULC collection to use. Available collections: io-lulc-annual-v02 (default) and esa-worldcover",
+    show_default=True,
+    help="Name of the LULC collection to use.",
 )
 @click.option(
     "--save_lulc_tif",
+    "-tiff",
     is_flag=True,
+    default=False,
+    show_default=True,
     help="Save the LULC mask as a GeoTIFF.",
 )
 def inference_lulc_filtering(input, out, overwrite, collection_name, save_lulc_tif):

@@ -2,6 +2,7 @@ import hashlib
 import logging
 import os
 
+import click
 import pandas as pd
 import scipy
 import scipy.stats
@@ -66,7 +67,7 @@ def harvest_to_datetime(harvest_day: int, year: int) -> pd.Timestamp:
 
 # to-do func to get harvest integer from user provided bbox
 def get_harvest_integer_from_bbox(
-    bbox: list[int],
+    bbox: list[float],
     start_year_raster_path: str = SUMMER_START_RASTER_PATH,
     end_year_raster_path: str = SUMMER_END_RASTER_PATH,
 ) -> list[int]:
@@ -111,3 +112,21 @@ def get_harvest_integer_from_bbox(
         end_value = int(end_value["band_data"].values[0][0][0])
 
     return [start_value, end_value]
+
+
+def parse_bbox(ctx, param, value):
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise click.BadParameter("Bounding box must be a string")
+    values = value.split(",")
+    if len(values) != 4:
+        raise click.BadParameter("Bounding box must contain exactly 4 values")
+    for i, v in enumerate(values):
+        try:
+            values[i] = float(v)
+        except ValueError:
+            raise click.BadParameter(
+                f"Invalid value for element {i} in bounding box: {v}"
+            )
+    return values
