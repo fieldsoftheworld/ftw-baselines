@@ -645,8 +645,14 @@ def inference_run(
     default=None,
     help="Pixels to discard from each side of the patch.",
 )
+
 @click.option(
-    "--overwrite", "-f", is_flag=True, help="Overwrite outputs if they exist."
+    "--overwrite",
+    "-f",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Overwrites the outputs if they exist",
 )
 @click.option(
     "--mps_mode", is_flag=True, help="Run inference in MPS mode (Apple GPUs)."
