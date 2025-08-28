@@ -624,10 +624,11 @@ def inference_run(
 )
 @click.option(
     "--iou_threshold",
-    type=float,
-    default=0.6,
+    "-iou",
+    type=click.FloatRange(min=0.0, max=1.0),
+    default=0.5,
     show_default=True,
-    help="IoU threshold for matching detections to ground truths.",
+    help="IoU threshold for matching predictions to ground truths",
 )
 @click.option(
     "--conf_threshold",
