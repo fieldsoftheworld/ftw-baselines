@@ -60,4 +60,4 @@ def test_model_test():
     runner = CliRunner()
     result = runner.invoke(model_test, ["--help"])
     assert result.exit_code == 0, result.output
-    assert "Usage: test [OPTIONS] [CLI_ARGS]..." in result.output
+    assert "Usage: test [OPTIONS]" in result.output

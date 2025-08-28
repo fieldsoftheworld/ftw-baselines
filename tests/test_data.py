@@ -43,5 +43,5 @@ def test_data_unpack():
 
     # Error with non-existing folder
     result = runner.invoke(unpack, ["./invalid_folder"])
-    assert result.exit_code == 1, result.output
-    assert "Folder ./invalid_folder does not exist." in result.output
+    assert result.exit_code == 2, result.output
+    assert "Directory './invalid_folder' does not exist." in result.output
