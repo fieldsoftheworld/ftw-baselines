@@ -233,7 +233,7 @@ class FTW(NonGeoDataset):
                 print(f"Country directory {country_dir} not found")
                 return False
 
-            chips_fns = list(Path(country_dir).glob(f"chips_*.parquet"))
+            chips_fns = list(Path(country_dir).glob("chips_*.parquet"))
             # boundaries_fns = list(Path(country_dir).glob(f"boundaries_*.parquet"))
             if len(chips_fns) != 1:
                 print(f"Country {country} does not have chips file")

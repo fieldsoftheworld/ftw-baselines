@@ -277,6 +277,13 @@ def inference():
     "--batch_size", type=int, default=2, show_default=True, help="Batch size."
 )
 @click.option(
+    "--num_workers",
+    type=int,
+    default=4,
+    show_default=True,
+    help="Number of workers to use for inference.",
+)
+@click.option(
     "--padding",
     type=int,
     default=None,
@@ -304,6 +311,7 @@ def ftw_inference_all(
     gpu,
     patch_size,
     batch_size,
+    num_workers,
     padding,
     mps_mode,
     stac_host,
@@ -350,6 +358,7 @@ def ftw_inference_all(
         gpu=gpu,
         patch_size=patch_size,
         batch_size=batch_size,
+        num_workers=num_workers,
         padding=padding,
         overwrite=overwrite,
         mps_mode=mps_mode,
@@ -503,6 +512,13 @@ def inference_download(win_a, win_b, out, overwrite, bbox, stac_host):
     "--batch_size", type=int, default=2, show_default=True, help="Batch size."
 )
 @click.option(
+    "--num_workers",
+    type=int,
+    default=2,
+    show_default=True,
+    help="Number of workers to use for inference.",
+)
+@click.option(
     "--padding",
     type=int,
     default=None,
@@ -522,6 +538,7 @@ def inference_run(
     gpu,
     patch_size,
     batch_size,
+    num_workers,
     padding,
     overwrite,
     mps_mode,
@@ -536,9 +553,348 @@ def inference_run(
         gpu,
         patch_size,
         batch_size,
+        num_workers,
         padding,
         overwrite,
         mps_mode,
+    )
+
+
+@inference.command(
+    "run-instance-segmentation",
+    help="Run an instance segmentation model inference on a single Sentinel-2 L2A satellite images specified via INPUT.",
+)
+@click.argument("input", type=click.Path(exists=True), required=True)
+@click.option(
+    "--model",
+    "-m",
+    type=click.Choice(["DelineateAnything", "DelineateAnything-S"]),
+    required=True,
+    help="The model to use for inference.",
+)
+@click.option(
+    "--out",
+    "-o",
+    type=str,
+    default=None,
+    help="Output filename for the polygonized data. Defaults to the name of the input file with parquet extension. "
+    + SUPPORTED_POLY_FORMATS_TXT,
+)
+@click.option(
+    "--gpu",
+    type=int,
+    help="GPU ID to use. If not provided, CPU will be used by default.",
+)
+@click.option(
+    "--image_size",
+    type=int,
+    default=320,
+    show_default=True,
+    help="Image size to use for inference.",
+)
+@click.option(
+    "--patch_size",
+    type=int,
+    default=None,
+    help="Size of patch to use for inference. Defaults to 1024 unless the image is < 1024x1024px.",
+)
+@click.option(
+    "--batch_size", type=int, default=2, show_default=True, help="Batch size."
+)
+@click.option(
+    "--num_workers",
+    type=int,
+    default=2,
+    show_default=True,
+    help="Number of workers to use for inference.",
+)
+@click.option(
+    "--max_detections",
+    type=int,
+    default=50,
+    show_default=True,
+    help="Maximum number of detections to keep.",
+)
+@click.option(
+    "--iou_threshold",
+    type=float,
+    default=0.6,
+    show_default=True,
+    help="IoU threshold for matching detections to ground truths.",
+)
+@click.option(
+    "--conf_threshold",
+    type=float,
+    default=0.1,
+    show_default=True,
+    help="Confidence threshold for keeping detections.",
+)
+@click.option(
+    "--padding",
+    type=int,
+    default=None,
+    help="Pixels to discard from each side of the patch.",
+)
+@click.option(
+    "--overwrite", "-f", is_flag=True, help="Overwrite outputs if they exist."
+)
+@click.option(
+    "--mps_mode", is_flag=True, help="Run inference in MPS mode (Apple GPUs)."
+)
+@click.option(
+    "--simplify",
+    type=float,
+    default=15,
+    show_default=True,
+    help="Simplification factor to use when polygonizing in the unit of the CRS, e.g. meters for Sentinel-2 imagery in UTM. Set to 0 to disable simplification.",
+)
+@click.option(
+    "--min_size",
+    type=float,
+    default=500,
+    show_default=True,
+    help="Minimum area size in square meters to include in the output. Set to 0 to disable.",
+)
+@click.option(
+    "--max_size",
+    type=float,
+    default=None,
+    show_default=True,
+    help="Maximum area size in square meters to include in the output. Disabled by default.",
+)
+@click.option(
+    "--close_interiors",
+    is_flag=True,
+    help="Remove the interiors holes in the polygons.",
+)
+def inference_run_instance_segmentation(
+    input,
+    model,
+    out,
+    gpu,
+    image_size,
+    patch_size,
+    batch_size,
+    num_workers,
+    max_detections,
+    iou_threshold,
+    conf_threshold,
+    padding,
+    overwrite,
+    mps_mode,
+    simplify,
+    min_size,
+    max_size,
+    close_interiors,
+):
+    from ftw_tools.models.baseline_inference import run_instance_segmentation
+
+    run_instance_segmentation(
+        input=input,
+        model=model,
+        out=out,
+        gpu=gpu,
+        num_workers=num_workers,
+        image_size=image_size,
+        patch_size=patch_size,
+        batch_size=batch_size,
+        max_detections=max_detections,
+        iou_threshold=iou_threshold,
+        conf_threshold=conf_threshold,
+        padding=padding,
+        overwrite=overwrite,
+        mps_mode=mps_mode,
+        simplify=simplify,
+        min_size=min_size,
+        max_size=max_size,
+        close_interiors=close_interiors,
+    )
+
+
+@inference.command(
+    "ftw-inference-instance-segmentation-all",
+    help="Run all inference instance segmentation commands from download and inference.",
+)
+@click.argument("input", type=str, required=True)
+@click.option(
+    "--bbox",
+    type=str,
+    default=None,
+    help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'",
+    required=True,
+)
+@click.option(
+    "--out_dir",
+    "-o",
+    type=str,
+    required=True,
+    help="Directory to save downloaded inference imagery, and inference output to",
+)
+@click.option(
+    "--stac_host",
+    type=click.Choice(["mspc", "earthsearch"]),
+    default="earthsearch",
+    show_default=True,
+    help="The host to download the imagery from. mspc = Microsoft Planetary Computer, earthsearch = EarthSearch (Element84/AWS).",
+)
+@click.option(
+    "--model",
+    "-m",
+    type=click.Choice(["DelineateAnything", "DelineateAnything-S"]),
+    required=True,
+    help="The model to use for inference.",
+)
+@click.option(
+    "--gpu",
+    type=int,
+    help="GPU ID to use. If not provided, CPU will be used by default.",
+)
+@click.option(
+    "--image_size",
+    type=int,
+    default=320,
+    show_default=True,
+    help="Image size to use for inference.",
+)
+@click.option(
+    "--patch_size",
+    type=int,
+    default=None,
+    help="Size of patch to use for inference. Defaults to 1024 unless the image is < 1024x1024px.",
+)
+@click.option(
+    "--batch_size", type=int, default=2, show_default=True, help="Batch size."
+)
+@click.option(
+    "--num_workers",
+    type=int,
+    default=2,
+    show_default=True,
+    help="Number of workers to use for inference.",
+)
+@click.option(
+    "--max_detections",
+    type=int,
+    default=50,
+    show_default=True,
+    help="Maximum number of detections to keep.",
+)
+@click.option(
+    "--iou_threshold",
+    type=float,
+    default=0.6,
+    show_default=True,
+    help="IoU threshold for matching detections to ground truths.",
+)
+@click.option(
+    "--conf_threshold",
+    type=float,
+    default=0.1,
+    show_default=True,
+    help="Confidence threshold for keeping detections.",
+)
+@click.option(
+    "--padding",
+    type=int,
+    default=None,
+    help="Pixels to discard from each side of the patch.",
+)
+@click.option(
+    "--overwrite", "-f", is_flag=True, help="Overwrite outputs if they exist."
+)
+@click.option(
+    "--mps_mode", is_flag=True, help="Run inference in MPS mode (Apple GPUs)."
+)
+@click.option(
+    "--simplify",
+    type=float,
+    default=15,
+    show_default=True,
+    help="Simplification factor to use when polygonizing in the unit of the CRS, e.g. meters for Sentinel-2 imagery in UTM. Set to 0 to disable simplification.",
+)
+@click.option(
+    "--min_size",
+    type=float,
+    default=500,
+    show_default=True,
+    help="Minimum area size in square meters to include in the output. Set to 0 to disable.",
+)
+@click.option(
+    "--max_size",
+    type=float,
+    default=None,
+    show_default=True,
+    help="Maximum area size in square meters to include in the output. Disabled by default.",
+)
+@click.option(
+    "--close_interiors",
+    is_flag=True,
+    help="Remove the interiors holes in the polygons.",
+)
+def ftw_inference_instance_segmentation_all(
+    input,
+    bbox,
+    out_dir,
+    stac_host,
+    model,
+    gpu,
+    image_size,
+    patch_size,
+    batch_size,
+    num_workers,
+    max_detections,
+    iou_threshold,
+    conf_threshold,
+    padding,
+    overwrite,
+    mps_mode,
+    simplify,
+    min_size,
+    max_size,
+    close_interiors,
+):
+    """Run all inference instance segmentation commands from download and inference."""
+    from ftw_tools.download.download_img import create_input
+    from ftw_tools.models.baseline_inference import run_instance_segmentation
+
+    # Ensure output directory exists
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
+    # Set output paths
+    inference_data = os.path.join(out_dir, "inference_data.tif")
+    inf_output_path = os.path.join(out_dir, "inference_output.parquet")
+
+    # Download imagery
+    create_input(
+        win_a=input,
+        win_b=None,
+        out=inference_data,
+        overwrite=overwrite,
+        bbox=bbox,
+        stac_host=stac_host,
+    )
+
+    # Run inference
+    run_instance_segmentation(
+        input=inference_data,
+        model=model,
+        out=inf_output_path,
+        gpu=gpu,
+        num_workers=num_workers,
+        image_size=image_size,
+        patch_size=patch_size,
+        batch_size=batch_size,
+        max_detections=max_detections,
+        iou_threshold=iou_threshold,
+        conf_threshold=conf_threshold,
+        padding=padding,
+        overwrite=overwrite,
+        mps_mode=mps_mode,
+        simplify=simplify,
+        min_size=min_size,
+        max_size=max_size,
+        close_interiors=close_interiors,
     )
 
 

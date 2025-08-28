@@ -11,8 +11,8 @@ import pandas as pd
 import planetary_computer as pc
 import pystac
 import pystac_client
-import rioxarray  # seems unused but is needed
-import xarray as xr
+import rioxarray  # noqa: F401
+import xarray as xr  # noqa: F401
 from pystac.extensions.eo import EOExtension as eo
 from shapely.geometry import box, shape
 from tenacity import retry, stop_after_attempt, wait_random_exponential

@@ -62,6 +62,7 @@ class DelineateAnything:
         self.device = device
         self.model = ultralytics.YOLO(self.checkpoints[model]).to(device)
         self.model.eval()
+        self.model.fuse()
         self.transforms.eval()
         self.transforms = self.transforms.to(device)
 
@@ -70,7 +71,7 @@ class DelineateAnything:
         result: ultralytics.engine.results.Results,
         transform: rasterio.Affine,
         crs=rasterio.CRS,
-    ) -> gpd.GeoDataFrame:
+    ) -> gpd.GeoDataFrame | None:
         """Convert the model predictions to a GeoDataFrame of georeferenced polygons.
 
         Args:
@@ -86,6 +87,10 @@ class DelineateAnything:
             return transform * (x, y)
 
         df = result.to_df()
+
+        if df.empty:
+            return None
+
         df["geometry"] = df["segments"].apply(
             lambda x: shapely.geometry.Polygon(zip(x["y"], x["x"]))
         )
