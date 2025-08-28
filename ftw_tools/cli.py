@@ -514,7 +514,7 @@ def inference_download(win_a, win_b, out, overwrite, bbox, stac_host):
 @click.option(
     "--num_workers",
     type=click.IntRange(min=1),
-    default=2,
+    default=4,
     show_default=True,
     help="Number of workers to use for inference.",
 )
