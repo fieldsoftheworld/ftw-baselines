@@ -640,7 +640,8 @@ def inference_run(
 )
 @click.option(
     "--padding",
-    type=int,
+    "-p",
+    type=click.IntRange(min=0),
     default=None,
     help="Pixels to discard from each side of the patch.",
 )
