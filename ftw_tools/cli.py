@@ -666,6 +666,8 @@ def inference_run(
 @click.option(
     "--close_interiors",
     is_flag=True,
+    default=False,
+    show_default=True,
     help="Remove the interiors holes in the polygons.",
 )
 def inference_run_instance_segmentation(
