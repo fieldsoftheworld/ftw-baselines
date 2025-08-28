@@ -575,7 +575,7 @@ def inference_run(
 @click.option(
     "--out",
     "-o",
-    type=str,
+    type=click.Path(exists=False),
     default=None,
     help="Output filename for the polygonized data. Defaults to the name of the input file with parquet extension. "
     + SUPPORTED_POLY_FORMATS_TXT,
