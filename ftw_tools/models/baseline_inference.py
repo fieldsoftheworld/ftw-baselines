@@ -290,8 +290,8 @@ def run_instance_segmentation(
             bboxes = batch["bbox"]
 
         # Convert instance predictions to polygons
-        for image, pred, bounds in zip(images, predictions, bboxes):
-            h, w = image.shape[:2]
+        for image, pred, bounds, crs in zip(images, predictions, bboxes, batch["crs"]):
+            c, h, w = image.shape
             transform = from_bounds(
                 west=bounds.minx,
                 south=bounds.miny,
@@ -300,7 +300,7 @@ def run_instance_segmentation(
                 height=h,
                 width=w,
             )
-            polygons.append(model.polygonize(pred, transform, dataset.crs))
+            polygons.append(model.polygonize(pred, transform, crs))
 
     polygons = [p for p in polygons if p is not None]
     polygons = gpd.GeoDataFrame(pd.concat(polygons), crs=dataset.crs)
@@ -308,6 +308,7 @@ def run_instance_segmentation(
     # Convert polygons to fiboa format before writing to file
     with rasterio.open(input) as src:
         timestamp = src.tags().get("TIFFTAG_DATETIME", None)
+
     polygons = convert_to_fiboa(
         polygons, out, timestamp, simplify, min_size, max_size, close_interiors
     )
