@@ -632,7 +632,8 @@ def inference_run(
 )
 @click.option(
     "--conf_threshold",
-    type=float,
+    "-ct",
+    type=click.FloatRange(min=0.0, max=1.0),
     default=0.1,
     show_default=True,
     help="Confidence threshold for keeping detections.",
