@@ -62,7 +62,8 @@ def _get_item_from_earthsearch(id: str) -> pystac.Item:
     """
     if "s3://" in id:
         parsed = urlparse(id)
-        path = parsed.path.strip("/")  # remove leading slash
+        # Extract path without bucket name and leading slash
+        path = parsed.path.strip("/")
         item_id = os.path.basename(path)
 
         uri = f"{AWS_SENTINEL_URL}/{path}/{item_id}.json"
@@ -116,10 +117,10 @@ def get_item(id: str, stac_host: str) -> pystac.Item:
 
 
 def scene_selection(
-    bbox: list[int], year: int, cloud_cover_max: int = 20, buffer_days: int = 14
+    bbox: list[int], year: int, cloud_cover_max: int = 20, buffer_days: int = 14, stac_host: str = "earthsearch", verbose: bool = False
 ) -> Tuple[str, str]:
     """
-    Returns sentinel 2 image S3 URL for start and end date within +/- number of days
+    Returns sentinel 2 image identifiers for start and end date within +/- number of days
     of crop calendar indicated dates. If there are multiple images within the date
     range, lowest cloud cover will be returned.
 
@@ -130,9 +131,10 @@ def scene_selection(
         buffer_days (int, optional): Number of days to buffer the date for querying to help balance
             decreasing cloud cover and selecting a date near the crop calendar indicated date.
             Defaults to 14.
+        stac_host (str, optional): The STAC host to query ('earthsearch' or 'mspc'). Defaults to 'earthsearch'.
 
     Returns:
-        tuple: Sentinel2 image ids to be used as input into the 2 image crop model
+        tuple: Sentinel2 image identifiers to be used as input into the 2 image crop model
     """
     # get crop calendar days
     start_day, end_day = get_harvest_integer_from_bbox(bbox=bbox)
@@ -143,33 +145,41 @@ def scene_selection(
     )  # to account for southern hemisphere harvest
 
     # search for +/- number of days the crop calendar indicated start and end days
+    if verbose:
+        print(f"Searching for EARLY SEASON scene around {start_dt.date()} (crop calendar start)")
     win_a = query_stac(
         bbox=bbox,
         date=start_dt,
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
+        stac_host=stac_host,
+        verbose=verbose,
     )
-    win_b = query_stac(bbox=bbox, date=end_dt, cloud_cover_max=cloud_cover_max)
+    if verbose:
+        print(f"Searching for LATE SEASON scene around {end_dt.date()} (crop calendar end)")
+    win_b = query_stac(bbox=bbox, date=end_dt, cloud_cover_max=cloud_cover_max, stac_host=stac_host, verbose=verbose)
 
+    if verbose:
+        print(f"FINAL SCENE SELECTION - Early season: {win_a}, Late season: {win_b}")
     return (win_a, win_b)
 
 
 def query_stac(
-    bbox: list[int], date: pd.Timestamp, cloud_cover_max: int = 20, buffer_days=14
+    bbox: list[int], date: pd.Timestamp, cloud_cover_max: int = 20, buffer_days=14, stac_host: str = "earthsearch", verbose: bool = False
 ) -> str:
     """
-    Queries Sentinel-2 imagery hosted on planetary computer via pystac.
-    sentinel 2 image id for start and end date within +/- number of days
-    of crop calendar indicated dates, with the lowest percent cloud cover is returned.
+    Queries Sentinel-2 imagery from the specified STAC host.
+    Returns the ID or URL for the image with the lowest percent cloud cover within the date range.
 
     Args:
         bbox: Bounding box in [minx, miny, maxx, maxy] format.
         date: crop calendar indicated date
         cloud_cover_max: threshold for maximum percent cloud cover.
         buffer_days: Number of days to buffer the date for querying.
+        stac_host: The STAC host to query ('earthsearch' or 'mspc').
 
     Returns:
-        Sentinel-2 image S3 URL.
+        Sentinel-2 image identifier (S3 URL for earthsearch, item ID for mspc).
     """
     start = (date - pd.Timedelta(days=buffer_days)).strftime("%Y-%m-%d")
     end = (date + pd.Timedelta(days=buffer_days)).strftime("%Y-%m-%d")
@@ -177,7 +187,10 @@ def query_stac(
     # Format as string
     date_range = f"{start}/{end}"
 
-    catalog = pystac_client.Client.open("https://earth-search.aws.element84.com/v1")
+    if stac_host == "mspc":
+        catalog = pystac_client.Client.open(MSPC_URL)
+    else:  # earthsearch
+        catalog = pystac_client.Client.open("https://earth-search.aws.element84.com/v1")
 
     search = catalog.search(
         collections=[COLLECTION_ID],
@@ -187,7 +200,16 @@ def query_stac(
     )
 
     items = search.item_collection()
-    logger.info(f"Returned {len(items)} Items")
+    if verbose:
+        print(f"Found {len(items)} scenes for date range {date_range}")
+    
+    # Log all found scenes with their details
+    if len(items) > 0 and verbose:
+        print("Available scenes:")
+        for item in items:
+            cloud_cover = eo.ext(item).cloud_cover
+            date_str = item.datetime.date() if item.datetime else "Unknown date"
+            print(f"  - {item.id}: {date_str}, cloud cover: {cloud_cover:.2f}%")
 
     if len(items) == 0:
         raise ValueError(
@@ -209,14 +231,19 @@ def query_stac(
     # sort by percent cloud cover
     least_cloudy_item = min(items, key=lambda item: eo.ext(item).cloud_cover)
 
-    logger.info(
-        f"Choosing {least_cloudy_item.id} from {least_cloudy_item.datetime.date()}"
-        f" with {eo.ext(least_cloudy_item).cloud_cover}% cloud cover"
-    )
-    return least_cloudy_item.properties["earthsearch:s3_path"]
+    if verbose:
+        print(
+            f"SELECTED: {least_cloudy_item.id} from {least_cloudy_item.datetime.date()}"
+            f" with {eo.ext(least_cloudy_item).cloud_cover:.2f}% cloud cover (lowest among {len(items)} candidates)"
+        )
+    
+    if stac_host == "mspc":
+        return least_cloudy_item.id
+    else:  # earthsearch
+        return least_cloudy_item.properties["earthsearch:s3_path"]
 
 
-def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None):
+def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None, verbose=False):
     """Main function for creating input for inference."""
     out = os.path.abspath(out)
     if os.path.exists(out) and not overwrite:

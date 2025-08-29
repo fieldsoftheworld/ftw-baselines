@@ -292,6 +292,9 @@ def inference():
     show_default=True,
     help="The host to download the imagery from. mspc = Microsoft Planetary Computer, earthsearch = EarthSearch (Element84/AWS).",
 )
+@click.option(
+    "--verbose", "-v", is_flag=True, help="Show detailed progress information."
+)
 def ftw_inference_all(
     bbox,
     year,
@@ -307,6 +310,7 @@ def ftw_inference_all(
     padding,
     mps_mode,
     stac_host,
+    verbose,
 ):
     """Run all inference commands from crop calendar scene selection, then download, inference and polygonize."""
     from ftw_tools.download.download_img import create_input, scene_selection
@@ -329,6 +333,8 @@ def ftw_inference_all(
         year=year,
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
+        stac_host=stac_host,
+        verbose=verbose,
     )
 
     # Download imagery
@@ -339,6 +345,7 @@ def ftw_inference_all(
         overwrite=overwrite,
         bbox=bbox,
         stac_host=stac_host,
+        verbose=verbose,
     )
 
     # Run inference
@@ -409,6 +416,7 @@ def scene_selection(year, cloud_cover_max, bbox, buffer_days, out):
         year=year,
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
+        stac_host="earthsearch",  # Use default for standalone command
     )
     if out:
         # persist results to json
