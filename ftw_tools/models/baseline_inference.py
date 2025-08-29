@@ -319,10 +319,7 @@ def run_instance_segmentation(
     polygons = postprocess_instance_polygons(
         polygons, simplify, min_size, max_size, close_interiors
     )
-
-    polygons = convert_to_fiboa(
-        polygons, out, timestamp, simplify, min_size, max_size, close_interiors
-    )
+    polygons = convert_to_fiboa(polygons, out, timestamp)
 
     print(f"Finished inference and saved output to {out} in {time.time() - tic:.2f}s")
 
