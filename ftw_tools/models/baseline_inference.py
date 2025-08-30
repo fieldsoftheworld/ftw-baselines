@@ -1,6 +1,5 @@
 import math
 import os
-import re
 import time
 from typing import Literal
 
@@ -9,11 +8,8 @@ import kornia.augmentation as K
 import numpy as np
 import pandas as pd
 import rasterio
-import shapely
 import torch
-from fiboa_cli.parquet import create_parquet
 from kornia.constants import Resample
-from rasterio.crs import CRS
 from rasterio.enums import ColorInterp
 from rasterio.transform import from_bounds
 from torch.utils.data import DataLoader
@@ -21,6 +17,7 @@ from torchgeo.datasets import stack_samples
 from torchgeo.samplers import GridGeoSampler
 from tqdm import tqdm
 
+from ftw_tools.models.utils import convert_to_fiboa, postprocess_instance_polygons
 from ftw_tools.torchgeo.datamodules import preprocess
 from ftw_tools.torchgeo.datasets import SingleRasterDataset
 from ftw_tools.torchgeo.trainers import CustomSemanticSegmentationTask
@@ -247,6 +244,7 @@ def run_instance_segmentation(
     min_size: int | None = 500,
     max_size: int | None = None,
     close_interiors: bool = True,
+    overlap_threshold: float = 0.5,
 ):
     """Run instance segmentation inference on an image.
 
@@ -269,6 +267,7 @@ def run_instance_segmentation(
         min_size: The minimum size of the polygons to use for inference (in hectares).
         max_size: The maximum size of the polygons to use for inference (in hectares).
         close_interiors: Whether to close the interiors of the polygons to use for inference.
+        overlap_threshold: Merge polygons with IoU greater than this threshold.
 
     Raises:
         AssertionError: If the model is not DelineateAnything or DelineateAnything-S.
@@ -314,7 +313,7 @@ def run_instance_segmentation(
         dataloader,
         total=len(dataloader),
     ):
-        images = batch["image"].to(device)
+        images = batch["image"]
         predictions = model(images)
 
         # torchgeo>=0.6 refers to the bounding box as "bounds" instead of "bbox"
@@ -339,18 +338,20 @@ def run_instance_segmentation(
     polygons = [p for p in polygons if p is not None]
     polygons = gpd.GeoDataFrame(pd.concat(polygons), crs=dataset.crs)
 
-    # Convert polygons to fiboa format before writing to file
-    with rasterio.open(input) as src:
-        timestamp = src.tags().get("TIFFTAG_DATETIME", None)
-        bounds = tuple(src.bounds)
-
     polygons = postprocess_instance_polygons(
-        polygons, bounds, simplify, min_size, max_size, close_interiors
+        polygons,
+        simplify,
+        min_size,
+        max_size,
+        close_interiors,
+        overlap_threshold,
     )
 
     # Save polygons
     ext = os.path.splitext(out)[1]
     if ext == ".parquet":
+        with rasterio.open(input) as src:
+            timestamp = src.tags().get("TIFFTAG_DATETIME", None)
         convert_to_fiboa(polygons, out, timestamp)
     elif ext == ".gpkg":
         polygons.to_file(out, driver="GPKG")
@@ -360,93 +361,3 @@ def run_instance_segmentation(
         raise ValueError(f"Unsupported file extension: {ext}")
 
     print(f"Finished inference and saved output to {out} in {time.time() - tic:.2f}s")
-
-
-def postprocess_instance_polygons(
-    polygons: gpd.GeoDataFrame,
-    bounds: tuple[float, float, float, float],
-    simplify: int = 0,
-    min_size: int | None = None,
-    max_size: int | None = None,
-    close_interiors: bool = True,
-) -> gpd.GeoDataFrame:
-    """Postprocess polygons to remove small polygons, simplify them, and compute area and perimeter.
-
-    Args:
-        polygons: The polygons to postprocess.
-        simplify: The simplification factor.
-        min_size: The minimum size of the polygons.
-        max_size: The maximum size of the polygons.
-        close_interiors: Whether to close the interiors of the polygons.
-
-    Returns:
-        The postprocessed polygons.
-    """
-    # Clip any polygons outside of image bounds
-    polygons = polygons.clip(bounds)
-
-    # Convert polygons to a meter based CRS
-    src_crs = polygons.crs
-    polygons.to_crs("EPSG:6933", inplace=True)
-
-    if close_interiors:
-        polygons.geometry = polygons.geometry.exterior
-        polygons.geometry = polygons.geometry.apply(
-            lambda x: shapely.geometry.Polygon(x)
-        )
-
-    if simplify > 0:
-        polygons.geometry = polygons.geometry.simplify(simplify)
-
-    polygons["area"] = polygons.geometry.area
-    polygons["perimeter"] = polygons.geometry.length
-
-    if min_size is not None:
-        polygons.drop(polygons[polygons["area"] < min_size].index, inplace=True)
-    if max_size is not None:
-        polygons = polygons[polygons["area"] <= max_size]
-
-    # Convert to hectares
-    polygons["area"] = polygons["area"] * 0.0001
-
-    # Convert back to original CRS
-    polygons.to_crs(src_crs, inplace=True)
-
-    polygons.reset_index(drop=True, inplace=True)
-    polygons["id"] = polygons.index + 1
-
-    return polygons
-
-
-def convert_to_fiboa(
-    polygons: gpd.GeoDataFrame,
-    output: str,
-    timestamp: str | None,
-) -> gpd.GeoDataFrame:
-    """Convert polygons to fiboa parquet format.
-
-    Args:
-        polygons: The polygons to convert.
-        output: The output file path.
-        timestamp: The timestamp of the image.
-
-    Returns:
-        The converted polygons.
-    """
-    polygons["determination_method"] = "auto-imagery"
-
-    config = collection = {"fiboa_version": "0.2.0"}
-    columns = ["id", "area", "perimeter", "determination_method", "geometry"]
-
-    if timestamp is not None:
-        pattern = re.compile(
-            r"^(\d{4})[:-](\d{2})[:-](\d{2})[T\s](\d{2}):(\d{2}):(\d{2}).*$"
-        )
-        if pattern.match(timestamp):
-            timestamp = re.sub(pattern, r"\1-\2-\3T\4:\5:\6Z", timestamp)
-            polygons["determination_datetime"] = timestamp
-            columns.append("determination_datetime")
-        else:
-            print("WARNING: Unable to parse timestamp from TIFFTAG_DATETIME tag.")
-
-    create_parquet(polygons, columns, collection, output, config, compression="brotli")

@@ -841,6 +841,14 @@ def inference_run(
     show_default=True,
     help="Remove the interiors holes in the polygons.",
 )
+@click.option(
+    "--overlap_threshold",
+    "-ot",
+    type=click.FloatRange(min=0.0, max=1.0),
+    default=0.2,
+    show_default=True,
+    help="Overlap threshold for merging polygons.",
+)
 def inference_run_instance_segmentation(
     input,
     model,
@@ -860,6 +868,7 @@ def inference_run_instance_segmentation(
     min_size,
     max_size,
     close_interiors,
+    overlap_threshold,
 ):
     from ftw_tools.models.baseline_inference import run_instance_segmentation
 
@@ -882,6 +891,7 @@ def inference_run_instance_segmentation(
         min_size=min_size,
         max_size=max_size,
         close_interiors=close_interiors,
+        overlap_threshold=overlap_threshold,
     )
 
 
@@ -1033,6 +1043,14 @@ def inference_run_instance_segmentation(
     show_default=True,
     help="Remove the interiors holes in the polygons.",
 )
+@click.option(
+    "--overlap_threshold",
+    "-ot",
+    type=click.FloatRange(min=0.0, max=1.0),
+    default=0.2,
+    show_default=True,
+    help="Overlap threshold for merging polygons.",
+)
 def inference_run_instance_segmentation_all(
     input,
     bbox,
@@ -1054,6 +1072,7 @@ def inference_run_instance_segmentation_all(
     min_size,
     max_size,
     close_interiors,
+    overlap_threshold,
 ):
     """Run all inference instance segmentation commands from download and inference."""
     from ftw_tools.download.download_img import create_input
@@ -1097,6 +1116,7 @@ def inference_run_instance_segmentation_all(
         min_size=min_size,
         max_size=max_size,
         close_interiors=close_interiors,
+        overlap_threshold=overlap_threshold,
     )
 
 
