@@ -6,11 +6,11 @@ from click.testing import CliRunner
 
 from ftw_tools.cli import (
     ftw_inference_all,
-    ftw_inference_instance_segmentation_all,
     inference_download,
     inference_polygonize,
     inference_run,
     inference_run_instance_segmentation,
+    inference_run_instance_segmentation_all,
     model_download,
     scene_selection,
 )
@@ -161,32 +161,6 @@ def test_inference_run():
     os.remove(model_path)
 
 
-def test_instance_segmentation_inference_run():
-    runner = CliRunner()
-
-    # Check required files are present
-    inf_input_path = "./tests/data-files/inference-img.tif"
-    assert os.path.exists(inf_input_path)
-
-    # Run inference
-    inf_output_path = "austria_example_output_full.parquet"
-    result = runner.invoke(
-        inference_run_instance_segmentation,
-        [
-            inf_input_path,
-            "--model",
-            "DelineateAnything-S",
-            "--out",
-            inf_output_path,
-            "--gpu",
-            "0",
-            "--overwrite",
-        ],
-    )
-    assert result.exit_code == 0, result.output
-    assert os.path.exists(inf_output_path)
-
-
 def test_inference_polygonize():
     runner = CliRunner()
 
@@ -237,6 +211,32 @@ def test_ftw_inference_all():
         assert "Finished inference and saved output" in result.output
 
 
+def test_instance_segmentation_inference_run():
+    runner = CliRunner()
+
+    # Check required files are present
+    inf_input_path = "./tests/data-files/inference-img.tif"
+    assert os.path.exists(inf_input_path)
+
+    # Run inference
+    inf_output_path = "austria_example_output_full.parquet"
+    result = runner.invoke(
+        inference_run_instance_segmentation,
+        [
+            inf_input_path,
+            "--model",
+            "DelineateAnything-S",
+            "--out",
+            inf_output_path,
+            "--gpu",
+            "0",
+            "--overwrite",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert os.path.exists(inf_output_path)
+
+
 def test_instance_segmentation_inference_all():
     runner = CliRunner()
 
@@ -246,7 +246,7 @@ def test_instance_segmentation_inference_all():
         output_path = os.path.join(out_dir, "inference_output.parquet")
 
         result = runner.invoke(
-            ftw_inference_instance_segmentation_all,
+            inference_run_instance_segmentation_all,
             [
                 "S2B_33UUP_20210617_1_L2A",
                 "--bbox=13.0,48.0,13.2,48.2",

@@ -735,11 +735,12 @@ def inference_run(
     help="GPU ID to use. If not provided, CPU will be used by default.",
 )
 @click.option(
-    "--image_size",
+    "--resize_factor",
+    "-r",
     type=click.IntRange(min=1),
-    default=320,
+    default=2,
     show_default=True,
-    help="Image size to use for inference.",
+    help="Resize factor to use for inference.",
 )
 @click.option(
     "--patch_size",
@@ -768,7 +769,7 @@ def inference_run(
     type=click.IntRange(min=1),
     default=50,
     show_default=True,
-    help="Maximum number of detections to keep.",
+    help="Maximum number of detections to keep per patch.",
 )
 @click.option(
     "--iou_threshold",
@@ -829,7 +830,7 @@ def inference_run(
     "--max_size",
     "-sx",
     type=click.FloatRange(min=0.0),
-    default=None,
+    default=100000,
     show_default=True,
     help="Maximum area size in square meters to include in the output. Disabled by default.",
 )
@@ -845,7 +846,7 @@ def inference_run_instance_segmentation(
     model,
     out,
     gpu,
-    image_size,
+    resize_factor,
     patch_size,
     batch_size,
     num_workers,
@@ -868,7 +869,7 @@ def inference_run_instance_segmentation(
         out=out,
         gpu=gpu,
         num_workers=num_workers,
-        image_size=image_size,
+        image_size=patch_size * resize_factor,
         patch_size=patch_size,
         batch_size=batch_size,
         max_detections=max_detections,
@@ -926,11 +927,12 @@ def inference_run_instance_segmentation(
     help="GPU ID to use. If not provided, CPU will be used by default.",
 )
 @click.option(
-    "--image_size",
+    "--resize_factor",
+    "-r",
     type=click.IntRange(min=1),
-    default=320,
+    default=2,
     show_default=True,
-    help="Image size to use for inference.",
+    help="Resize factor to use for inference.",
 )
 @click.option(
     "--patch_size",
@@ -959,7 +961,7 @@ def inference_run_instance_segmentation(
     type=click.IntRange(min=1),
     default=50,
     show_default=True,
-    help="Maximum number of detections to keep.",
+    help="Maximum number of detections to keep per patch.",
 )
 @click.option(
     "--iou_threshold",
@@ -1020,7 +1022,7 @@ def inference_run_instance_segmentation(
     "--max_size",
     "-sx",
     type=click.FloatRange(min=0.0),
-    default=None,
+    default=100000,
     show_default=True,
     help="Maximum area size in square meters to include in the output. Disabled by default.",
 )
@@ -1031,14 +1033,14 @@ def inference_run_instance_segmentation(
     show_default=True,
     help="Remove the interiors holes in the polygons.",
 )
-def ftw_inference_instance_segmentation_all(
+def inference_run_instance_segmentation_all(
     input,
     bbox,
     out_dir,
     stac_host,
     model,
     gpu,
-    image_size,
+    resize_factor,
     patch_size,
     batch_size,
     num_workers,
@@ -1082,7 +1084,7 @@ def ftw_inference_instance_segmentation_all(
         out=inf_output_path,
         gpu=gpu,
         num_workers=num_workers,
-        image_size=image_size,
+        image_size=patch_size * resize_factor,
         patch_size=patch_size,
         batch_size=batch_size,
         max_detections=max_detections,

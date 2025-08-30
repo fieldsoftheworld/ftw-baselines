@@ -248,6 +248,34 @@ def run_instance_segmentation(
     max_size: int | None = None,
     close_interiors: bool = True,
 ):
+    """Run instance segmentation inference on an image.
+
+    Args:
+        input: The input image file path.
+        model: The model to use for inference.
+        out: The output file path.
+        gpu: The GPU device to use for inference.
+        num_workers: The number of workers to use for inference.
+        image_size: The size of the image to use for inference.
+        patch_size: The size of the patch to use for inference.
+        batch_size: The batch size to use for inference.
+        max_detections: The maximum number of detections to use for inference.
+        iou_threshold: The IoU threshold to use for inference (lower values filter out more detections).
+        conf_threshold: The confidence threshold to use for inference (higher values filter out more detections).
+        padding: The padding to use for inference (in pixels).
+        overwrite: Whether to overwrite the output file if it already exists.
+        mps_mode: Whether to use MPS mode for inference.
+        simplify: The simplification factor to use for inference (in pixels).
+        min_size: The minimum size of the polygons to use for inference (in hectares).
+        max_size: The maximum size of the polygons to use for inference (in hectares).
+        close_interiors: Whether to close the interiors of the polygons to use for inference.
+
+    Raises:
+        AssertionError: If the model is not DelineateAnything or DelineateAnything-S.
+
+    Returns:
+        None
+    """
     from .delineate_anything import DelineateAnything
 
     assert model in ["DelineateAnything", "DelineateAnything-S"], (
@@ -285,7 +313,6 @@ def run_instance_segmentation(
     for batch in tqdm(
         dataloader,
         total=len(dataloader),
-        desc=f"Running FTW instance segmentation inference on {input}",
     ):
         images = batch["image"].to(device)
         predictions = model(images)
@@ -298,7 +325,7 @@ def run_instance_segmentation(
 
         # Convert instance predictions to polygons
         for image, pred, bounds, crs in zip(images, predictions, bboxes, batch["crs"]):
-            c, h, w = image.shape
+            _, h, w = image.shape
             transform = from_bounds(
                 west=bounds.minx,
                 south=bounds.miny,
@@ -315,23 +342,50 @@ def run_instance_segmentation(
     # Convert polygons to fiboa format before writing to file
     with rasterio.open(input) as src:
         timestamp = src.tags().get("TIFFTAG_DATETIME", None)
+        bounds = tuple(src.bounds)
 
     polygons = postprocess_instance_polygons(
-        polygons, simplify, min_size, max_size, close_interiors
+        polygons, bounds, simplify, min_size, max_size, close_interiors
     )
-    polygons = convert_to_fiboa(polygons, out, timestamp)
+
+    # Save polygons
+    ext = os.path.splitext(out)[1]
+    if ext == ".parquet":
+        convert_to_fiboa(polygons, out, timestamp)
+    elif ext == ".gpkg":
+        polygons.to_file(out, driver="GPKG")
+    elif ext == ".geojson":
+        polygons.to_file(out, driver="GeoJSON")
+    else:
+        raise ValueError(f"Unsupported file extension: {ext}")
 
     print(f"Finished inference and saved output to {out} in {time.time() - tic:.2f}s")
 
 
 def postprocess_instance_polygons(
     polygons: gpd.GeoDataFrame,
+    bounds: tuple[float, float, float, float],
     simplify: int = 0,
     min_size: int | None = None,
     max_size: int | None = None,
     close_interiors: bool = True,
 ) -> gpd.GeoDataFrame:
-    """Postprocess polygons to remove small polygons, simplify them, and compute area and perimeter."""
+    """Postprocess polygons to remove small polygons, simplify them, and compute area and perimeter.
+
+    Args:
+        polygons: The polygons to postprocess.
+        simplify: The simplification factor.
+        min_size: The minimum size of the polygons.
+        max_size: The maximum size of the polygons.
+        close_interiors: Whether to close the interiors of the polygons.
+
+    Returns:
+        The postprocessed polygons.
+    """
+    # Clip any polygons outside of image bounds
+    polygons = polygons.clip(bounds)
+
+    # Convert polygons to a meter based CRS
     src_crs = polygons.crs
     polygons.to_crs("EPSG:6933", inplace=True)
 
@@ -348,7 +402,7 @@ def postprocess_instance_polygons(
     polygons["perimeter"] = polygons.geometry.length
 
     if min_size is not None:
-        polygons = polygons[polygons["area"] >= min_size]
+        polygons.drop(polygons[polygons["area"] < min_size].index, inplace=True)
     if max_size is not None:
         polygons = polygons[polygons["area"] <= max_size]
 
@@ -369,7 +423,16 @@ def convert_to_fiboa(
     output: str,
     timestamp: str | None,
 ) -> gpd.GeoDataFrame:
-    """Convert polygons to fiboa format."""
+    """Convert polygons to fiboa parquet format.
+
+    Args:
+        polygons: The polygons to convert.
+        output: The output file path.
+        timestamp: The timestamp of the image.
+
+    Returns:
+        The converted polygons.
+    """
     polygons["determination_method"] = "auto-imagery"
 
     config = collection = {"fiboa_version": "0.2.0"}
@@ -387,5 +450,3 @@ def convert_to_fiboa(
             print("WARNING: Unable to parse timestamp from TIFFTAG_DATETIME tag.")
 
     create_parquet(polygons, columns, collection, output, config, compression="brotli")
-
-    return polygons

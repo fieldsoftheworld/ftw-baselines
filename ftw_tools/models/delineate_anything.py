@@ -87,13 +87,15 @@ class DelineateAnything:
             return transform * (x, y)
 
         df = result.to_df()
-
-        if df.empty:
+        if len(df) == 0:
             return None
 
         df["geometry"] = df["segments"].apply(
-            lambda x: shapely.geometry.Polygon(zip(x["y"], x["x"]))
+            lambda x: shapely.geometry.Polygon(zip(x["x"], x["y"]))
+            if len(x["x"]) >= 3
+            else None
         )
+        df = df.dropna(subset=["geometry"])  # drop erroneous segmentation predictions
         df["geometry"] = df["geometry"].apply(
             lambda geom: shapely.ops.transform(pixel_to_geo, geom)
         )
