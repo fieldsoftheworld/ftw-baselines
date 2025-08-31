@@ -24,6 +24,7 @@ from ftw_tools.settings import (
     EARTHSEARCH_URL,
     MSPC_BANDS_OF_INTEREST,
     MSPC_URL,
+    S2_COLLECTIONS,
 )
 from ftw_tools.utils import get_harvest_integer_from_bbox, harvest_to_datetime
 
@@ -108,7 +109,7 @@ def get_item(id: str, stac_host: str) -> pystac.Item:
 
     if stac_host == "mspc":
         return _get_item_from_mspc(id)
-    if stac_host == "earthsearch":
+    elif stac_host == "earthsearch":
         return _get_item_from_earthsearch(id)
     else:
         raise ValueError(
@@ -122,6 +123,8 @@ def scene_selection(
     stac_host: str,
     cloud_cover_max: int = 20,
     buffer_days: int = 14,
+    s2_collection: str = "no-c",
+    verbose: bool = False,
 ) -> Tuple[str, str]:
     """
     Returns sentinel 2 image S3 URL for start and end date within +/- number of days
@@ -135,10 +138,17 @@ def scene_selection(
         buffer_days (int, optional): Number of days to buffer the date for querying to help balance
             decreasing cloud cover and selecting a date near the crop calendar indicated date.
             Defaults to 14.
+        s2_collection (str, optional): Sentinel-2 collection to use (only applies to EarthSearch). Defaults to "no-c".
 
     Returns:
         tuple: Sentinel2 image ids to be used as input into the 2 image crop model
     """
+    # Validate collection parameter usage
+    if stac_host == "mspc" and s2_collection != "no-c":
+        raise ValueError(
+            f"s2_collection parameter ('{s2_collection}') is only supported with EarthSearch. "
+            f"Microsoft Planetary Computer uses a single collection. Use stac_host='earthsearch' instead."
+        )
     # get crop calendar days
     start_day, end_day = get_harvest_integer_from_bbox(bbox=bbox)
 
@@ -147,17 +157,42 @@ def scene_selection(
         harvest_day=end_day, year=year + 1 if end_day < start_day else year
     )  # to account for southern hemisphere harvest
 
+    if verbose:
+        print(f"\n=== SCENE SELECTION ===")
+        print(f"Crop calendar dates: Start={start_dt.date()} (day {start_day}), End={end_dt.date()} (day {end_day})")
+        print(f"STAC Host: {stac_host}")
+        print(f"S2 Collection: {s2_collection} ({'EarthSearch only' if stac_host == 'earthsearch' else 'ignored for MSPC'})")
+        print(f"Search parameters: cloud_cover_max={cloud_cover_max}%, buffer_days=±{buffer_days}")
+        print(f"Bounding box: {bbox}")
+
     # search for +/- number of days the crop calendar indicated start and end days
+    if verbose:
+        print(f"\nSearching for EARLY SEASON scene around {start_dt.date()} (crop calendar start)")
     win_a = query_stac(
         bbox=bbox,
         date=start_dt,
         stac_host=stac_host,
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
+        s2_collection=s2_collection,
+        verbose=verbose,
     )
+    if verbose:
+        print(f"\nSearching for LATE SEASON scene around {end_dt.date()} (crop calendar end)")
     win_b = query_stac(
-        bbox=bbox, date=end_dt, stac_host=stac_host, cloud_cover_max=cloud_cover_max
+        bbox=bbox,
+        date=end_dt,
+        stac_host=stac_host,
+        cloud_cover_max=cloud_cover_max,
+        buffer_days=buffer_days,
+        s2_collection=s2_collection,
+        verbose=verbose,
     )
+
+    if verbose:
+        print(f"\n=== FINAL SCENE SELECTION ===")
+        print(f"Early season: {win_a}")
+        print(f"Late season:  {win_b}")
 
     return (win_a, win_b)
 
@@ -168,6 +203,8 @@ def query_stac(
     stac_host: str,
     cloud_cover_max: int = 20,
     buffer_days=14,
+    s2_collection: str = "no-c",
+    verbose: bool = False,
 ) -> str:
     """
     Queries Sentinel-2 imagery hosted on planetary computer via pystac.
@@ -179,21 +216,73 @@ def query_stac(
         date: crop calendar indicated date
         cloud_cover_max: threshold for maximum percent cloud cover.
         buffer_days: Number of days to buffer the date for querying.
+        stac_host: The STAC host to use ('mspc' or 'earthsearch').
+        s2_collection: Sentinel-2 collection to use (only applies to EarthSearch).
 
     Returns:
         Sentinel-2 image S3 URL.
     """
-    start = (date - pd.Timedelta(days=buffer_days)).strftime("%Y-%m-%d")
-    end = (date + pd.Timedelta(days=buffer_days)).strftime("%Y-%m-%d")
+    # Validate collection parameter usage
+    if stac_host == "mspc" and s2_collection != "no-c":
+        raise ValueError(
+            f"s2_collection parameter ('{s2_collection}') is only supported with EarthSearch. "
+            f"Microsoft Planetary Computer uses a single collection. Use stac_host='earthsearch' instead."
+        )
+    # Format dates in RFC3339 format for STAC API compliance
+    start = (date - pd.Timedelta(days=buffer_days)).strftime("%Y-%m-%dT00:00:00Z")
+    end = (date + pd.Timedelta(days=buffer_days)).strftime("%Y-%m-%dT23:59:59Z")
 
     # Format as string
     date_range = f"{start}/{end}"
 
     host = MSPC_URL if stac_host == "mspc" else EARTHSEARCH_URL
+    if verbose:
+        print(f"  Connecting to STAC catalog: {host}")
     catalog = pystac_client.Client.open(host)
 
+    # Use s2_collection only for EarthSearch, use default for MSPC
+    if stac_host == "earthsearch":
+        collection_name = S2_COLLECTIONS.get(s2_collection, COLLECTION_ID)
+    else:
+        collection_name = COLLECTION_ID  # MSPC always uses the default collection
+    
+    if verbose:
+        print(f"  STAC Query:")
+        print(f"    Host: {host}")
+        print(f"    Collection: {collection_name}")
+        print(f"    Date range: {date_range} (±{buffer_days} days from {date.date()})")
+        print(f"    Bbox: {bbox}")
+        print(f"    Cloud cover: <{cloud_cover_max}%")
+        print(f"  Exact STAC call:")
+        print(f"    catalog.search(")
+        print(f"        collections=['{collection_name}'],")
+        print(f"        bbox={bbox},")
+        print(f"        datetime='{date_range}',")
+        print(f"        query={{'eo:cloud_cover': {{'lt': {cloud_cover_max}}}}}")
+        print(f"    )")
+        # Build the STAC API URL with query parameters
+        bbox_str = f"{bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}"
+        # URL encode the CQL filter for cloud cover
+        import urllib.parse
+        cql_filter = f'"eo:cloud_cover" < {cloud_cover_max}'
+        encoded_filter = urllib.parse.quote(cql_filter)
+        
+        stac_api_url = (
+            f"{host}/search?"
+            f"collections={collection_name}&"
+            f"bbox={bbox_str}&"
+            f"datetime={date_range}&"
+            f"filter={encoded_filter}&"
+            f"filter-lang=cql2-text"
+        )
+        
+        print(f"  \n  You can test this with STAC API URL:")
+        print(f"    {stac_api_url}")
+        print(f"  \n  Or use curl:")
+        print(f"    curl '{stac_api_url}'")
+    
     search = catalog.search(
-        collections=[COLLECTION_ID],
+        collections=[collection_name],
         bbox=bbox,
         datetime=date_range,
         query={"eo:cloud_cover": {"lt": cloud_cover_max}},
@@ -201,11 +290,23 @@ def query_stac(
 
     items = search.item_collection()
     logger.info(f"Returned {len(items)} Items")
+    if verbose:
+        print(f"  Found {len(items)} scenes for date range {date_range}")
 
     if len(items) == 0:
         raise ValueError(
             f"No sentinel scenes within this area for {date_range} with less than {cloud_cover_max} percent cloud cover."
         )
+    
+    # Log all found scenes with their details
+    if verbose and len(items) > 0:
+        print(f"  Available scenes:")
+        for item in items:
+            cloud_cover = eo.ext(item).cloud_cover
+            date_str = item.datetime.date() if item.datetime else "Unknown date"
+            mgrs_tile = item.properties.get("grid:code") or item.properties.get("s2:mgrs_tile", "Unknown")
+            print(f"    - {item.id}: {date_str}, MGRS: {mgrs_tile}, cloud cover: {cloud_cover:.2f}%")
+    
     # check if aoi is approximately greater than 100 km x 100 km and spans multiple Sentinel 2 MGRS tiles
     if len(items) > 1 and (
         gpd.GeoDataFrame(geometry=[box(*bbox)], crs="EPSG:4326")
@@ -232,11 +333,33 @@ def query_stac(
         f"Choosing {least_cloudy_item.id} from {least_cloudy_item.datetime.date()}"
         f" with {eo.ext(least_cloudy_item).cloud_cover}% cloud cover"
     )
+    
+    if verbose:
+        print(f"  SELECTED: {least_cloudy_item.id} from {least_cloudy_item.datetime.date()}")
+        print(f"    Cloud cover: {eo.ext(least_cloudy_item).cloud_cover:.2f}% (lowest among {len(items)} candidates)")
+        print(f"    STAC URL: {least_cloudy_item.get_self_href()}")
+    
     return least_cloudy_item.get_self_href()
 
 
-def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None):
-    """Main function for creating input for inference."""
+def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None, s2_collection="no-c", verbose=False):
+    """Main function for creating input for inference.
+    
+    Args:
+        win_a: Window A identifier
+        win_b: Window B identifier  
+        out: Output path
+        overwrite: Whether to overwrite existing files
+        stac_host: STAC host to use ('mspc' or 'earthsearch')
+        bbox: Optional bounding box
+        s2_collection: Sentinel-2 collection to use (only applies to EarthSearch)
+    """
+    # Validate collection parameter usage
+    if stac_host == "mspc" and s2_collection != "no-c":
+        raise ValueError(
+            f"s2_collection parameter ('{s2_collection}') is only supported with EarthSearch. "
+            f"Microsoft Planetary Computer uses a single collection. Use stac_host='earthsearch' instead."
+        )
     out = os.path.abspath(out)
     if os.path.exists(out) and not overwrite:
         print("Output file already exists, use -f to overwrite them. Exiting.")
@@ -250,9 +373,25 @@ def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None):
     items = []
     timestamp = None
     version = 0
-    for i in identifiers:
+    
+    if verbose:
+        print(f"\n=== DOWNLOADING IMAGERY ===")
+        print(f"Output file: {out}")
+        print(f"Processing scenes:")
+    
+    for idx, i in enumerate(identifiers):
         item = get_item(i, stac_host=stac_host)
         items.append(item)
+        
+        if verbose:
+            season = "Early season" if idx == 0 else "Late season"
+            item_date = item.datetime or item.start_datetime or item.end_datetime
+            date_str = item_date.date() if item_date else "Unknown date"
+            mgrs_tile = item.properties.get("grid:code") or item.properties.get("s2:mgrs_tile", "Unknown")
+            print(f"  {season}: {item.id}")
+            print(f"    Date: {date_str}")
+            print(f"    MGRS Tile: {mgrs_tile}")
+            print(f"    Download URL: {i}")
 
         datetime = item.datetime or item.start_datetime or item.end_datetime
         if datetime and (not timestamp or datetime > timestamp):
@@ -282,6 +421,15 @@ def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None):
         bands = MSPC_BANDS_OF_INTEREST
     else:
         bands = BANDS_OF_INTEREST  # for EarthSearch
+    
+    if verbose:
+        print(f"\n=== DATA PROCESSING ===")
+        print(f"Bands: {bands}")
+        print(f"Processing version: {version}")
+        if bbox:
+            print(f"Clipping to bbox: {bbox}")
+        print(f"Loading and stacking imagery...")
+    
     tic = time.time()
     data = odc.stac.load(
         [items[0], items[1]],
@@ -309,6 +457,11 @@ def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None):
         )
         data = (data.astype("int32") - 1000).clip(min=0).astype("uint16")
 
+    if verbose:
+        print(f"Data shape: {data.shape}")
+        print(f"Data bounds: {data.rio.bounds()}")
+        print(f"Data CRS: {data.rio.crs}")
+    
     print("Writing output")
     with dask.diagnostics.progress.ProgressBar():
         data.rio.to_raster(
@@ -323,3 +476,12 @@ def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None):
         )
 
     print(f"Finished merging and writing output in {time.time() - tic:0.2f} seconds")
+    
+    if verbose:
+        print(f"\n=== SUMMARY ===")
+        print(f"Successfully created: {out}")
+        print(f"Processing time: {time.time() - tic:0.2f} seconds")
+        print(f"Scenes used:")
+        print(f"  Early: {identifiers[0]}")
+        print(f"  Late:  {identifiers[1]}")
+        print(f"Ready for inference!")

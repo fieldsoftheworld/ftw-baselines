@@ -11,6 +11,7 @@ import wget
 from ftw_tools.settings import (
     ALL_COUNTRIES,
     LULC_COLLECTIONS,
+    S2_COLLECTIONS,
     SUPPORTED_POLY_FORMATS_TXT,
     TEMPORAL_OPTIONS,
 )
@@ -398,6 +399,22 @@ def inference():
     show_default=True,
     help="The host to download the imagery from. mspc = Microsoft Planetary Computer, earthsearch = EarthSearch (Element84/AWS).",
 )
+@click.option(
+    "--s2_collection",
+    "-s2",
+    type=click.Choice(list(S2_COLLECTIONS.keys())),
+    default="no-c",
+    show_default=True,
+    help="Sentinel-2 collection to use with EarthSearch only: 'pre-c1' = sentinel-2-pre-c1-l2a, 'no-c' = sentinel-2-l2a (default), 'c1' = sentinel-2-c1-l2a. Ignored when using MSPC.",
+)
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Enable verbose output showing STAC calls, scene details, and download URLs.",
+)
 def ftw_inference_all(
     out,
     model,
@@ -413,6 +430,8 @@ def ftw_inference_all(
     padding,
     mps_mode,
     stac_host,
+    s2_collection,
+    verbose,
 ):
     """Run all inference commands from crop calendar scene selection, then download, inference and polygonize."""
     from ftw_tools.download.download_img import create_input, scene_selection
@@ -434,6 +453,8 @@ def ftw_inference_all(
         stac_host=stac_host,
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
+        s2_collection=s2_collection,
+        verbose=verbose,
     )
 
     # Download imagery
@@ -444,6 +465,8 @@ def ftw_inference_all(
         overwrite=overwrite,
         bbox=bbox,
         stac_host=stac_host,
+        s2_collection=s2_collection,
+        verbose=verbose,
     )
 
     # Run inference
@@ -516,7 +539,15 @@ def ftw_inference_all(
     show_default=True,
     help="The host to download the imagery from. mspc = Microsoft Planetary Computer, earthsearch = EarthSearch (Element84/AWS).",
 )
-def scene_selection(year, bbox, cloud_cover_max, buffer_days, out, stac_host):
+@click.option(
+    "--s2_collection",
+    "-s2",
+    type=click.Choice(list(S2_COLLECTIONS.keys())),
+    default="no-c",
+    show_default=True,
+    help="Sentinel-2 collection to use with EarthSearch only: 'pre-c1' = sentinel-2-pre-c1-l2a, 'no-c' = sentinel-2-l2a (default), 'c1' = sentinel-2-c1-l2a. Ignored when using MSPC.",
+)
+def scene_selection(year, bbox, cloud_cover_max, buffer_days, out, stac_host, s2_collection):
     """Download Sentinel-2 scenes for inference."""
     from ftw_tools.download.download_img import scene_selection
 
@@ -526,6 +557,7 @@ def scene_selection(year, bbox, cloud_cover_max, buffer_days, out, stac_host):
         stac_host=stac_host,
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
+        s2_collection=s2_collection,
     )
     if out:
         # persist results to json
@@ -576,7 +608,15 @@ def scene_selection(year, bbox, cloud_cover_max, buffer_days, out, stac_host):
     show_default=True,
     help="The host to download the imagery from. mspc = Microsoft Planetary Computer, earthsearch = EarthSearch (Element84/AWS).",
 )
-def inference_download(win_a, win_b, out, overwrite, bbox, stac_host):
+@click.option(
+    "--s2_collection",
+    "-s2",
+    type=click.Choice(list(S2_COLLECTIONS.keys())),
+    default="no-c",
+    show_default=True,
+    help="Sentinel-2 collection to use with EarthSearch only: 'pre-c1' = sentinel-2-pre-c1-l2a, 'no-c' = sentinel-2-l2a (default), 'c1' = sentinel-2-c1-l2a. Ignored when using MSPC.",
+)
+def inference_download(win_a, win_b, out, overwrite, bbox, stac_host, s2_collection):
     from ftw_tools.download.download_img import create_input
 
     create_input(
@@ -586,6 +626,7 @@ def inference_download(win_a, win_b, out, overwrite, bbox, stac_host):
         overwrite=overwrite,
         bbox=bbox,
         stac_host=stac_host,
+        s2_collection=s2_collection,
     )
 
 
