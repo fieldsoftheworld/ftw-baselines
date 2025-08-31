@@ -509,38 +509,9 @@ Options:
   -oit, --overlap_iou_threshold FLOAT RANGE
                                   Overlap IoU threshold for merging polygons.
                                   [default: 0.2; 0.0<=x<=1.0]
-  -cot, --overlap_contain_threshold FLOAT RANGEftw inference instance-segmentation-all --help
-Usage: ftw inference instance-segmentation-all [OPTIONS] INPUT
-
-  Run all inference instance segmentation commands from download and
-  inference.
-
-Options:
-  --bbox TEXT                     Bounding box to use for the download in the
-                                  format 'minx,miny,maxx,maxy'
-  -o, --out_dir TEXT              Directory to save downloaded inference
-                                  imagery, and inference output to  [required]
-  -h, --stac_host [mspc|earthsearch]
-                                  The host to download the imagery from. mspc
-                                  = Microsoft Planetary Computer, earthsearch
-                                  = EarthSearch (Element84/AWS).  [default:
-                                  mspc]
-  -m, --model [DelineateAnything|DelineateAnything-S]
-                                  The model to use for inference.  [default:
-                                  DelineateAnything]
-  --gpu INTEGER RANGE             GPU ID to use. If not provided, CPU will be
-                                  used by default.  [x>=0]
-  -r, --resize_factor INTEGER RANGE
-                                  Resize factor to use for inference.
-                                  [default: 2; x>=1]
-  -ps, --patch_size INTEGER RANGE
-                                  Size of patch to use for inference.
-                                  [x>=128]
-  -bs, --batch_size INTEGER RANGE
-                                  Batch size.  [default: 4; x>=1]
-  --num_workers INTEGER RANGE     Number of workers to use for inference.
-                                  [default: 4; x>=1]
-  --max_detections INTEGER RANGE  Maximum number of detections to keep per
+  -cot, --overlap_contain_threshold FLOAT RANGE
+                                  Overlap containment threshold for merging polygons.
+                                  [default: 0.5; 0.0<=x<=1.0]
                                   patch.  [default: 100; x>=1]
   -iou, --iou_threshold FLOAT RANGE
                                   IoU threshold for matching predictions to
