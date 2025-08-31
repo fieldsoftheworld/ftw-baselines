@@ -42,7 +42,8 @@ class DelineateAnything:
             device: Device to run the model on, either "cuda" or "cpu".
         """
         super().__init__()
-            else patch_size
+        self.patch_size = (
+            (patch_size, patch_size) if isinstance(patch_size, int) else patch_size
         )
         self.image_size = (
             self.patch_size[0] * resize_factor,
