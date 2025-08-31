@@ -6,6 +6,7 @@ submission/
 results/
 logs_old/
 build/
+weights/
 inference_imagery/
 ftw_tools.egg-info/
 *.ckpt
