@@ -30,7 +30,7 @@ This repository provides the codebase for working with the [FTW dataset](https:/
     - [5. Filter predictions by land cover (using `ftw inference filter-by-lulc`)](#5-filter-predictions-by-land-cover-using-ftw-inference-filter-by-lulc)
     - [6. Polygonize the output (using `ftw inference polygonize`)](#6-polygonize-the-output-using-ftw-inference-polygonize)
   - [Delineate Anything](#delineate-anything)
-    - [1. End-to-end inference (using `ftw inference run-instance-segmentation-all`)](#1-end-to-end-inference-using-ftw-inference-run-instance-segmentation-all)
+    - [1. End-to-end inference (using `ftw inference instance-segmentation-all`)](#1-end-to-end-inference-using-ftw-inference-instance-segmentation-all)
 - [FTW Baseline Dataset](#ftw-baseline-dataset)
   - [Download the FTW Baseline Dataset](#download-the-ftw-baseline-dataset)
   - [Visualize the FTW Baseline Dataset](#visualize-the-ftw-baseline-dataset)
@@ -412,7 +412,7 @@ And that's it! In 4 lines of code, you obtained an FTW model, downloaded S2 data
 
 ### Delineate Anything
 
-#### 1. End-to-end inference (using `ftw inference run-instance-segmentation-all`)
+#### 1. End-to-end inference (using `ftw inference instance-segmentation-all`)
 
 [Delineate Anything](https://lavreniuk.github.io/Delineate-Anything/) is a pretrained instance segmentation which can detect and segment out individual field boundaries directly to polygons without an intermediate predictions raster. It's trained on the [FBIS-22M](https://huggingface.co/datasets/MykolaL/FBIS-22M) which is a large-scale, multi-resolution dataset comprising 672,909 high-resolution satellite image patches (0.25 m – 10 m) and 22,926,427 instance masks of individual fields. The model comes in two variants: `DelineateAnything` and `DelineateAnything-S`. `DelineateAnything` is the full model and `DelineateAnything-S` is a smaller model that is faster to run (see table below for details). If you use this model in your research, please cite the [Delineate Anything paper](https://arxiv.org/abs/2504.02534).
 
@@ -421,7 +421,9 @@ And that's it! In 4 lines of code, you obtained an FTW model, downloaded S2 data
 | **Delineate Anything-S** | 0.632   | 0.383        | 16.8         | 17.6 MB  |
 | **Delineate Anything**   | 0.720   | 0.477        | 25.0         | 125 MB   |
 
-You can run Delineate Anything on a single scene using the `ftw inference instance-segmentation-all` command. See below.
+You can run Delineate Anything on a single scene using the `ftw inference instance-segmentation-all` command or optionally on an existing local file using `ftw inference run-instance-segmentation`. See below for examples.
+
+Note that inference uses patching with overlap which will result in duplicate polygons in the overlapping regions. Postprocessing is used to merge polygons via IoU and containment thresholds which are defined by the `--overlap_iou_threshold` and `--overlap_contain_threshold` parameters. For large scenes with many polygons or using a low confidence threshold, this can become computationally slow.
 
 Example usage:
 
@@ -430,18 +432,19 @@ ftw inference instance-segmentation-all \
     S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729 \
     --bbox=13.0,48.0,13.2,48.2 \
     --out_dir=instance-segmentation-output \
-    --model=DelineateAnything-S \
-    --image_size=512 \
+    --gpu=0 \
+    --model=DelineateAnything \
+    --resize_factor=2 \
     --patch_size=256 \
-    --batch_size=2 \
-    --num_workers=2 \
     --max_detections=100 \
-    --iou_threshold=0.2 \
+    --iou_threshold=0.1 \
     --conf_threshold=0.1 \
-    --overwrite \
-    --simplify=15 \
-    --min_size=100 \
-    --close_interiors
+    --simplify=2 \
+    --min_size=500 \
+    --close_interiors \
+    --overlap_iou_threshold=0.2 \
+    --overlap_contain_threshold=0.8 \
+    --overwrite
 ```
 
 Usage:
@@ -465,23 +468,24 @@ Options:
                                   mspc]
   -m, --model [DelineateAnything|DelineateAnything-S]
                                   The model to use for inference.  [default:
-                                  DelineateAnything-S]
+                                  DelineateAnything]
   --gpu INTEGER RANGE             GPU ID to use. If not provided, CPU will be
                                   used by default.  [x>=0]
-  --image_size INTEGER RANGE      Image size to use for inference.  [default:
-                                  320; x>=1]
+  -r, --resize_factor INTEGER RANGE
+                                  Resize factor to use for inference.
+                                  [default: 2; x>=1]
   -ps, --patch_size INTEGER RANGE
                                   Size of patch to use for inference.
                                   [x>=128]
   -bs, --batch_size INTEGER RANGE
-                                  Batch size.  [default: 2; x>=1]
+                                  Batch size.  [default: 4; x>=1]
   --num_workers INTEGER RANGE     Number of workers to use for inference.
-                                  [default: 2; x>=1]
-  --max_detections INTEGER RANGE  Maximum number of detections to keep per patch.
-                                  [default: 50; x>=1]
+                                  [default: 4; x>=1]
+  --max_detections INTEGER RANGE  Maximum number of detections to keep per
+                                  patch.  [default: 100; x>=1]
   -iou, --iou_threshold FLOAT RANGE
                                   IoU threshold for matching predictions to
-                                  ground truths  [default: 0.5; 0.0<=x<=1.0]
+                                  ground truths  [default: 0.1; 0.0<=x<=1.0]
   -ct, --conf_threshold FLOAT RANGE
                                   Confidence threshold for keeping detections.
                                   [default: 0.1; 0.0<=x<=1.0]
@@ -492,15 +496,22 @@ Options:
   -s, --simplify FLOAT RANGE      Simplification factor to use when
                                   polygonizing in the unit of the CRS, e.g.
                                   meters for Sentinel-2 imagery in UTM. Set to
-                                  0 to disable simplification.  [default: 15;
+                                  0 to disable simplification.  [default: 2;
                                   x>=0.0]
   -sn, --min_size FLOAT RANGE     Minimum area size in square meters to
                                   include in the output. Set to 0 to disable.
-                                  [default: 100; x>=0.0]
+                                  [default: 500; x>=0.0]
   -sx, --max_size FLOAT RANGE     Maximum area size in square meters to
                                   include in the output. Disabled by default.
-                                  [x>=0.0]
+                                  [default: 100000; x>=0.0]
   --close_interiors               Remove the interiors holes in the polygons.
+                                  [default: True]
+  -oit, --overlap_iou_threshold FLOAT RANGE
+                                  Overlap IoU threshold for merging polygons.
+                                  [default: 0.2; 0.0<=x<=1.0]
+  -cot, --overlap_contain_threshold FLOAT RANGE
+                                  Overlap containment threshold for merging
+                                  polygons.  [default: 0.8; 0.0<=x<=1.0]
   --help                          Show this message and exit.
 ```
 

@@ -9,46 +9,56 @@ from fiboa_cli.parquet import create_parquet
 def merge_polygons(
     polygons: gpd.GeoDataFrame,
     iou_thresh: float = 0.2,
-    grid_size: float = 5.0,
+    contain_thresh: float = 0.8,
+    grid_size: float = 10.0,
 ) -> gpd.GeoDataFrame:
-    """Merge overlapping polygons in a GeoDataFrame while keeping singletons.
+    """Merge overlapping polygons in a GeoDataFrame.
 
     Args:
-        polygons: The input GeoDataFrame containing the polygons.
-        iou_thresh: Merge polygons with IoU greater than this threshold.
-        grid_size: The grid size for snapping the polygons.
+        polygons: The GeoDataFrame containing the polygons.
+        iou_thresh: The IoU threshold for merging polygons.
+        contain_thresh: The containment threshold for merging polygons.
+        grid_size: The grid size for merging polygons. Defaults to 10m for Sentinel-2.
 
     Returns:
-        The merged polygons.
+        The merged GeoDataFrame.
     """
     gdf = polygons.copy()
     gdf["geometry"] = gdf.geometry.apply(shapely.make_valid)
-    gdf["geometry"] = gdf.geometry.set_precision(grid_size)  # snap helps edge seams
 
-    # self-join to get candidate duplicate polygons
-    pairs = (
-        gpd.sjoin(
-            gdf[["geometry"]], gdf[["geometry"]], predicate="overlaps", how="inner"
-        )
-        .reset_index()
-        .rename(columns={"index": "left", "index_right": "right"})
+    # Select pairs of polygons that intersect or contained within each other
+    pairs = gpd.sjoin(
+        gpd.GeoDataFrame(geometry=gdf.geometry, crs=gdf.crs),
+        gdf[["geometry"]],
+        how="inner",
+        predicate="intersects",
     )
-    pairs = pairs[pairs["left"] < pairs["right"]][["left", "right"]]
+    left = pairs.index.to_numpy(copy=False)
+    right = pairs["index_right"].to_numpy(copy=False)
+    m = left < right
+    left, right = left[m], right[m]
+    if left.size == 0:
+        out = gpd.GeoDataFrame(geometry=gdf.geometry.copy(), crs=gdf.crs)
+        return _to_polygons_only(out)
 
-    # IoU filter
-    if len(pairs):
-        L = gdf.geometry.values[pairs["left"].values]
-        R = gdf.geometry.values[pairs["right"].values]
-        inter_a = np.fromiter((a.intersection(b).area for a, b in zip(L, R)), float)
-        area_a = np.fromiter((a.area for a in L), float)
-        area_b = np.fromiter((b.area for b in R), float)
-        union_a = area_a + area_b - inter_a
-        iou = inter_a / np.maximum(union_a, 1e-12)
-        pairs = pairs[iou >= iou_thresh]
+    # Compute overlap and containment metrics
+    geoms = gdf.geometry.to_numpy()
+    L, R = geoms[left], geoms[right]
+    inter = shapely.intersection(L, R)
+    inter_a = shapely.area(inter)
+    a = shapely.area(L)
+    b = shapely.area(R)
+    union_a = a + b - inter_a
+    iou = inter_a / np.maximum(union_a, 1e-12)
+    containment = inter_a / np.maximum(np.minimum(a, b), 1e-12)
 
-    # Connected components over edges (singletons remain their own component)
+    # Filter pairs by threshold
+    keep = (iou >= iou_thresh) | (containment >= contain_thresh)
+    left, right = left[keep], right[keep]
+
+    # Merge polygons
     n = len(gdf)
-    parent = list(range(n))
+    parent = np.arange(n)
 
     def find(x):
         while parent[x] != x:
@@ -56,50 +66,50 @@ def merge_polygons(
             x = parent[x]
         return x
 
-    def unite(i, j):
+    for i, j in zip(left, right):
         pi, pj = find(i), find(j)
         if pi != pj:
             parent[pj] = pi
-
-    for i, j in pairs.itertuples(index=False):
-        unite(i, j)
-
-    labels = [find(i) for i in range(n)]
-    gdf["_merge_id"] = gpd.pd.Series(labels).astype("category").cat.codes
-
-    # Union per component; singletons just pass through
-    merged_geom = gdf.groupby("_merge_id", group_keys=False)["geometry"].apply(
-        lambda s: s.union_all(method="unary", grid_size=None)
+    labels = np.fromiter((find(i) for i in range(n)), int, count=n)
+    _, comp_ids = np.unique(labels, return_inverse=True)
+    gdf["_merge_id"] = comp_ids
+    merged = (
+        gdf.groupby("_merge_id", group_keys=False)["geometry"]
+        .apply(lambda s: s.union_all(method="unary", grid_size=grid_size))
+        .reset_index(drop=True)
     )
-    out = gpd.GeoDataFrame(geometry=merged_geom, crs=gdf.crs).reset_index(drop=True)
-    out["geometry"] = out.geometry.apply(shapely.make_valid)
-    out = out[out.geometry.is_valid & ~out.geometry.is_empty]
+    merged = gpd.GeoDataFrame(geometry=merged, crs=gdf.crs)
+    merged["geometry"] = merged.geometry.apply(shapely.make_valid)
 
-    # Convert from GeometryCollection and/or MultiPolygon to Polygons only
-    # drop any other geometry types
-    out = out.explode(index_parts=False, ignore_index=True)
-    out = out.explode(index_parts=False, ignore_index=True)
-    out = out[out.geometry.geom_type == "Polygon"].reset_index(drop=True)
-    out = out[out.geometry.is_valid & ~out.geometry.is_empty]
-    return out
+    # Convert merged multipolygons or geometry collections to polygons
+    merged = merged.explode(index_parts=False, ignore_index=True)
+    merged = merged.explode(index_parts=False, ignore_index=True)
+    merged = merged[merged.geometry.geom_type == "Polygon"].reset_index(drop=True)
+    merged = merged[merged.geometry.is_valid & ~merged.geometry.is_empty]
+    return merged
 
 
 def postprocess_instance_polygons(
     polygons: gpd.GeoDataFrame,
     simplify: int = 0,
+    padding: int = 0,
     min_size: int | None = None,
     max_size: int | None = None,
     close_interiors: bool = True,
-    overlap_threshold: float = 0.2,
+    overlap_iou_threshold: float = 0.2,
+    overlap_contain_threshold: float = 0.8,
 ) -> gpd.GeoDataFrame:
     """Postprocess polygons to remove small polygons, simplify them, and compute area and perimeter.
 
     Args:
         polygons: The polygons to postprocess.
         simplify: The simplification factor.
+        padding: The padding to used for inference.
         min_size: The minimum size of the polygons.
         max_size: The maximum size of the polygons.
         close_interiors: Whether to close the interiors of the polygons.
+        overlap_iou_threshold: The overlap IoU threshold for merging polygons.
+        overlap_contain_threshold: The overlap containment threshold for merging polygons.
 
     Returns:
         The postprocessed polygons.
@@ -124,8 +134,15 @@ def postprocess_instance_polygons(
     polygons.dropna(subset=["geometry"], inplace=True)
     polygons.reset_index(drop=True, inplace=True)
 
-    if overlap_threshold > 0:
-        polygons = merge_polygons(polygons, iou_thresh=overlap_threshold)
+    if padding > 0 and (overlap_iou_threshold > 0 or overlap_contain_threshold > 0):
+        print(
+            f"Merging polygons with overlap IoU threshold {overlap_iou_threshold} and overlap containment threshold {overlap_contain_threshold}. This may take awhile for a large number of polygons..."
+        )
+        polygons = merge_polygons(
+            polygons,
+            iou_thresh=overlap_iou_threshold,
+            contain_thresh=overlap_contain_threshold,
+        )
 
     # Convert to hectares
     polygons["area"] = polygons.geometry.area * 0.0001

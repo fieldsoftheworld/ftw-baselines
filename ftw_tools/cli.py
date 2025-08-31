@@ -716,7 +716,7 @@ def inference_run(
     "--model",
     "-m",
     type=click.Choice(["DelineateAnything", "DelineateAnything-S"]),
-    default="DelineateAnything-S",
+    default="DelineateAnything",
     show_default=True,
     help="The model to use for inference.",
 )
@@ -753,21 +753,21 @@ def inference_run(
     "--batch_size",
     "-bs",
     type=click.IntRange(min=1),
-    default=2,
+    default=4,
     show_default=True,
     help="Batch size.",
 )
 @click.option(
     "--num_workers",
     type=click.IntRange(min=1),
-    default=2,
+    default=4,
     show_default=True,
     help="Number of workers to use for inference.",
 )
 @click.option(
     "--max_detections",
     type=click.IntRange(min=1),
-    default=50,
+    default=100,
     show_default=True,
     help="Maximum number of detections to keep per patch.",
 )
@@ -775,7 +775,7 @@ def inference_run(
     "--iou_threshold",
     "-iou",
     type=click.FloatRange(min=0.0, max=1.0),
-    default=0.5,
+    default=0.1,
     show_default=True,
     help="IoU threshold for matching predictions to ground truths",
 )
@@ -814,7 +814,7 @@ def inference_run(
     "--simplify",
     "-s",
     type=click.FloatRange(min=0.0),
-    default=15,
+    default=2,
     show_default=True,
     help="Simplification factor to use when polygonizing in the unit of the CRS, e.g. meters for Sentinel-2 imagery in UTM. Set to 0 to disable simplification.",
 )
@@ -822,7 +822,7 @@ def inference_run(
     "--min_size",
     "-sn",
     type=click.FloatRange(min=0.0),
-    default=100,
+    default=500,
     show_default=True,
     help="Minimum area size in square meters to include in the output. Set to 0 to disable.",
 )
@@ -837,17 +837,25 @@ def inference_run(
 @click.option(
     "--close_interiors",
     is_flag=True,
-    default=False,
+    default=True,
     show_default=True,
     help="Remove the interiors holes in the polygons.",
 )
 @click.option(
-    "--overlap_threshold",
-    "-ot",
+    "--overlap_iou_threshold",
+    "-oit",
     type=click.FloatRange(min=0.0, max=1.0),
     default=0.2,
     show_default=True,
-    help="Overlap threshold for merging polygons.",
+    help="Overlap IoU threshold for merging polygons.",
+)
+@click.option(
+    "--overlap_contain_threshold",
+    "-cot",
+    type=click.FloatRange(min=0.0, max=1.0),
+    default=0.8,
+    show_default=True,
+    help="Overlap containment threshold for merging polygons.",
 )
 def inference_run_instance_segmentation(
     input,
@@ -868,7 +876,8 @@ def inference_run_instance_segmentation(
     min_size,
     max_size,
     close_interiors,
-    overlap_threshold,
+    overlap_iou_threshold,
+    overlap_contain_threshold,
 ):
     from ftw_tools.models.baseline_inference import run_instance_segmentation
 
@@ -878,8 +887,8 @@ def inference_run_instance_segmentation(
         out=out,
         gpu=gpu,
         num_workers=num_workers,
-        image_size=patch_size * resize_factor,
         patch_size=patch_size,
+        resize_factor=resize_factor,
         batch_size=batch_size,
         max_detections=max_detections,
         iou_threshold=iou_threshold,
@@ -891,7 +900,8 @@ def inference_run_instance_segmentation(
         min_size=min_size,
         max_size=max_size,
         close_interiors=close_interiors,
-        overlap_threshold=overlap_threshold,
+        overlap_iou_threshold=overlap_iou_threshold,
+        overlap_contain_threshold=overlap_contain_threshold,
     )
 
 
@@ -926,7 +936,7 @@ def inference_run_instance_segmentation(
     "--model",
     "-m",
     type=click.Choice(["DelineateAnything", "DelineateAnything-S"]),
-    default="DelineateAnything-S",
+    default="DelineateAnything",
     show_default=True,
     help="The model to use for inference.",
 )
@@ -955,21 +965,21 @@ def inference_run_instance_segmentation(
     "--batch_size",
     "-bs",
     type=click.IntRange(min=1),
-    default=2,
+    default=4,
     show_default=True,
     help="Batch size.",
 )
 @click.option(
     "--num_workers",
     type=click.IntRange(min=1),
-    default=2,
+    default=4,
     show_default=True,
     help="Number of workers to use for inference.",
 )
 @click.option(
     "--max_detections",
     type=click.IntRange(min=1),
-    default=50,
+    default=100,
     show_default=True,
     help="Maximum number of detections to keep per patch.",
 )
@@ -977,7 +987,7 @@ def inference_run_instance_segmentation(
     "--iou_threshold",
     "-iou",
     type=click.FloatRange(min=0.0, max=1.0),
-    default=0.5,
+    default=0.1,
     show_default=True,
     help="IoU threshold for matching predictions to ground truths",
 )
@@ -1016,7 +1026,7 @@ def inference_run_instance_segmentation(
     "--simplify",
     "-s",
     type=click.FloatRange(min=0.0),
-    default=15,
+    default=2,
     show_default=True,
     help="Simplification factor to use when polygonizing in the unit of the CRS, e.g. meters for Sentinel-2 imagery in UTM. Set to 0 to disable simplification.",
 )
@@ -1024,7 +1034,7 @@ def inference_run_instance_segmentation(
     "--min_size",
     "-sn",
     type=click.FloatRange(min=0.0),
-    default=100,
+    default=500,
     show_default=True,
     help="Minimum area size in square meters to include in the output. Set to 0 to disable.",
 )
@@ -1039,17 +1049,25 @@ def inference_run_instance_segmentation(
 @click.option(
     "--close_interiors",
     is_flag=True,
-    default=False,
+    default=True,
     show_default=True,
     help="Remove the interiors holes in the polygons.",
 )
 @click.option(
-    "--overlap_threshold",
-    "-ot",
+    "--overlap_iou_threshold",
+    "-oit",
     type=click.FloatRange(min=0.0, max=1.0),
     default=0.2,
     show_default=True,
-    help="Overlap threshold for merging polygons.",
+    help="Overlap IoU threshold for merging polygons.",
+)
+@click.option(
+    "--overlap_contain_threshold",
+    "-cot",
+    type=click.FloatRange(min=0.0, max=1.0),
+    default=0.8,
+    show_default=True,
+    help="Overlap containment threshold for merging polygons.",
 )
 def inference_run_instance_segmentation_all(
     input,
@@ -1072,7 +1090,8 @@ def inference_run_instance_segmentation_all(
     min_size,
     max_size,
     close_interiors,
-    overlap_threshold,
+    overlap_iou_threshold,
+    overlap_contain_threshold,
 ):
     """Run all inference instance segmentation commands from download and inference."""
     from ftw_tools.download.download_img import create_input
@@ -1103,8 +1122,8 @@ def inference_run_instance_segmentation_all(
         out=inf_output_path,
         gpu=gpu,
         num_workers=num_workers,
-        image_size=patch_size * resize_factor,
         patch_size=patch_size,
+        resize_factor=resize_factor,
         batch_size=batch_size,
         max_detections=max_detections,
         iou_threshold=iou_threshold,
@@ -1116,7 +1135,8 @@ def inference_run_instance_segmentation_all(
         min_size=min_size,
         max_size=max_size,
         close_interiors=close_interiors,
-        overlap_threshold=overlap_threshold,
+        overlap_iou_threshold=overlap_iou_threshold,
+        overlap_contain_threshold=overlap_contain_threshold,
     )
 
 

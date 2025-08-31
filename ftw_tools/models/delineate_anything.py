@@ -17,22 +17,14 @@ class DelineateAnything:
         "DelineateAnything-S": "https://hf.co/torchgeo/delineate-anything-s/resolve/69cd440b0c5bd450ced145e68294aa9393ddae05/delineate_anything_s_rgb_yolo11n-b879d643.pt",
         "DelineateAnything": "https://hf.co/torchgeo/delineate-anything/resolve/60bea7b2f81568d16d5c75e4b5b06289e1d7efaf/delineate_anything_rgb_yolo11x-88ede029.pt",
     }
-    transforms = nn.Sequential(
-        T.Lambda(lambda x: x.unsqueeze(dim=0) if x.ndim == 3 else x),
-        T.Lambda(lambda x: x[:, :3, ...]),
-        T.Lambda(lambda x: x / 3000.0),
-        T.Lambda(lambda x: x.permute(0, 2, 3, 1)),
-        T.Lambda(lambda x: x * 255.0),
-        T.Lambda(lambda x: x.clip(0, 255)),
-        T.ConvertImageDtype(torch.float32),
-    )
 
     def __init__(
         self,
         model: Literal[
             "DelineateAnything-S", "DelineateAnything"
         ] = "DelineateAnything-S",
-        image_size: tuple[int, int] | int = 320,
+        patch_size: tuple[int, int] | int = 256,
+        resize_factor: int = 2,
         max_detections: int = 50,
         iou_threshold: float = 0.6,
         conf_threshold: float = 0.1,
@@ -42,15 +34,22 @@ class DelineateAnything:
 
         Args:
             model: The model variant to use, either "DelineateAnything-S" or "DelineateAnything".
-            image_size: The size of the input images. If an int is provided, it will be used for both width and height.
+            patch_size: The size of the input images. If an int is provided, it will be used for both width and height.
+            resize_factor: The factor to resize the input images by.
             max_detections: Maximum number of detections per image.
             iou_threshold: Intersection over Union threshold for filtering predictions.
             conf_threshold: Confidence threshold for filtering predictions.
             device: Device to run the model on, either "cuda" or "cpu".
         """
         super().__init__()
+        self.patch_size = (
+            (patch_size, patch_size)
+            if isinstance(patch_size, int)
+            else (patch_size, patch_size)
+        )
         self.image_size = (
-            (image_size, image_size) if isinstance(image_size, int) else image_size
+            self.patch_size[0] * resize_factor,
+            self.patch_size[1] * resize_factor,
         )
         self.max_detections = max_detections
         self.iou_threshold = iou_threshold
@@ -59,7 +58,14 @@ class DelineateAnything:
         self.model = ultralytics.YOLO(self.checkpoints[model]).to(device)
         self.model.eval()
         self.model.fuse()
-        self.transforms.eval()
+        self.transforms = nn.Sequential(
+            T.Lambda(lambda x: x.unsqueeze(dim=0) if x.ndim == 3 else x),
+            T.Lambda(lambda x: x[:, :3, ...]),
+            T.Lambda(lambda x: x / 3000.0),
+            T.Lambda(lambda x: x.clip(0.0, 1.0)),
+            T.Resize(self.image_size, interpolation=T.InterpolationMode.BILINEAR),
+            T.ConvertImageDtype(torch.float32),
+        ).to(device)
 
     @staticmethod
     def polygonize(
@@ -108,10 +114,9 @@ class DelineateAnything:
         Returns:
             A list of results containing the model predictions.
         """
-        image = self.transforms(image).cpu().numpy()
+        image = self.transforms(image.to(self.device))
         results = self.model.predict(
-            list(image),
-            imgsz=self.image_size,
+            image,
             conf=self.conf_threshold,
             max_det=self.max_detections,
             iou=self.iou_threshold,
@@ -119,4 +124,8 @@ class DelineateAnything:
             half=True,
             verbose=False,
         )
+        # Rescale masks and boxes to original patch size
+        for result in results:
+            result.masks.orig_shape = self.patch_size
+            result.boxes.orig_shape = self.patch_size
         return results

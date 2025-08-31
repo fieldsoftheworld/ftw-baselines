@@ -231,8 +231,8 @@ def run_instance_segmentation(
     out: str,
     gpu: int | None = None,
     num_workers: int = 4,
-    image_size: int = 320,
     patch_size: int = 256,
+    resize_factor: int = 2,
     batch_size: int = 2,
     max_detections: int = 50,
     iou_threshold: float = 0.6,
@@ -244,7 +244,8 @@ def run_instance_segmentation(
     min_size: int | None = 500,
     max_size: int | None = None,
     close_interiors: bool = True,
-    overlap_threshold: float = 0.5,
+    overlap_iou_threshold: float = 0.5,
+    overlap_contain_threshold: float = 0.5,
 ):
     """Run instance segmentation inference on an image.
 
@@ -254,8 +255,8 @@ def run_instance_segmentation(
         out: The output file path.
         gpu: The GPU device to use for inference.
         num_workers: The number of workers to use for inference.
-        image_size: The size of the image to use for inference.
         patch_size: The size of the patch to use for inference.
+        resize_factor: The resize factor to use for inference.
         batch_size: The batch size to use for inference.
         max_detections: The maximum number of detections to use for inference.
         iou_threshold: The IoU threshold to use for inference (lower values filter out more detections).
@@ -267,7 +268,8 @@ def run_instance_segmentation(
         min_size: The minimum size of the polygons to use for inference (in hectares).
         max_size: The maximum size of the polygons to use for inference (in hectares).
         close_interiors: Whether to close the interiors of the polygons to use for inference.
-        overlap_threshold: Merge polygons with IoU greater than this threshold.
+        overlap_iou_threshold: Merge polygons with IoU greater than this threshold.
+        overlap_contain_threshold: Merge polygons with contain greater than this threshold.
 
     Raises:
         AssertionError: If the model is not DelineateAnything or DelineateAnything-S.
@@ -281,6 +283,7 @@ def run_instance_segmentation(
         "Model must be either DelineateAnything or DelineateAnything-S."
     )
 
+    padding = padding if padding is not None else patch_size // 4
     device, _, _, patch_size, stride, _ = setup_inference(
         input, out, gpu, patch_size, padding, overwrite, mps_mode
     )
@@ -289,7 +292,8 @@ def run_instance_segmentation(
     tic = time.time()
     model = DelineateAnything(
         model=model,
-        image_size=image_size,
+        patch_size=patch_size,
+        resize_factor=resize_factor,
         max_detections=max_detections,
         iou_threshold=iou_threshold,
         conf_threshold=conf_threshold,
@@ -313,7 +317,7 @@ def run_instance_segmentation(
         dataloader,
         total=len(dataloader),
     ):
-        images = batch["image"]
+        images = batch["image"].to(device)
         predictions = model(images)
 
         # torchgeo>=0.6 refers to the bounding box as "bounds" instead of "bbox"
@@ -339,12 +343,14 @@ def run_instance_segmentation(
     polygons = gpd.GeoDataFrame(pd.concat(polygons), crs=dataset.crs)
 
     polygons = postprocess_instance_polygons(
-        polygons,
-        simplify,
-        min_size,
-        max_size,
-        close_interiors,
-        overlap_threshold,
+        polygons=polygons,
+        padding=padding,
+        simplify=simplify,
+        min_size=min_size,
+        max_size=max_size,
+        close_interiors=close_interiors,
+        overlap_iou_threshold=overlap_iou_threshold,
+        overlap_contain_threshold=overlap_contain_threshold,
     )
 
     # Save polygons

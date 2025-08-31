@@ -211,7 +211,7 @@ def test_ftw_inference_all():
         assert "Finished inference and saved output" in result.output
 
 
-def test_instance_segmentation_inference_run():
+def test_instance_segmentation_inference():
     runner = CliRunner()
 
     # Check required files are present
@@ -248,7 +248,7 @@ def test_instance_segmentation_inference_all():
         result = runner.invoke(
             inference_run_instance_segmentation_all,
             [
-                "S2B_33UUP_20210617_1_L2A",
+                "S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729",
                 "--bbox=13.0,48.0,13.2,48.2",
                 "--model",
                 "DelineateAnything-S",
