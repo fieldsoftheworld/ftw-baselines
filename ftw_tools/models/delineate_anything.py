@@ -126,6 +126,8 @@ class DelineateAnything:
         )
         # Rescale masks and boxes to original patch size
         for result in results:
-            result.masks.orig_shape = self.patch_size
-            result.boxes.orig_shape = self.patch_size
+            if result.masks is not None:
+                result.masks.orig_shape = self.patch_size
+            if result.boxes is not None:
+                result.boxes.orig_shape = self.patch_size
         return results
