@@ -25,9 +25,9 @@ class DelineateAnything:
         ] = "DelineateAnything-S",
         patch_size: tuple[int, int] | int = 256,
         resize_factor: int = 2,
-        max_detections: int = 50,
-        iou_threshold: float = 0.6,
-        conf_threshold: float = 0.1,
+        max_detections: int = 100,
+        iou_threshold: float = 0.3,
+        conf_threshold: float = 0.05,
         device: str = "cuda" if torch.cuda.is_available() else "cpu",
     ) -> None:
         """Initialize the DelineateAnything model.

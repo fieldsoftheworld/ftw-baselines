@@ -775,7 +775,7 @@ def inference_run(
     "--iou_threshold",
     "-iou",
     type=click.FloatRange(min=0.0, max=1.0),
-    default=0.1,
+    default=0.3,
     show_default=True,
     help="IoU threshold for matching predictions to ground truths",
 )
@@ -783,7 +783,7 @@ def inference_run(
     "--conf_threshold",
     "-ct",
     type=click.FloatRange(min=0.0, max=1.0),
-    default=0.1,
+    default=0.05,
     show_default=True,
     help="Confidence threshold for keeping detections.",
 )
@@ -987,7 +987,7 @@ def inference_run_instance_segmentation(
     "--iou_threshold",
     "-iou",
     type=click.FloatRange(min=0.0, max=1.0),
-    default=0.1,
+    default=0.3,
     show_default=True,
     help="IoU threshold for matching predictions to ground truths",
 )
@@ -995,7 +995,7 @@ def inference_run_instance_segmentation(
     "--conf_threshold",
     "-ct",
     type=click.FloatRange(min=0.0, max=1.0),
-    default=0.1,
+    default=0.05,
     show_default=True,
     help="Confidence threshold for keeping detections.",
 )
