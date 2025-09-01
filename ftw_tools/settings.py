@@ -6,8 +6,7 @@ BANDS_OF_INTEREST = ["red", "green", "blue", "nir"]
 
 # Sentinel-2 collection mappings
 S2_COLLECTIONS = {
-    "pre-c1": "sentinel-2-pre-c1-l2a",
-    "no-c": "sentinel-2-l2a", 
+    "old-baseline": "sentinel-2-l2a", 
     "c1": "sentinel-2-c1-l2a"
 }
 

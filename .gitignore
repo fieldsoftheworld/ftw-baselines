@@ -19,3 +19,4 @@ ftw_tools.egg-info/
 /weights/
 /.ruff_cache/
 /.pixi/
+.DS_Store

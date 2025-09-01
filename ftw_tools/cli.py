@@ -403,9 +403,9 @@ def inference():
     "--s2_collection",
     "-s2",
     type=click.Choice(list(S2_COLLECTIONS.keys())),
-    default="no-c",
+    default="c1",
     show_default=True,
-    help="Sentinel-2 collection to use with EarthSearch only: 'pre-c1' = sentinel-2-pre-c1-l2a, 'no-c' = sentinel-2-l2a (default), 'c1' = sentinel-2-c1-l2a. Ignored when using MSPC.",
+    help="Sentinel-2 collection to use with EarthSearch only: 'old-baseline' = sentinel-2-l2a, 'c1' = sentinel-2-c1-l2a (default). Ignored when using MSPC.",
 )
 @click.option(
     "--verbose",
@@ -543,9 +543,9 @@ def ftw_inference_all(
     "--s2_collection",
     "-s2",
     type=click.Choice(list(S2_COLLECTIONS.keys())),
-    default="no-c",
+    default="c1",
     show_default=True,
-    help="Sentinel-2 collection to use with EarthSearch only: 'pre-c1' = sentinel-2-pre-c1-l2a, 'no-c' = sentinel-2-l2a (default), 'c1' = sentinel-2-c1-l2a. Ignored when using MSPC.",
+    help="Sentinel-2 collection to use with EarthSearch only: 'old-baseline' = sentinel-2-l2a, 'c1' = sentinel-2-c1-l2a (default). Ignored when using MSPC.",
 )
 def scene_selection(year, bbox, cloud_cover_max, buffer_days, out, stac_host, s2_collection):
     """Download Sentinel-2 scenes for inference."""
@@ -612,9 +612,9 @@ def scene_selection(year, bbox, cloud_cover_max, buffer_days, out, stac_host, s2
     "--s2_collection",
     "-s2",
     type=click.Choice(list(S2_COLLECTIONS.keys())),
-    default="no-c",
+    default="c1",
     show_default=True,
-    help="Sentinel-2 collection to use with EarthSearch only: 'pre-c1' = sentinel-2-pre-c1-l2a, 'no-c' = sentinel-2-l2a (default), 'c1' = sentinel-2-c1-l2a. Ignored when using MSPC.",
+    help="Sentinel-2 collection to use with EarthSearch only: 'old-baseline' = sentinel-2-l2a, 'c1' = sentinel-2-c1-l2a (default). Ignored when using MSPC.",
 )
 def inference_download(win_a, win_b, out, overwrite, bbox, stac_host, s2_collection):
     from ftw_tools.download.download_img import create_input

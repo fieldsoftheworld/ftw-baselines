@@ -123,7 +123,7 @@ def scene_selection(
     stac_host: str,
     cloud_cover_max: int = 20,
     buffer_days: int = 14,
-    s2_collection: str = "no-c",
+    s2_collection: str = "c1",
     verbose: bool = False,
 ) -> Tuple[str, str]:
     """
@@ -138,17 +138,13 @@ def scene_selection(
         buffer_days (int, optional): Number of days to buffer the date for querying to help balance
             decreasing cloud cover and selecting a date near the crop calendar indicated date.
             Defaults to 14.
-        s2_collection (str, optional): Sentinel-2 collection to use (only applies to EarthSearch). Defaults to "no-c".
+        s2_collection (str, optional): Sentinel-2 collection to use (only applies to EarthSearch). Defaults to "c1".
 
     Returns:
         tuple: Sentinel2 image ids to be used as input into the 2 image crop model
     """
-    # Validate collection parameter usage
-    if stac_host == "mspc" and s2_collection != "no-c":
-        raise ValueError(
-            f"s2_collection parameter ('{s2_collection}') is only supported with EarthSearch. "
-            f"Microsoft Planetary Computer uses a single collection. Use stac_host='earthsearch' instead."
-        )
+    # Note: s2_collection parameter is ignored when using MSPC
+    # MSPC always uses the default collection regardless of s2_collection value
     # get crop calendar days
     start_day, end_day = get_harvest_integer_from_bbox(bbox=bbox)
 
@@ -203,7 +199,7 @@ def query_stac(
     stac_host: str,
     cloud_cover_max: int = 20,
     buffer_days=14,
-    s2_collection: str = "no-c",
+    s2_collection: str = "c1",
     verbose: bool = False,
 ) -> str:
     """
@@ -222,12 +218,8 @@ def query_stac(
     Returns:
         Sentinel-2 image S3 URL.
     """
-    # Validate collection parameter usage
-    if stac_host == "mspc" and s2_collection != "no-c":
-        raise ValueError(
-            f"s2_collection parameter ('{s2_collection}') is only supported with EarthSearch. "
-            f"Microsoft Planetary Computer uses a single collection. Use stac_host='earthsearch' instead."
-        )
+    # Note: s2_collection parameter is ignored when using MSPC
+    # MSPC always uses the default collection regardless of s2_collection value
     # Format dates in RFC3339 format for STAC API compliance
     start = (date - pd.Timedelta(days=buffer_days)).strftime("%Y-%m-%dT00:00:00Z")
     end = (date + pd.Timedelta(days=buffer_days)).strftime("%Y-%m-%dT23:59:59Z")
@@ -253,13 +245,7 @@ def query_stac(
         print(f"    Date range: {date_range} (±{buffer_days} days from {date.date()})")
         print(f"    Bbox: {bbox}")
         print(f"    Cloud cover: <{cloud_cover_max}%")
-        print(f"  Exact STAC call:")
-        print(f"    catalog.search(")
-        print(f"        collections=['{collection_name}'],")
-        print(f"        bbox={bbox},")
-        print(f"        datetime='{date_range}',")
-        print(f"        query={{'eo:cloud_cover': {{'lt': {cloud_cover_max}}}}}")
-        print(f"    )")
+
         # Build the STAC API URL with query parameters
         bbox_str = f"{bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}"
         # URL encode the CQL filter for cloud cover
@@ -278,8 +264,7 @@ def query_stac(
         
         print(f"  \n  You can test this with STAC API URL:")
         print(f"    {stac_api_url}")
-        print(f"  \n  Or use curl:")
-        print(f"    curl '{stac_api_url}'")
+
     
     search = catalog.search(
         collections=[collection_name],
@@ -342,7 +327,7 @@ def query_stac(
     return least_cloudy_item.get_self_href()
 
 
-def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None, s2_collection="no-c", verbose=False):
+def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None, s2_collection="c1", verbose=False):
     """Main function for creating input for inference.
     
     Args:
@@ -354,12 +339,8 @@ def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None, s2_collecti
         bbox: Optional bounding box
         s2_collection: Sentinel-2 collection to use (only applies to EarthSearch)
     """
-    # Validate collection parameter usage
-    if stac_host == "mspc" and s2_collection != "no-c":
-        raise ValueError(
-            f"s2_collection parameter ('{s2_collection}') is only supported with EarthSearch. "
-            f"Microsoft Planetary Computer uses a single collection. Use stac_host='earthsearch' instead."
-        )
+    # Note: s2_collection parameter is ignored when using MSPC
+    # MSPC always uses the default collection regardless of s2_collection value
     out = os.path.abspath(out)
     if os.path.exists(out) and not overwrite:
         print("Output file already exists, use -f to overwrite them. Exiting.")
