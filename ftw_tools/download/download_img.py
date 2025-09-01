@@ -155,15 +155,23 @@ def scene_selection(
 
     if verbose:
         print(f"\n=== SCENE SELECTION ===")
-        print(f"Crop calendar dates: Start={start_dt.date()} (day {start_day}), End={end_dt.date()} (day {end_day})")
+        print(
+            f"Crop calendar dates: Start={start_dt.date()} (day {start_day}), End={end_dt.date()} (day {end_day})"
+        )
         print(f"STAC Host: {stac_host}")
-        print(f"S2 Collection: {s2_collection} ({'EarthSearch only' if stac_host == 'earthsearch' else 'ignored for MSPC'})")
-        print(f"Search parameters: cloud_cover_max={cloud_cover_max}%, buffer_days=±{buffer_days}")
+        print(
+            f"S2 Collection: {s2_collection} ({'EarthSearch only' if stac_host == 'earthsearch' else 'ignored for MSPC'})"
+        )
+        print(
+            f"Search parameters: cloud_cover_max={cloud_cover_max}%, buffer_days=±{buffer_days}"
+        )
         print(f"Bounding box: {bbox}")
 
     # search for +/- number of days the crop calendar indicated start and end days
     if verbose:
-        print(f"\nSearching for EARLY SEASON scene around {start_dt.date()} (crop calendar start)")
+        print(
+            f"\nSearching for EARLY SEASON scene around {start_dt.date()} (crop calendar start)"
+        )
     win_a = query_stac(
         bbox=bbox,
         date=start_dt,
@@ -174,7 +182,9 @@ def scene_selection(
         verbose=verbose,
     )
     if verbose:
-        print(f"\nSearching for LATE SEASON scene around {end_dt.date()} (crop calendar end)")
+        print(
+            f"\nSearching for LATE SEASON scene around {end_dt.date()} (crop calendar end)"
+        )
     win_b = query_stac(
         bbox=bbox,
         date=end_dt,
@@ -237,7 +247,7 @@ def query_stac(
         collection_name = S2_COLLECTIONS.get(s2_collection, COLLECTION_ID)
     else:
         collection_name = COLLECTION_ID  # MSPC always uses the default collection
-    
+
     if verbose:
         print(f"  STAC Query:")
         print(f"    Host: {host}")
@@ -250,9 +260,10 @@ def query_stac(
         bbox_str = f"{bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}"
         # URL encode the CQL filter for cloud cover
         import urllib.parse
+
         cql_filter = f'"eo:cloud_cover" < {cloud_cover_max}'
         encoded_filter = urllib.parse.quote(cql_filter)
-        
+
         stac_api_url = (
             f"{host}/search?"
             f"collections={collection_name}&"
@@ -261,11 +272,10 @@ def query_stac(
             f"filter={encoded_filter}&"
             f"filter-lang=cql2-text"
         )
-        
+
         print(f"  \n  You can test this with STAC API URL:")
         print(f"    {stac_api_url}")
 
-    
     search = catalog.search(
         collections=[collection_name],
         bbox=bbox,
@@ -282,16 +292,20 @@ def query_stac(
         raise ValueError(
             f"No sentinel scenes within this area for {date_range} with less than {cloud_cover_max} percent cloud cover."
         )
-    
+
     # Log all found scenes with their details
     if verbose and len(items) > 0:
         print(f"  Available scenes:")
         for item in items:
             cloud_cover = eo.ext(item).cloud_cover
             date_str = item.datetime.date() if item.datetime else "Unknown date"
-            mgrs_tile = item.properties.get("grid:code") or item.properties.get("s2:mgrs_tile", "Unknown")
-            print(f"    - {item.id}: {date_str}, MGRS: {mgrs_tile}, cloud cover: {cloud_cover:.2f}%")
-    
+            mgrs_tile = item.properties.get("grid:code") or item.properties.get(
+                "s2:mgrs_tile", "Unknown"
+            )
+            print(
+                f"    - {item.id}: {date_str}, MGRS: {mgrs_tile}, cloud cover: {cloud_cover:.2f}%"
+            )
+
     # check if aoi is approximately greater than 100 km x 100 km and spans multiple Sentinel 2 MGRS tiles
     if len(items) > 1 and (
         gpd.GeoDataFrame(geometry=[box(*bbox)], crs="EPSG:4326")
@@ -318,21 +332,34 @@ def query_stac(
         f"Choosing {least_cloudy_item.id} from {least_cloudy_item.datetime.date()}"
         f" with {eo.ext(least_cloudy_item).cloud_cover}% cloud cover"
     )
-    
+
     if verbose:
-        print(f"  SELECTED: {least_cloudy_item.id} from {least_cloudy_item.datetime.date()}")
-        print(f"    Cloud cover: {eo.ext(least_cloudy_item).cloud_cover:.2f}% (lowest among {len(items)} candidates)")
+        print(
+            f"  SELECTED: {least_cloudy_item.id} from {least_cloudy_item.datetime.date()}"
+        )
+        print(
+            f"    Cloud cover: {eo.ext(least_cloudy_item).cloud_cover:.2f}% (lowest among {len(items)} candidates)"
+        )
         print(f"    STAC URL: {least_cloudy_item.get_self_href()}")
-    
+
     return least_cloudy_item.get_self_href()
 
 
-def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None, s2_collection="c1", verbose=False):
+def create_input(
+    win_a,
+    win_b,
+    out,
+    overwrite,
+    stac_host,
+    bbox=None,
+    s2_collection="c1",
+    verbose=False,
+):
     """Main function for creating input for inference.
-    
+
     Args:
         win_a: Window A identifier
-        win_b: Window B identifier  
+        win_b: Window B identifier
         out: Output path
         overwrite: Whether to overwrite existing files
         stac_host: STAC host to use ('mspc' or 'earthsearch')
@@ -354,21 +381,23 @@ def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None, s2_collecti
     items = []
     timestamp = None
     version = 0
-    
+
     if verbose:
         print(f"\n=== DOWNLOADING IMAGERY ===")
         print(f"Output file: {out}")
         print(f"Processing scenes:")
-    
+
     for idx, i in enumerate(identifiers):
         item = get_item(i, stac_host=stac_host)
         items.append(item)
-        
+
         if verbose:
             season = "Early season" if idx == 0 else "Late season"
             item_date = item.datetime or item.start_datetime or item.end_datetime
             date_str = item_date.date() if item_date else "Unknown date"
-            mgrs_tile = item.properties.get("grid:code") or item.properties.get("s2:mgrs_tile", "Unknown")
+            mgrs_tile = item.properties.get("grid:code") or item.properties.get(
+                "s2:mgrs_tile", "Unknown"
+            )
             print(f"  {season}: {item.id}")
             print(f"    Date: {date_str}")
             print(f"    MGRS Tile: {mgrs_tile}")
@@ -402,7 +431,7 @@ def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None, s2_collecti
         bands = MSPC_BANDS_OF_INTEREST
     else:
         bands = BANDS_OF_INTEREST  # for EarthSearch
-    
+
     if verbose:
         print(f"\n=== DATA PROCESSING ===")
         print(f"Bands: {bands}")
@@ -410,7 +439,7 @@ def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None, s2_collecti
         if bbox:
             print(f"Clipping to bbox: {bbox}")
         print(f"Loading and stacking imagery...")
-    
+
     tic = time.time()
     data = odc.stac.load(
         [items[0], items[1]],
@@ -442,7 +471,7 @@ def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None, s2_collecti
         print(f"Data shape: {data.shape}")
         print(f"Data bounds: {data.rio.bounds()}")
         print(f"Data CRS: {data.rio.crs}")
-    
+
     print("Writing output")
     with dask.diagnostics.progress.ProgressBar():
         data.rio.to_raster(
@@ -457,7 +486,7 @@ def create_input(win_a, win_b, out, overwrite, stac_host, bbox=None, s2_collecti
         )
 
     print(f"Finished merging and writing output in {time.time() - tic:0.2f} seconds")
-    
+
     if verbose:
         print(f"\n=== SUMMARY ===")
         print(f"Successfully created: {out}")

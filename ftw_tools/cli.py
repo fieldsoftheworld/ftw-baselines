@@ -547,7 +547,9 @@ def ftw_inference_all(
     show_default=True,
     help="Sentinel-2 collection to use with EarthSearch only: 'old-baseline' = sentinel-2-l2a, 'c1' = sentinel-2-c1-l2a (default). Ignored when using MSPC.",
 )
-def scene_selection(year, bbox, cloud_cover_max, buffer_days, out, stac_host, s2_collection):
+def scene_selection(
+    year, bbox, cloud_cover_max, buffer_days, out, stac_host, s2_collection
+):
     """Download Sentinel-2 scenes for inference."""
     from ftw_tools.download.download_img import scene_selection
 

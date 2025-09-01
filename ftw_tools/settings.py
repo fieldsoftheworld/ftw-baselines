@@ -5,10 +5,7 @@ COLLECTION_ID = "sentinel-2-l2a"
 BANDS_OF_INTEREST = ["red", "green", "blue", "nir"]
 
 # Sentinel-2 collection mappings
-S2_COLLECTIONS = {
-    "old-baseline": "sentinel-2-l2a", 
-    "c1": "sentinel-2-c1-l2a"
-}
+S2_COLLECTIONS = {"old-baseline": "sentinel-2-l2a", "c1": "sentinel-2-c1-l2a"}
 
 MSPC_URL = "https://planetarycomputer.microsoft.com/api/stac/v1"
 MSPC_BANDS_OF_INTEREST = ["B04", "B03", "B02", "B08"]
