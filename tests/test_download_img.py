@@ -37,7 +37,7 @@ def test_query_stac_future_year():
         query_stac(
             bbox=[-93.68708939, 41.9530844, -93.64078526, 41.98070608],
             stac_host="mspc",
-            date=pd.Timestamp("2027-12-31"),
+            date=pd.Timestamp.now() + pd.Timedelta(days=3),
         )
 
 
