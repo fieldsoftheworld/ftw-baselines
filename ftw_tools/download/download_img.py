@@ -186,6 +186,13 @@ def query_stac(
     start = (date - pd.Timedelta(days=buffer_days)).strftime("%Y-%m-%d")
     end = (date + pd.Timedelta(days=buffer_days)).strftime("%Y-%m-%d")
 
+    # Check to ensure both start and end aren't in the future
+    today = pd.Timestamp.now().normalize()
+    if pd.Timestamp(start) > today or pd.Timestamp(end) > today:
+        raise ValueError(
+            f"Crop calendar harvest date {date} and buffer days {start}, {end} can't be in the future, try using an earlier calendar year"
+        )
+
     # Format as string
     date_range = f"{start}/{end}"
 

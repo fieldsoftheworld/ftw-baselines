@@ -32,6 +32,15 @@ def test_get_item_from_s3_url_single_digit_month():
     assert item.id == "S2B_33UUP_20210925_0_L2A"
 
 
+def test_query_stac_future_year():
+    with pytest.raises(ValueError, match="Crop calendar harvest date"):
+        query_stac(
+            bbox=[-93.68708939, 41.9530844, -93.64078526, 41.98070608],
+            stac_host="mspc",
+            date=pd.Timestamp("2027-12-31"),
+        )
+
+
 @pytest.fixture
 def large_aoi():
     return [13.83984671, -6.73397741, 15.0, -5]
