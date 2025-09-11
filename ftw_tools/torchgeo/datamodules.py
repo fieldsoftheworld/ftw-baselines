@@ -3,6 +3,7 @@
 from typing import Any, Optional
 
 import kornia.augmentation as K
+import kornia
 import torch
 from matplotlib.figure import Figure
 from torch.utils.data import Subset
@@ -16,6 +17,10 @@ def preprocess(sample):
     sample["image"] = sample["image"] / 3000
     return sample
 
+def randomChannelShuffle(x):
+    if torch.rand(1) < 0.5:
+        return x
+    return torch.cat([x[:,4:8], x[:,:4]], dim=1)
 
 class FTWDataModule(NonGeoDataModule):
     """LightningDataModule implementation for the FTW dataset."""
@@ -32,6 +37,7 @@ class FTWDataModule(NonGeoDataModule):
         test_countries: list[str] = ["france"],
         temporal_options: str = "stacked",
         num_samples: int = -1,
+        random_shuffle: bool = False,
         **kwargs: Any,
     ) -> None:
         """Initialize a new FTWDataModule instance.
@@ -74,12 +80,18 @@ class FTWDataModule(NonGeoDataModule):
         print(f"Test countries: {self.test_countries}")
         print(f"Number of samples: {self.num_samples}")
 
-        self.train_aug = AugmentationSequential(
+        augs = [
             K.Normalize(mean=self.mean, std=self.std),
             K.RandomRotation(p=0.5, degrees=90),
             K.RandomHorizontalFlip(p=0.5),
             K.RandomVerticalFlip(p=0.5),
             K.RandomSharpness(p=0.5),
+        ]
+        if random_shuffle:
+            augs.append(kornia.contrib.Lambda(randomChannelShuffle))
+
+        self.train_aug = AugmentationSequential(
+            *augs,
             data_keys=["image", "mask"],
         )
         self.aug = AugmentationSequential(
@@ -124,27 +136,3 @@ class FTWDataModule(NonGeoDataModule):
                 num_samples=self.num_samples,
                 **self.kwargs,
             )
-
-    # NOTE: can get rid of this when https://github.com/microsoft/torchgeo/pull/2003 is merged and released
-    # TODO: remove this method, test, then pin torchgeo>=0.6
-    def plot(self, *args: Any, **kwargs: Any) -> Optional[Figure]:
-        """Run the plot method of the validation dataset if one exists.
-
-        Should only be called during 'fit' or 'validate' stages as ``val_dataset``
-        may not exist during other stages.
-
-        Args:
-            *args: Arguments passed to plot method.
-            **kwargs: Keyword arguments passed to plot method.
-
-        Returns:
-            A matplotlib Figure with the image, ground truth, and predictions.
-        """
-        fig: Optional[Figure] = None
-        dataset = self.train_dataset or self.val_dataset
-        if isinstance(dataset, Subset):
-            dataset = dataset.dataset
-        if dataset is not None:
-            if hasattr(dataset, "plot"):
-                fig = dataset.plot(*args, **kwargs)
-        return fig
