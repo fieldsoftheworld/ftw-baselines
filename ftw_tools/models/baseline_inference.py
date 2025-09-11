@@ -134,7 +134,8 @@ def run(
         images = up_sample(images)
 
         # WinB then WinA (B02_t2, B03_t2, B04_t2, B08_t2, B02_t1, B03_t1, B04_t1, B08_t1)
-        images = torch.cat([images[:, 4:], images[:, :4]], dim=1)
+        num_channels = images.shape[1] // 2
+        images = torch.cat([images[:, num_channels:], images[:, :num_channels]], dim=1)
 
         # torchgeo>=0.6 refers to the bounding box as "bounds" instead of "bbox"
         if "bounds" in batch and batch["bounds"] is not None:
