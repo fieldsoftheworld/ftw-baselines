@@ -166,7 +166,6 @@ Options:
   --dir TEXT                  Root directory of dataset
   --gpu INTEGER               GPU to use
   --countries TEXT            Countries to evaluate on  [required]
-  --postprocess               Apply postprocessing to the model output
   --iou_threshold FLOAT       IoU threshold for matching predictions to ground
                               truths
  -o, --out TEXT               Output file for metrics
@@ -180,7 +179,7 @@ Options:
 
 ### Test a model
 
-Using FTW cli commands to test the model, you can pass specific options, such as selecting the GPUs, providing checkpoints, specifying countries for testing, and postprocessing results:
+Using FTW cli commands to test the model, you can pass specific options, such as selecting the GPUs, providing checkpoints, and specifying countries for testing:
 
 ```bash
 ftw model test --gpu 0 --dir /path/to/dataset --model logs/path_to_model/checkpoints/last.ckpt --countries country_to_test_on --out results.csv
