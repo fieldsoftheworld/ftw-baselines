@@ -259,14 +259,6 @@ def model_fit(config, ckpt_path, cli_args):
     help="GPU to use, zero-based index. Set to -1 to use CPU. CPU is also always used if CUDA is not available.",
 )
 @click.option(
-    "--postprocess",
-    "-pp",
-    is_flag=True,
-    default=False,
-    show_default=True,
-    help="Apply postprocessing to the model output",
-)
-@click.option(
     "--iou_threshold",
     "-iou",
     type=click.FloatRange(min=0.0, max=1.0),
@@ -311,7 +303,6 @@ def model_test(
     countries,
     dir,
     gpu,
-    postprocess,
     iou_threshold,
     out,
     model_predicts_3_classes,
@@ -325,7 +316,6 @@ def model_test(
         dir,
         gpu,
         countries,
-        postprocess,
         iou_threshold,
         out,
         model_predicts_3_classes,
