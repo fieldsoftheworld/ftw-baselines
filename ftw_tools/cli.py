@@ -506,9 +506,26 @@ def ftw_inference_all(
     show_default=True,
     help="The host to download the imagery from. mspc = Microsoft Planetary Computer, earthsearch = EarthSearch (Element84/AWS).",
 )
-def scene_selection(year, bbox, cloud_cover_max, buffer_days, out, stac_host):
+@click.option(
+    "--format",
+    "-f",
+    type=click.Choice(["text", "ftw-app"]),
+    default="text",
+    show_default=True,
+    help="Output format: 'text' for plain text output, 'ftw-app' for FTW inference app URL.",
+)
+def scene_selection(year, bbox, cloud_cover_max, buffer_days, out, stac_host, format):
     """Download Sentinel-2 scenes for inference."""
+    import re
+
     from ftw_tools.download.download_img import scene_selection
+
+    # Validate format and stac_host combination
+    if format == "ftw-app" and stac_host != "earthsearch":
+        raise click.BadParameter(
+            "The 'ftw-app' format is only supported with EarthSearch (--stac_host=earthsearch). "
+            "Microsoft Planetary Computer support is not yet available."
+        )
 
     win_a, win_b = scene_selection(
         bbox=bbox,
@@ -517,17 +534,80 @@ def scene_selection(year, bbox, cloud_cover_max, buffer_days, out, stac_host):
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
     )
-    if out:
-        # persist results to json
-        result = {
-            "window_a": win_a,
-            "window_b": win_b,
-        }
-        with open(out, "w") as f:
-            json.dump(result, f, indent=2)
-        print(f"Results saved to {out}")
+
+    if format == "ftw-app":
+        # Extract scene IDs from URLs if they are URLs
+        def extract_scene_id(url_or_id):
+            if url_or_id.startswith("http"):
+                # Extract scene ID from URL like: https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2A_13SFB_20240330_0_L2A
+                return url_or_id.split("/")[-1]
+            return url_or_id
+
+        win_a_id = extract_scene_id(win_a)
+        win_b_id = extract_scene_id(win_b)
+        # Generate FTW app URL
+        # Calculate bbox center
+        center_lon = (bbox[0] + bbox[2]) / 2
+        center_lat = (bbox[1] + bbox[3]) / 2
+
+        # Extract tile ID from scene IDs
+        def extract_tile_id(scene_id):
+            # Handle both formats: S2A_13SFB_20240330_0_L2A and S2B_T34LGP_20250904T084531_L2A
+            # Pattern 1: S2A_13SFB_20240330_0_L2A -> 13SFB
+            match1 = re.search(r"S2[AB]_([A-Z0-9]{5})_\d{8}", scene_id)
+            if match1:
+                return match1.group(1)
+
+            # Pattern 2: S2B_T34LGP_20250904T084531_L2A -> 34LGP
+            match2 = re.search(r"S2[AB]_T([A-Z0-9]{5})_\d{8}T\d{6}", scene_id)
+            if match2:
+                return match2.group(1)
+
+            return None
+
+        tile_id_a = extract_tile_id(win_a_id)
+        tile_id_b = extract_tile_id(win_b_id)
+
+        if not tile_id_a or not tile_id_b:
+            raise click.ClickException(
+                f"Could not extract tile ID from scene IDs: {win_a_id}, {win_b_id}. "
+                "Please ensure you're using EarthSearch with valid scene IDs."
+            )
+
+        # Generate URL
+        url = (
+            f"https://fieldsofthe.world/ftw-inference-app/"
+            f"#map=11/{center_lon:.3f}/{center_lat:.3f}/"
+            f"{tile_id_a}/{win_a_id}/{win_b_id}/"
+            f"bbox:{bbox[0]:.5f},{bbox[1]:.5f},{bbox[2]:.5f},{bbox[3]:.5f}/"
+            f"cloud_cover:{cloud_cover_max}"
+        )
+
+        if out:
+            result = {
+                "window_a": win_a,
+                "window_b": win_b,
+                "window_a_id": win_a_id,
+                "window_b_id": win_b_id,
+                "ftw_app_url": url,
+            }
+            with open(out, "w") as f:
+                json.dump(result, f, indent=2)
+            print(f"Results saved to {out}")
+        else:
+            print(url)
     else:
-        print(f"Window A: {win_a}, Window B: {win_b}")
+        # Default text format
+        if out:
+            result = {
+                "window_a": win_a,
+                "window_b": win_b,
+            }
+            with open(out, "w") as f:
+                json.dump(result, f, indent=2)
+            print(f"Results saved to {out}")
+        else:
+            print(f"Window A: {win_a}, Window B: {win_b}")
 
 
 @inference.command(
