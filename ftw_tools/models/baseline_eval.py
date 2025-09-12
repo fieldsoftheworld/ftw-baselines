@@ -5,7 +5,6 @@ import numpy as np
 import torch
 from lightning.pytorch.cli import LightningCLI
 from torch.utils.data import DataLoader
-from torchgeo.datamodules import BaseDataModule
 from torchgeo.trainers import BaseTask
 from torchmetrics import JaccardIndex, MetricCollection, Precision, Recall
 from tqdm import tqdm
@@ -42,7 +41,6 @@ def fit(config, ckpt_path, cli_args):
     # Run the LightningCLI with the constructed arguments
     cli = LightningCLI(
         model_class=BaseTask,
-        datamodule_class=BaseDataModule,
         seed_everything_default=0,
         subclass_mode_model=True,
         subclass_mode_data=True,

@@ -4,11 +4,12 @@ from typing import Any, Optional
 
 import kornia
 import kornia.augmentation as K
+import kornia.constants
 import torch
+from lightning import LightningDataModule
 from matplotlib.figure import Figure
-from torch.utils.data import Subset
-from torchgeo.datamodules import NonGeoDataModule
-from torchgeo.transforms import AugmentationSequential
+from torch import Tensor
+from torch.utils.data import DataLoader, Subset
 
 from ftw_tools.torchgeo.datasets import FTW
 
@@ -24,7 +25,7 @@ def randomChannelShuffle(x):
     return torch.cat([x[:, 4:8], x[:, :4]], dim=1)
 
 
-class FTWDataModule(NonGeoDataModule):
+class FTWDataModule(LightningDataModule):
     """LightningDataModule implementation for the FTW dataset."""
 
     mean = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0])
@@ -32,6 +33,7 @@ class FTWDataModule(NonGeoDataModule):
 
     def __init__(
         self,
+        root: str = "data/ftw/",
         batch_size: int = 64,
         num_workers: int = 0,
         train_countries: list[str] = ["france"],
@@ -40,6 +42,7 @@ class FTWDataModule(NonGeoDataModule):
         temporal_options: str = "stacked",
         num_samples: int = -1,
         random_shuffle: bool = False,
+        resize_factor: Optional[float] = None,
         **kwargs: Any,
     ) -> None:
         """Initialize a new FTWDataModule instance.
@@ -53,12 +56,18 @@ class FTWDataModule(NonGeoDataModule):
             train_countries: List of countries to use training splits from
             val_countries: List of countries to use validation splits from
             test_countries: List of countries to use test splits from
+            random_shuffle: Whether to use random channel shuffle augmentation
+            resize_factor: Optional resize factor to upsample the images
             **kwargs: Additional keyword arguments passed to
                 :class:`~src.datasets.FTW`.
         """
+        super().__init__()
         if "split" in kwargs:
             raise ValueError("Cannot specify split in FTWDataModule")
 
+        self.root = root
+        self.batch_size = batch_size
+        self.num_workers = num_workers
         self.train_countries = train_countries
         self.val_countries = val_countries
         self.test_countries = test_countries
@@ -90,51 +99,99 @@ class FTWDataModule(NonGeoDataModule):
             K.RandomSharpness(p=0.5),
         ]
         if random_shuffle:
+            print("Using random channel shuffle augmentation")
             augs.append(kornia.contrib.Lambda(randomChannelShuffle))
 
-        self.train_aug = AugmentationSequential(
-            *augs,
-            data_keys=["image", "mask"],
+        if resize_factor is not None:
+            if resize_factor < 1:
+                raise ValueError("Resize factor must be > 1")
+            print(f"Using resize factor of {resize_factor}")
+            augs.append(
+                K.Resize(
+                    (int(256 * resize_factor), int(256 * resize_factor)),
+                    resample=kornia.constants.Resample.BILINEAR,
+                )
+            )
+
+        print("Augmentations:")
+        for aug in augs:
+            print(aug)
+
+        self.train_aug = K.AugmentationSequential(*augs, data_keys=None)
+        self.aug = K.AugmentationSequential(
+            K.Normalize(mean=self.mean, std=self.std), data_keys=None
         )
-        self.aug = AugmentationSequential(
-            K.Normalize(mean=self.mean, std=self.std), data_keys=["image", "mask"]
-        )
-        super().__init__(FTW, batch_size, num_workers, **kwargs)
 
-    def setup(self, stage: str) -> None:
-        """Set up datasets.
-
-        Called at the beginning of fit, validate, test, or predict. During distributed
-        training, this method is called from every process across all the nodes. Setting
-        state here is recommended.
-
-        Args:
-            stage: Either 'fit', 'validate', 'test', or 'predict'.
-        """
+    def setup(self, stage: str):
         if stage in ["fit"]:
             self.train_dataset = FTW(
+                root=self.root,
                 countries=self.train_countries,
                 split="train",
                 load_boundaries=self.load_boundaries,
                 temporal_options=self.temporal_options,
                 num_samples=self.num_samples,
-                **self.kwargs,
             )
         if stage in ["fit", "validate"]:
             self.val_dataset = FTW(
+                root=self.root,
                 countries=self.val_countries,
                 split="val",
                 load_boundaries=self.load_boundaries,
                 temporal_options=self.temporal_options,
                 num_samples=self.num_samples,
-                **self.kwargs,
             )
         if stage == "test":
             self.test_dataset = FTW(
+                root=self.root,
                 countries=self.test_countries,
                 split="test",
                 load_boundaries=self.load_boundaries,
                 temporal_options=self.temporal_options,
                 num_samples=self.num_samples,
-                **self.kwargs,
             )
+
+    def train_dataloader(self) -> Any:
+        return DataLoader(
+            dataset=self.train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=self.num_workers,
+            persistent_workers=True,
+        )
+
+    def val_dataloader(self) -> Any:
+        return DataLoader(
+            dataset=self.val_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers,
+            persistent_workers=True,
+        )
+
+    def test_dataloader(self) -> Any:
+        return DataLoader(
+            dataset=self.test_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers,
+            persistent_workers=True,
+        )
+
+    def on_after_batch_transfer(self, batch: dict[str, Tensor], dataloader_idx: int):
+        if self.trainer:
+            if self.trainer.training:
+                batch = self.train_aug(batch)
+            else:
+                batch = self.aug(batch)
+        return batch
+
+    def plot(self, *args: Any, **kwargs: Any):
+        fig: Figure | None = None
+        dataset = self.val_dataset
+        if isinstance(dataset, Subset):
+            dataset = dataset.dataset
+        if dataset is not None:
+            if hasattr(dataset, "plot"):
+                fig = dataset.plot(*args, **kwargs)
+        return fig

@@ -327,7 +327,7 @@ class FTW(NonGeoDataset):
             )
             img2 = img2.numpy().transpose(1, 2, 0)
 
-        mask = sample["mask"].numpy()
+        mask = sample["mask"].numpy().squeeze()
         num_panels = 3 if self.temporal_options in ("stacked", "rgb") else 2
         if "prediction" in sample:
             num_panels += 1

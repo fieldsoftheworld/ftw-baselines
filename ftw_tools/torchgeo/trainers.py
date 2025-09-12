@@ -254,7 +254,7 @@ class CustomSemanticSegmentationTask(BaseTask):
             The loss tensor.
         """
         x = batch["image"]
-        y = batch["mask"]
+        y = batch["mask"].squeeze(1)
         y_hat = self(x)
         loss: Tensor = self.criterion(y_hat, y)
         self.log("train_loss", loss)
@@ -273,7 +273,7 @@ class CustomSemanticSegmentationTask(BaseTask):
             dataloader_idx: Index of the current dataloader.
         """
         x = batch["image"]
-        y = batch["mask"]
+        y = batch["mask"].squeeze(1)
         y_hat = self(x)
         loss: Tensor = self.criterion(y_hat, y)
         self.log("val_loss", loss)
@@ -322,7 +322,7 @@ class CustomSemanticSegmentationTask(BaseTask):
             dataloader_idx: Index of the current dataloader.
         """
         x = batch["image"]
-        y = batch["mask"]
+        y = batch["mask"].squeeze(1)
         y_hat = self(x)
         loss: Tensor = self.criterion(y_hat, y)
         self.log("test_loss", loss)
