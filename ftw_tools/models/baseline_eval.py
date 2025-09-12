@@ -58,7 +58,6 @@ def test(
     dir,
     gpu,
     countries,
-    postprocess,
     iou_threshold,
     out,
     model_predicts_3_classes,
@@ -159,9 +158,6 @@ def test(
         for i in range(len(outputs)):
             output = outputs[i]
             mask = masks[i]
-            if postprocess:
-                post_processed_output = out.copy()
-                output = post_processed_output
             tps, fps, fns = get_object_level_metrics(
                 mask, output, iou_threshold=iou_threshold
             )
