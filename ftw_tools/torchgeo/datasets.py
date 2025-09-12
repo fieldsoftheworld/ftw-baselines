@@ -46,6 +46,7 @@ class FTW(NonGeoDataset):
         checksum: bool = False,
         load_boundaries: bool = False,
         temporal_options: str = "stacked",
+        swap_order: bool = False,
         num_samples: int = -1,
     ) -> None:
         """Initialize a new FTW dataset instance.
@@ -60,6 +61,7 @@ class FTW(NonGeoDataset):
             checksum: if True, check the MD5 of the downloaded files (may be slow)
             load_boundaries: if True, load the 3 class masks with boundaries
             temporal_options : for abalation study, valid option are (stacked, windowA, windowB, median, rgb)
+            swap_order: if True, swap the order of temporal data (i.e. use window A first)
         Raises:
             AssertionError: if ``countries`` argument is invalid
             AssertionError: if ``split`` argument is invalid
@@ -85,6 +87,7 @@ class FTW(NonGeoDataset):
         self.load_boundaries = load_boundaries
         self.temporal_options = temporal_options
         self.num_samples = num_samples
+        self.swap_order = swap_order
 
         if self.load_boundaries:
             print("Loading 3 Class Masks, with Boundaries")
@@ -92,6 +95,10 @@ class FTW(NonGeoDataset):
             print("Loading 2 Class Masks, without Boundaries")
 
         print("Temporal option: ", temporal_options)
+        if swap_order:
+            print("Using window A first, then window B")
+        else:
+            print("Using window B first, then window A")
 
         if not self._check_integrity():
             raise RuntimeError(
@@ -274,6 +281,9 @@ class FTW(NonGeoDataset):
                 if self.temporal_options == "rgb":  # select 3 channels only
                     window_a_img = window_a_img[:3]
                 images.append(window_a_img)
+
+        if self.swap_order and len(images) == 2:
+            images = [images[1], images[0]]
 
         if self.temporal_options == "median":
             images = np.array(images).astype(np.int32)

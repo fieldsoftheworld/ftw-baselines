@@ -73,6 +73,8 @@ def main(args):
                     "--countries",
                     country,
                 ]
+                if args.swap_order:
+                    command.append("--swap_order")
                 subprocess.call(command)
             elif model_predicts_classes == 3:
                 # Test on the same country
@@ -92,11 +94,18 @@ def main(args):
                     country,
                     "--model_predicts_3_classes",
                 ]
+                if args.swap_order:
+                    command.append("--swap_order")
                 subprocess.call(command)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run evaluation")
     parser.add_argument("--gpu", type=int, required=True, help="GPU ID to use")
+    parser.add_argument(
+        "--swap_order",
+        action="store_true",
+        help="Whether to swap the order of temporal images",
+    )
     args = parser.parse_args()
     main(args)

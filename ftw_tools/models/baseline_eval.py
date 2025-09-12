@@ -64,6 +64,7 @@ def test(
     model_predicts_3_classes,
     test_on_3_classes,
     temporal_options,
+    swap_order,
 ):
     """Command to test the model."""
     print("Running test command")
@@ -94,6 +95,7 @@ def test(
         transforms=preprocess,
         load_boundaries=test_on_3_classes,
         temporal_options=temporal_options,
+        swap_order=swap_order,
     )
     dl = DataLoader(ds, batch_size=64, shuffle=False, num_workers=12)
     print(f"Created dataloader with {len(ds)} samples in {time.time() - tic:.2f}s")
