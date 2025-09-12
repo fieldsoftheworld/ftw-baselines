@@ -54,7 +54,7 @@ def fit(config, ckpt_path, cli_args):
 
 
 def test(
-    model,
+    model_path,
     dir,
     gpu,
     countries,
@@ -79,7 +79,7 @@ def test(
     print("Loading model")
     tic = time.time()
     trainer = CustomSemanticSegmentationTask.load_from_checkpoint(
-        model, map_location="cpu"
+        model_path, map_location="cpu"
     )
     model = trainer.model.eval().to(device)
     print(f"Model loaded in {time.time() - tic:.2f}s")
@@ -198,5 +198,5 @@ def test(
                 )
         with open(out, "a") as f:
             f.write(
-                f"{model},{countries},{pixel_level_iou},{pixel_level_precision},{pixel_level_recall},{object_precision},{object_recall}\n"
+                f"{model_path},{countries},{pixel_level_iou},{pixel_level_precision},{pixel_level_recall},{object_precision},{object_recall}\n"
             )
