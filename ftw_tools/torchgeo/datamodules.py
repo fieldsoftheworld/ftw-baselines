@@ -2,8 +2,8 @@
 
 from typing import Any, Optional
 
-import kornia.augmentation as K
 import kornia
+import kornia.augmentation as K
 import torch
 from matplotlib.figure import Figure
 from torch.utils.data import Subset
@@ -17,10 +17,12 @@ def preprocess(sample):
     sample["image"] = sample["image"] / 3000
     return sample
 
+
 def randomChannelShuffle(x):
     if torch.rand(1) < 0.5:
         return x
-    return torch.cat([x[:,4:8], x[:,:4]], dim=1)
+    return torch.cat([x[:, 4:8], x[:, :4]], dim=1)
+
 
 class FTWDataModule(NonGeoDataModule):
     """LightningDataModule implementation for the FTW dataset."""

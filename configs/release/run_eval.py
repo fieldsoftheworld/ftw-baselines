@@ -32,6 +32,7 @@ COUNTRIES = [
     "vietnam",
 ]
 
+
 def main(args):
     checkpoints = []
     for root, dirs, files in os.walk("logs/"):
@@ -89,7 +90,7 @@ def main(args):
                     "results/experiments-ftw_release-3_classes.csv",
                     "--countries",
                     country,
-                    "--model_predicts_3_classes"
+                    "--model_predicts_3_classes",
                 ]
                 subprocess.call(command)
 
