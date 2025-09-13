@@ -33,7 +33,7 @@ torchgeo = ">=0.7.0,<1.0"  # see https://github.com/fieldsoftheworld/ftw-baselin
 pystac = ">=1.8,<2.0"
 rioxarray = ">=0.15,<1.0"
 planetary-computer = ">=1.0,<2.0"
-odc-stac = ">=0.4.0,<1.0"  # see https://github.com/fieldsoftheworld/ftw-baselines/issues/7
+odc-stac = ">=0.4.0,<1.0"  # see https://github.com/fieldsoftheworld/ftw-baselines/issues/77
 pip = "*"
 
 [feature.delineate-anything.pypi-dependencies]
