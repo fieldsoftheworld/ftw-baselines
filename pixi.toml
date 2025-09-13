@@ -37,7 +37,7 @@ odc-stac = ">=0.4.0,<1.0"  # see https://github.com/fieldsoftheworld/ftw-baselin
 pip = "*"
 
 [feature.delineate-anything.pypi-dependencies]
-ultralytics = ">=8.3.0,<9"
+ultralytics = ">=8.3.187,<9"
 
 [feature.dev.pypi-dependencies]
 build = "*"
