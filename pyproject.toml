@@ -106,7 +106,6 @@ planetary-computer = ">=1.0,<2.0"
 odc-stac = ">=0.4.0,<1.0" # see https://github.com/fieldsoftheworld/ftw-baselines/issues/77
 torchgeo = ">=0.7.0,<1.0" # see https://github.com/fieldsoftheworld/ftw-baselines/issues/79
 ultralytics = ">=8.3.163,<9"
-pixi-pycharm = ">=0.0.8,<0.0.9"
 
 [tool.pixi.pypi-dependencies]
 # Version-constrained packages (MUST remain PyPI)
