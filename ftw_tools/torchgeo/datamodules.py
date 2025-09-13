@@ -104,7 +104,7 @@ class FTWDataModule(LightningDataModule):
 
         if resize_factor is not None:
             if resize_factor < 1:
-                raise ValueError("Resize factor must be > 1")
+                raise ValueError("Resize factor must be >= 1")
             print(f"Using resize factor of {resize_factor}")
             augs.append(
                 K.Resize(
