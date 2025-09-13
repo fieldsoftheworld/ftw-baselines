@@ -5,7 +5,6 @@ import numpy as np
 import torch
 from lightning.pytorch.cli import LightningCLI
 from torch.utils.data import DataLoader
-from torchgeo.datamodules import BaseDataModule
 from torchgeo.trainers import BaseTask
 from torchmetrics import JaccardIndex, MetricCollection, Precision, Recall
 from tqdm import tqdm
@@ -42,7 +41,6 @@ def fit(config, ckpt_path, cli_args):
     # Run the LightningCLI with the constructed arguments
     cli = LightningCLI(
         model_class=BaseTask,
-        datamodule_class=BaseDataModule,
         seed_everything_default=0,
         subclass_mode_model=True,
         subclass_mode_data=True,
@@ -54,7 +52,7 @@ def fit(config, ckpt_path, cli_args):
 
 
 def test(
-    model,
+    model_path,
     dir,
     gpu,
     countries,
@@ -63,6 +61,7 @@ def test(
     model_predicts_3_classes,
     test_on_3_classes,
     temporal_options,
+    swap_order,
 ):
     """Command to test the model."""
     print("Running test command")
@@ -78,7 +77,7 @@ def test(
     print("Loading model")
     tic = time.time()
     trainer = CustomSemanticSegmentationTask.load_from_checkpoint(
-        model, map_location="cpu"
+        model_path, map_location="cpu"
     )
     model = trainer.model.eval().to(device)
     print(f"Model loaded in {time.time() - tic:.2f}s")
@@ -93,6 +92,7 @@ def test(
         transforms=preprocess,
         load_boundaries=test_on_3_classes,
         temporal_options=temporal_options,
+        swap_order=swap_order,
     )
     dl = DataLoader(ds, batch_size=64, shuffle=False, num_workers=12)
     print(f"Created dataloader with {len(ds)} samples in {time.time() - tic:.2f}s")
@@ -194,5 +194,5 @@ def test(
                 )
         with open(out, "a") as f:
             f.write(
-                f"{model},{countries},{pixel_level_iou},{pixel_level_precision},{pixel_level_recall},{object_precision},{object_recall}\n"
+                f"{model_path},{countries},{pixel_level_iou},{pixel_level_precision},{pixel_level_recall},{object_precision},{object_recall}\n"
             )
