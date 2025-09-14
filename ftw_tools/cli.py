@@ -617,9 +617,9 @@ def scene_selection(
         # Generate URL
         url = (
             f"https://fieldsofthe.world/ftw-inference-app/"
-            f"#map=11/{center_lon:.3f}/{center_lat:.3f}/"
+            f"#map=11/{center_lat:.3f}/{center_lon:.3f}/"
             f"{tile_id_a}/{win_a_id}/{win_b_id}/"
-            f"bbox:{bbox[0]:.5f},{bbox[1]:.5f},{bbox[2]:.5f},{bbox[3]:.5f}/"
+            f"bbox:{bbox[1]:.5f},{bbox[0]:.5f},{bbox[3]:.5f},{bbox[2]:.5f}/"
             f"cloud_cover:{cloud_cover_max}"
         )
 
