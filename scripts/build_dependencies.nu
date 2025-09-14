@@ -11,14 +11,26 @@ def format-dependency [key: string, value: string] {
 def extract-conda-deps [config: record] {
     $config.dependencies
         | items {|key, value|
-            if $key in ["python", "cuda", "libgdal-arrow-parquet"] {
+            # Exclude system packages and packages that need PyPI name mapping
+            if $key in ["python", "cuda", "libgdal-arrow-parquet", "gdal", "pip"] {
                 null
+            } else if $key == "pytorch" {
+                # Map pytorch (conda name) to torch (pypi name)
+                let version_spec = match $value {
+                    "*" => ""
+                    _ => $value
+                }
+                if $version_spec == "" {
+                    "torch"
+                } else {
+                    $"torch($version_spec)"
+                }
             } else {
                 let version_spec = match $value {
                     "*" => ""
                     _ => $value
                 }
-                
+
                 if $version_spec == "" {
                     $key
                 } else {
@@ -32,8 +44,26 @@ def extract-conda-deps [config: record] {
 
 # Extract PyPI dependencies from pixi configuration
 def extract-pypi-deps [config: record] {
-    $config.pypi-dependencies 
-        | items {|key, value| format-dependency $key $value }
+    $config.pypi-dependencies
+        | items {|key, value|
+            # Skip self reference to avoid circular dependency
+            if $key == "ftw-tools" {
+                null
+            } else if $key == "dask" {
+                # Handle dask[distributed] format for pypi
+                if $value == "*" {
+                    "dask[distributed]"
+                } else {
+                    $"dask[distributed]($value)"
+                }
+            } else if $key == "distributed" {
+                # Skip distributed as it's included in dask[distributed]
+                null
+            } else {
+                format-dependency $key $value
+            }
+        }
+        | where $it != null
         | sort
 }
 
