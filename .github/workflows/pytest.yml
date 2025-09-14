@@ -1,29 +1,38 @@
 name: pytest
 
 on:
+  pull_request:
   push:
-    branches:
-      - main
-  pull_request: {}
+    branches: [main]
 
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-python@v4
       - uses: actions/checkout@v4
-      - uses: pre-commit/action@v3.0.0
+      - uses: prefix-dev/setup-pixi@v0.8.10
+        with:
+          pixi-version: v0.49.0
+          cache: true
+          cache-key: ${{ runner.os }}-pixi-${{ hashFiles('pixi.lock') }}
+      - name: Install Python dev dependencies
+        run: pixi run install-dev
+      - name: Run pre-commit
+        run: pixi run -e dev pre-commit run --all-files
 
   tests:
     name: Run tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
         python-version:
           - "3.11"
           - "3.12"
-#         - "3.13"
-      fail-fast: false
+      fail-fast: true
     env:
       CONDA_OVERRIDE_CUDA: 12.0
     steps:
@@ -32,6 +41,7 @@ jobs:
         with:
           pixi-version: v0.49.0
           cache: true
+          cache-key: ${{ runner.os }}-pixi-${{ hashFiles('pixi.lock') }}
       - name: Install Python dev dependencies
         run: pixi run install-dev
       - name: Execute tests

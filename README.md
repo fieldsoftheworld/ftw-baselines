@@ -5,7 +5,7 @@
 
 This repository provides the codebase for working with the [FTW dataset](https://beta.source.coop/repositories/kerner-lab/fields-of-the-world/description/), including tools for data pre-processing, model training, and evaluation.
 
-> [!NOTE]  
+> [!NOTE]
 > The Fields of The World Command Line Inferface (FTW CLI), published under the name `ftw-tools`, currently lives in this `ftw-baselines` repository due to legacy reasons. We plan to migrate the FTW CLI and related tools into an `ftw-tools` repository soon. Until then, the latest and most complete version of the FTW CLI still lives in `ftw-baselines`.
 
 ## Table of Contents <!-- omit in toc -->
@@ -296,7 +296,7 @@ Options:
 ```
 
 Run this line to download our S2 scenes of interest. This line specifies a bounding box (bbox) to download a smaller subset of the data, with `--bbox 13.0,48.0,13.3,48.3`. If you leave that off you'll get the full S2 scenes downloaded.
-  
+
   ```bash
   ftw inference download --win_a S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729 --win_b S2B_MSIL2A_20210925T101019_R022_T33UUP_20210926T121923 --out inference_imagery/austria_example.tif --bbox 13.0,48.0,13.3,48.3
   ```
@@ -332,7 +332,7 @@ Options:
 ```
 
 Let's run inference on the entire downloaded scene.
-  
+
   ```bash
   ftw inference run inference_imagery/austria_example.tif --model 3_Class_FULL_FTW_Pretrained.ckpt --out austria_example_output_full.tif --gpu 0 --overwrite
   ```
@@ -394,7 +394,7 @@ Options:
 ```
 
 Simplification factor is measured in the units of the coordinate reference system (CRS), and for Sentinel-2 this is meters, so a simplification factor of 15 or 20 is usually sufficient (and recommended, or the vector file will be as large as the raster file).
-  
+
   ```bash
   ftw inference polygonize austria_example_output_full.tif --simplify 20
   ```
@@ -470,15 +470,15 @@ Explore `visualize_dataset.ipynb` to know more about the dataset.
 Consider using CC-BY FTW Trained Checkpoints from the release file for Commercial Purpose. For Non-Commercial Purpose and Academic purpose, you can use the FULL FTW Trained Checkpoints (See the graph below for perfrmance comparison).
 
 We have also made FTW model checkpoints available that are pretrained only on CC-BY (or equivalent open licenses) datasets. You can download these checkpoints using the following command:
-  
+
 - 3 Class
-  
+
   ```bash
   wget https://github.com/fieldsoftheworld/ftw-baselines/releases/download/v1/3_Class_CCBY_FTW_Pretrained.ckpt
   ```
 
 - 2 Class
-  
+
   ```bash
   https://github.com/fieldsoftheworld/ftw-baselines/releases/download/v1/2_Class_CCBY_FTW_Pretrained.ckpt
   ```
