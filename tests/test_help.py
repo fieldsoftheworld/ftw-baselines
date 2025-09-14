@@ -17,47 +17,61 @@ from ftw_tools.cli import (
 def test_data_download():
     runner = CliRunner()
     result = runner.invoke(download, ["--help"])
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
     assert "Usage: download [OPTIONS]" in result.output
 
 
 def test_data_unpack():
     runner = CliRunner()
     result = runner.invoke(unpack, ["--help"])
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
     assert "Usage: unpack [OPTIONS] [INPUT]" in result.output
 
 
 def test_inference_download():  # create_input
     runner = CliRunner()
     result = runner.invoke(inference_download, ["--help"])
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
     assert "Usage: download [OPTIONS]" in result.output
 
 
 def test_inference_polygonize():
     runner = CliRunner()
     result = runner.invoke(inference_polygonize, ["--help"])
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
     assert "Usage: polygonize [OPTIONS] INPUT" in result.output
 
 
 def test_inference_run():
     runner = CliRunner()
     result = runner.invoke(inference_run, ["--help"])
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
     assert "Usage: run [OPTIONS] INPUT" in result.output
 
 
 def test_model_fit():
     runner = CliRunner()
     result = runner.invoke(model_fit, ["--help"])
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
     assert "Usage: fit [OPTIONS] [CLI_ARGS]..." in result.output
 
 
 def test_model_test():
     runner = CliRunner()
     result = runner.invoke(model_test, ["--help"])
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
     assert "Usage: test [OPTIONS]" in result.output

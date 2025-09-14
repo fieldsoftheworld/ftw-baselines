@@ -27,7 +27,9 @@ def test_scene_selection_earthsearch():
             "--stac_host=earthsearch",
         ],
     )
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
     assert "S2A_T15TVG_20230406T170330_L2A" in result.output  # window a
     assert "S2A_T15TVG_20231112T170622_L2A" in result.output  # window b
 
@@ -45,7 +47,9 @@ def test_scene_selection_mspc():
             "--stac_host=mspc",
         ],
     )
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
     assert (
         "S2A_MSIL2A_20220315T171051_R112_T15TVG_20220316T083617" in result.output
     )  # window a
@@ -71,7 +75,9 @@ def test_inference_download_via_earthsearch():
             "--stac_host=earthsearch",
         ],
     )
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
     assert "Writing output" in result.output
     assert "Finished merging and writing output" in result.output
     assert os.path.exists(inference_image)
@@ -94,7 +100,9 @@ def test_inference_download_via_mspc():
             "--stac_host=mspc",
         ],
     )
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
     assert "Writing output" in result.output
     assert "Finished merging and writing output" in result.output
     assert os.path.exists(inference_image)
@@ -130,7 +138,9 @@ def test_inference_run():
             "--overwrite",
         ],
     )
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
     assert "Using custom trainer" in result.output
     assert "Finished inference and saved output" in result.output
     assert os.path.exists(inf_output_path)
@@ -147,7 +157,9 @@ def test_inference_polygonize():
     # Polygonize the file
     out_path = "polygons.gpkg"
     result = runner.invoke(inference_polygonize, [mask, "-o", out_path, "-f"])
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
     assert "Polygonizing input file:" in result.output
     assert "Finished polygonizing output" in result.output
     assert os.path.exists(out_path)
@@ -183,5 +195,7 @@ def test_ftw_inference_all():
                 "--overwrite",
             ],
         )
-        assert result.exit_code == 0, result.output
+        assert result.exit_code == 0, (
+            f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+        )
         assert "Finished inference and saved output" in result.output
