@@ -30,7 +30,8 @@ jobs:
         os:
           - ubuntu-latest
           - windows-latest
-          - macos-latest
+          - macos-latest  # latest = Apple Silicon
+          - macos-13   # 13 = Intel
         python-version:
           - "3.11"
           - "3.12"
