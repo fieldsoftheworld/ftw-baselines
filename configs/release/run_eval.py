@@ -1,37 +1,39 @@
+import argparse
 import os
 import subprocess
 
 import yaml
 
-if __name__ == "__main__":
-    countries = [
-        "austria",
-        "belgium",
-        "brazil",
-        "cambodia",
-        "corsica",
-        "croatia",
-        "denmark",
-        "estonia",
-        "finland",
-        "france",
-        "germany",
-        "india",
-        "kenya",
-        "latvia",
-        "lithuania",
-        "luxembourg",
-        "netherlands",
-        "portugal",
-        "rwanda",
-        "slovakia",
-        "slovenia",
-        "south_africa",
-        "spain",
-        "sweden",
-        "vietnam",
-    ]
+COUNTRIES = [
+    "austria",
+    "belgium",
+    "brazil",
+    "cambodia",
+    "corsica",
+    "croatia",
+    "denmark",
+    "estonia",
+    "finland",
+    "france",
+    "germany",
+    "india",
+    "kenya",
+    "latvia",
+    "lithuania",
+    "luxembourg",
+    "netherlands",
+    "portugal",
+    "rwanda",
+    "slovakia",
+    "slovenia",
+    "south_africa",
+    "spain",
+    "sweden",
+    "vietnam",
+]
 
+
+def main(args):
     checkpoints = []
     for root, dirs, files in os.walk("logs/"):
         for file in files:
@@ -53,7 +55,7 @@ if __name__ == "__main__":
 
     for checkpoints_data in checkpoints:
         (checkpoint, model_predicts_classes) = checkpoints_data
-        for country in countries:
+        for country in COUNTRIES:
             if model_predicts_classes == 2:
                 # Test on the same country
                 command = [
@@ -61,7 +63,7 @@ if __name__ == "__main__":
                     "model",
                     "test",
                     "--gpu",
-                    "0",
+                    str(args.gpu),
                     "--dir",
                     "data/ftw",
                     "--model",
@@ -71,6 +73,8 @@ if __name__ == "__main__":
                     "--countries",
                     country,
                 ]
+                if args.swap_order:
+                    command.append("--swap_order")
                 subprocess.call(command)
             elif model_predicts_classes == 3:
                 # Test on the same country
@@ -79,7 +83,7 @@ if __name__ == "__main__":
                     "model",
                     "test",
                     "--gpu",
-                    "0",
+                    str(args.gpu),
                     "--dir",
                     "data/ftw",
                     "--model",
@@ -89,6 +93,19 @@ if __name__ == "__main__":
                     "--countries",
                     country,
                     "--model_predicts_3_classes",
-                    "True",
                 ]
+                if args.swap_order:
+                    command.append("--swap_order")
                 subprocess.call(command)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run evaluation")
+    parser.add_argument("--gpu", type=int, required=True, help="GPU ID to use")
+    parser.add_argument(
+        "--swap_order",
+        action="store_true",
+        help="Whether to swap the order of temporal images",
+    )
+    args = parser.parse_args()
+    main(args)
