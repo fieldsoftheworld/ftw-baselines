@@ -110,6 +110,7 @@ class FTWDataModule(LightningDataModule):
                 K.Resize(
                     (int(256 * resize_factor), int(256 * resize_factor)),
                     resample=kornia.constants.Resample.BILINEAR,
+                    antialias=True,
                 )
             )
 

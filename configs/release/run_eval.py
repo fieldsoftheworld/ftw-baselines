@@ -32,6 +32,29 @@ COUNTRIES = [
     "vietnam",
 ]
 
+FULL_DATA_COUNTRIES = [
+    "austria",
+    "belgium",
+    "cambodia",
+    "corsica",
+    "croatia",
+    "denmark",
+    "estonia",
+    "finland",
+    "france",
+    "germany",
+    "latvia",
+    "lithuania",
+    "luxembourg",
+    "netherlands",
+    "slovakia",
+    "slovenia",
+    "south_africa",
+    "spain",
+    "sweden",
+    "vietnam",
+]
+
 
 def main(args):
     checkpoints = []
@@ -55,6 +78,52 @@ def main(args):
 
     for checkpoints_data in checkpoints:
         (checkpoint, model_predicts_classes) = checkpoints_data
+        # Test on all countries first
+        if model_predicts_classes == 2:
+            # Test on the same country
+            command = [
+                "ftw",
+                "model",
+                "test",
+                "--gpu",
+                str(args.gpu),
+                "--dir",
+                "data/ftw",
+                "--model",
+                checkpoint,
+                "--out",
+                args.output_fn,
+            ]
+            if args.swap_order:
+                command.append("--swap_order")
+            for country in FULL_DATA_COUNTRIES:
+                command.append("--countries")
+                command.append(country)
+            subprocess.call(command)
+        elif model_predicts_classes == 3:
+            # Test on the same country
+            command = [
+                "ftw",
+                "model",
+                "test",
+                "--gpu",
+                str(args.gpu),
+                "--dir",
+                "data/ftw",
+                "--model",
+                checkpoint,
+                "--out",
+                args.output_fn,
+                "--model_predicts_3_classes",
+            ]
+            if args.swap_order:
+                command.append("--swap_order")
+            for country in FULL_DATA_COUNTRIES:
+                command.append("--countries")
+                command.append(country)
+            subprocess.call(command)
+
+        # Then test on each country individually
         for country in COUNTRIES:
             if model_predicts_classes == 2:
                 # Test on the same country
@@ -69,7 +138,7 @@ def main(args):
                     "--model",
                     checkpoint,
                     "--out",
-                    "results/experiments-ftw_release-2_classes.csv",
+                    args.output_fn,
                     "--countries",
                     country,
                 ]
@@ -89,7 +158,7 @@ def main(args):
                     "--model",
                     checkpoint,
                     "--out",
-                    "results/experiments-ftw_release-3_classes.csv",
+                    args.output_fn,
                     "--countries",
                     country,
                     "--model_predicts_3_classes",
@@ -107,5 +176,6 @@ if __name__ == "__main__":
         action="store_true",
         help="Whether to swap the order of temporal images",
     )
+    parser.add_argument("--output_fn", type=str, help="Output filename")
     args = parser.parse_args()
     main(args)

@@ -351,7 +351,7 @@ class FTW(NonGeoDataset):
             panel_id += 1
 
         if "prediction" in sample:
-            axs[panel_id].imshow(predictions)
+            axs[panel_id].imshow(predictions, vmin=0, vmax=2, cmap="gray")
             axs[panel_id].axis("off")
 
         if suptitle is not None:

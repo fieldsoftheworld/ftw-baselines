@@ -111,7 +111,7 @@ class CustomSemanticSegmentationTask(BaseTask):
                 "ignore_index has no effect on training when loss='jaccard'",
                 UserWarning,
             )
-        self.class_names = ["background", "field", "boundary"]
+        self.class_names = ["background", "field", "boundary", "unknown"]
         self.weights = weights
         super().__init__()
         print(self.hparams)
