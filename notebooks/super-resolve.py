@@ -62,10 +62,10 @@ def main(args):
             image = image.rio.reproject(
                 image.rio.crs, shape=(512, 512), resample=Resampling.bilinear
             )
-            image.data = sr
+            image.values = sr[:, ::-1, :]
 
-            output_path = path.replace("ftw", args.out)
-            output_path.mkdir(parents=True, exist_ok=True)
+            output_path = Path(path.replace("ftw", args.out))
+            output_path.parent.mkdir(parents=True, exist_ok=True)
             image.rio.to_raster(output_path, driver="COG", compress="zstd")
 
 
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
     )
-    parser.add_argument("--batch_size", type=int, default=8)
+    parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--num_workers", type=int, default=8)
     args = parser.parse_args()
     main(args)
