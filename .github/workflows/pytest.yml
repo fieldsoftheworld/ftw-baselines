@@ -22,8 +22,8 @@ jobs:
       - name: Run pre-commit
         run: pixi run -e dev pre-commit run --all-files
 
-  tests:
-    name: Run tests
+  build:
+    name: Run build
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -32,6 +32,37 @@ jobs:
           - windows-latest
           - macos-latest  # latest = Apple Silicon
           - macos-13   # 13 = Intel
+        python-version:
+          - "3.11"
+          - "3.12"
+      fail-fast: true
+    env:
+      CONDA_OVERRIDE_CUDA: 12.0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.8.10
+        with:
+          pixi-version: v0.49.0
+          cache: true
+          cache-key: ${{ runner.os }}-pixi-${{ hashFiles('pixi.lock') }}
+      - name: Install Python dev dependencies
+        run: pixi run install-dev
+      - name: Test imports
+        run: |
+          pixi run python -c "from ftw_tools import cli"
+          pixi run python -c "from ftw_tools.download import download_ftw, download_img"
+          pixi run python -c "from ftw_tools.models import baseline_inference, baseline_eval, delineate_anything"
+          pixi run python -c "from ftw_tools.torchgeo import datamodules, trainers"
+          pixi run python -c "from ftw_tools.postprocess import polygonize, metrics"
+
+  tests:
+    name: Run tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
         python-version:
           - "3.11"
           - "3.12"
