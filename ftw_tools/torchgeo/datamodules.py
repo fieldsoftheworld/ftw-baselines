@@ -76,7 +76,7 @@ class FTWDataModule(LightningDataModule):
         self.num_samples = num_samples
 
         # for the temporal option windowA, windowB and median we will have 4 channel input
-        if self.temporal_options in ("windowA", "windowB", "median"):
+        if self.temporal_options in ("windowA", "windowB", "median", "random_window"):
             self.mean = torch.tensor([0, 0, 0, 0])
             self.std = torch.tensor([3000, 3000, 3000, 3000])
         elif (
