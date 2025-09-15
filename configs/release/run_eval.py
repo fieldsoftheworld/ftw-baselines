@@ -2,6 +2,7 @@ import argparse
 import os
 import subprocess
 
+import pandas as pd
 import yaml
 
 COUNTRIES = [
@@ -32,6 +33,7 @@ COUNTRIES = [
     "vietnam",
 ]
 
+# This removes the countries with presence only data, and Portugal
 FULL_DATA_COUNTRIES = [
     "austria",
     "belgium",
@@ -57,24 +59,37 @@ FULL_DATA_COUNTRIES = [
 
 
 def main(args):
+    existing_checkpoints = set()
+    if os.path.exists(args.output_fn):
+        df = pd.read_csv(args.output_fn)
+        existing_checkpoints = set(df["train_checkpoint"].values)
+    print(f"Found {len(existing_checkpoints)} existing checkpoints in {args.output_fn}")
+
     checkpoints = []
     for root, dirs, files in os.walk("logs/"):
         for file in files:
             if file.endswith("last.ckpt"):
                 parent_dir = os.path.dirname(root)
                 config_file_path = os.path.join(parent_dir, "config.yaml")
+                checkpoint_path = os.path.join(root, file)
                 if os.path.isfile(config_file_path):
+                    if checkpoint_path in existing_checkpoints:
+                        print(f"Skipping existing checkpoint {checkpoint_path}")
+                        continue
+
                     with open(config_file_path, "r") as conf_file:
                         config_data = yaml.safe_load(conf_file)
 
                     model_predicts_classes = (
                         config_data.get("model").get("init_args").get("num_classes", 3)
                     )
-                    checkpoints.append(
-                        (os.path.join(root, file), model_predicts_classes)
-                    )
+                    checkpoints.append((checkpoint_path, model_predicts_classes))
                 else:
                     print(f"Missing config for checkpoint {root}")
+
+    print(f"Running evaluation on {len(checkpoints)} checkpoints:")
+    for ckpt, _ in checkpoints:
+        print(f"  {ckpt}")
 
     for checkpoints_data in checkpoints:
         (checkpoint, model_predicts_classes) = checkpoints_data
@@ -176,6 +191,6 @@ if __name__ == "__main__":
         action="store_true",
         help="Whether to swap the order of temporal images",
     )
-    parser.add_argument("--output_fn", type=str, help="Output filename")
+    parser.add_argument("--output_fn", required=True, type=str, help="Output filename")
     args = parser.parse_args()
     main(args)
