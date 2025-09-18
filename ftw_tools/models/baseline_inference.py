@@ -9,7 +9,12 @@ import numpy as np
 import pandas as pd
 import rasterio
 import torch
+<<<<<<< HEAD
 import torch.nn.functional as F
+=======
+import torchgeo
+from packaging.version import Version, parse
+>>>>>>> dd2667e (Adding torchgeo version selection in inference)
 from kornia.constants import Resample
 from rasterio.enums import ColorInterp
 from rasterio.transform import from_bounds
@@ -23,6 +28,9 @@ from ftw_tools.torchgeo.datamodules import preprocess
 from ftw_tools.torchgeo.datasets import SingleRasterDataset
 from ftw_tools.torchgeo.trainers import CustomSemanticSegmentationTask
 
+TORCHGEO_06 = Version("0.6.0")
+TORCHGEO_08 = Version("0.8.0.dev0")
+TORCHGEO_CURRENT = parse(torchgeo.__version__)
 
 def setup_inference(
     input,
@@ -171,11 +179,22 @@ def run(
         num_bands = images.shape[1] // 2
         images = torch.cat([images[:, num_bands:], images[:, :num_bands]], dim=1)
 
+        # torchgeo>=0.8 switched from BoundingBox to slices
         # torchgeo>=0.6 refers to the bounding box as "bounds" instead of "bbox"
-        if "bounds" in batch and batch["bounds"] is not None:
-            bboxes = batch["bounds"]
+        bboxes = []
+        if TORCHGEO_CURRENT >= TORCHGEO_08:
+            for slices in batch["bounds"]:
+                minx = slices[0].start
+                maxx = slices[0].stop
+                miny = slices[1].start
+                maxy = slices[1].stop
+                bboxes.append((minx, miny, maxx, maxy))
+        elif TORCHGEO_CURRENT >= TORCHGEO_06:
+            for bbox in batch["bounds"]:
+                bboxes.append((bbox.minx, bbox.miny, bbox.maxx, bbox.maxy))
         else:
-            bboxes = batch["bbox"]
+            for bbox in batch["bbox"]:
+                bboxes.append((bbox.minx, bbox.miny, bbox.maxx, bbox.maxy))
 
         with torch.inference_mode():
             predictions = model(images)
@@ -192,9 +211,9 @@ def run(
                 predictions = down_sample(predictions.float()).int().cpu().numpy()
 
         for i in range(len(bboxes)):
-            bb = bboxes[i]
-            left, top = ~transform * (bb.minx, bb.maxy)
-            right, bottom = ~transform * (bb.maxx, bb.miny)
+            minx, miny, maxx, maxy = bboxes[i]
+            left, bottom = ~transform * (minx, miny)
+            right, top = ~transform * (maxx, maxy)
             left, right, top, bottom = (
                 int(np.round(left)),
                 int(np.round(right)),
