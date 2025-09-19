@@ -1,4 +1,5 @@
 import geopandas as gpd
+import numpy as np
 import pytest
 import rasterio
 import torch
@@ -16,17 +17,19 @@ def test_delineate_anything():
         model="DelineateAnything-S",
         resize_factor=2,
         max_detections=50,
-        iou_threshold=0.6,
-        conf_threshold=0.1,
+        iou_threshold=0.5,
+        conf_threshold=0.05,
         device=device,
     )
 
     # test model inference
-    x = torch.randn(2, 3, 256, 256, requires_grad=False, device=device)
+    with rasterio.open("./tests/data-files/inference-img.tif") as src:
+        x = torch.from_numpy(src.read().astype(np.float32)).unsqueeze(0)
+
     with torch.inference_mode():
         results = model(x)
 
-    assert len(results) == 2
+    assert len(results) == 1
     assert isinstance(results[0], ultralytics.engine.results.Results)
 
     # test conversion of results to polygons

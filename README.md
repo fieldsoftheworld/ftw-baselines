@@ -542,7 +542,7 @@ Options:
   -cot, --overlap_contain_threshold FLOAT RANGE
                                   Overlap containment threshold for merging
                                   polygons.  [default: 0.8; 0.0<=x<=1.0]
-  --help                          Show this message and exit.ftw inference instance-segmentation-all --help
+  --help                          Show this message and exit.
 ```
 
 ## FTW Baseline Dataset
