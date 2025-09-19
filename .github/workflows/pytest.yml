@@ -46,14 +46,14 @@ jobs:
           cache: true
           cache-key: ${{ runner.os }}-pixi-${{ hashFiles('pixi.lock') }}
       - name: Install Python dev dependencies
-        run: pixi run install-dev
+        run: pixi run -e dev install-dev
       - name: Test imports
         run: |
-          pixi run python -c "from ftw_tools import cli"
-          pixi run python -c "from ftw_tools.download import download_ftw, download_img"
-          pixi run python -c "from ftw_tools.models import baseline_inference, baseline_eval, delineate_anything"
-          pixi run python -c "from ftw_tools.torchgeo import datamodules, trainers"
-          pixi run python -c "from ftw_tools.postprocess import polygonize, metrics"
+          pixi run -e dev python -c "from ftw_tools import cli"
+          pixi run -e dev python -c "from ftw_tools.download import download_ftw, download_img"
+          pixi run -e dev python -c "from ftw_tools.models import baseline_inference, baseline_eval, delineate_anything"
+          pixi run -e dev python -c "from ftw_tools.torchgeo import datamodules, trainers"
+          pixi run -e dev python -c "from ftw_tools.postprocess import polygonize, metrics"
 
   tests:
     name: Run tests
