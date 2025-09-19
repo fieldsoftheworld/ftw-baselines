@@ -1,39 +1,39 @@
 [build-system]
-requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+requires = [ "hatchling" ]
 
 [project]
 name = "ftw-tools"
 version = "2.0.0"
-license = "MIT"
-license-files = ["LICENSE"]
 description = "Fields of The World (FTW) Command Line Interface (CLI) for data management, ML processing, and more."
 readme = "README.md"
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Programming Language :: Python :: 3",
-]
-requires-python = ">=3.11,<3.13"
+license = "MIT"
+license-files = [ "LICENSE" ]
 authors = [
-    { name = "Hannah Kerner", email = "hkerner@asu.edu" },
-    { name = "Matthias Mohr", email = "matthias@mohr.ws" },
-    { name = "Caleb Robinson", email = "Caleb.Robinson@microsoft.com" },
-    { name = "Aninda Ghosh", email = "aghosh57@asu.edu" },
-    { name = "Chris Holmes", email = "cholmes@tgengine.org" },
-    { name = "Snehal Chaudhari", email = "sschaud5@asu.edu" },
+  { name = "Hannah Kerner", email = "hkerner@asu.edu" },
+  { name = "Matthias Mohr", email = "matthias@mohr.ws" },
+  { name = "Caleb Robinson", email = "Caleb.Robinson@microsoft.com" },
+  { name = "Aninda Ghosh", email = "aghosh57@asu.edu" },
+  { name = "Chris Holmes", email = "cholmes@tgengine.org" },
+  { name = "Snehal Chaudhari", email = "sschaud5@asu.edu" },
 ]
 
-[project.urls]
-Homepage = "https://fieldsofthe.world/"
-Repository = "https://github.com/fieldsoftheworld/ftw-baselines.git"
-Issues = "https://github.com/fieldsoftheworld/ftw-baselines/issues"
-Changelog = "https://github.com/fieldsoftheworld/ftw-baselines/blob/main/CHANGELOG.md"
-
-[project.scripts]
-ftw = "ftw_tools.cli:ftw"
+requires-python = ">=3.11,<3.13"
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+urls.Changelog = "https://github.com/fieldsoftheworld/ftw-baselines/blob/main/CHANGELOG.md"
+urls.Homepage = "https://fieldsofthe.world/"
+urls.Issues = "https://github.com/fieldsoftheworld/ftw-baselines/issues"
+urls.Repository = "https://github.com/fieldsoftheworld/ftw-baselines.git"
+scripts.ftw = "ftw_tools.cli:ftw"
 
 [tool.ruff]
-extend-exclude = ["*.ipynb"]
+extend-exclude = [ "*.ipynb" ]
 
 [tool.pytest.ini_options]
-pythonpath = ["."]
+pythonpath = [ "." ]

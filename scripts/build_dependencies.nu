@@ -73,19 +73,19 @@ def extract-feature-deps [feature_config: record] {
         $feature_config.dependencies
             | items {|key, value| format-dependency $key $value }
     } else { [] }
-    
+
     let pypi_deps = if ("pypi-dependencies" in $feature_config) {
         $feature_config.pypi-dependencies
             | items {|key, value| format-dependency $key $value }
     } else { [] }
-    
+
     $conda_deps | append $pypi_deps | sort
 }
 
 # Build optional dependencies structure from pixi features
 def extract-optional-deps [config: record] {
     let features = if ("feature" in $config) { $config.feature } else { {} }
-    
+
     $features
         | items {|feature_name, feature_config|
             {
@@ -102,14 +102,14 @@ def extract-optional-deps [config: record] {
 def main [] {
     let pixi_config = open pixi.toml
     let pyproject = open pyproject.toml
-    
+
     let all_deps = [
         (extract-conda-deps $pixi_config),
         (extract-pypi-deps $pixi_config)
     ] | flatten | sort
-    
+
     let optional_deps = extract-optional-deps $pixi_config
-    
+
     $pyproject
         | upsert project.dependencies $all_deps
         | upsert project.optional-dependencies $optional_deps
