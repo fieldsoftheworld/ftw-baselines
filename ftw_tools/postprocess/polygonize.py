@@ -175,49 +175,52 @@ def polygonize(
         rows = []
         
         if algorithm == "watershed":
-            for instance_id in unique_instances:
-                instance_mask = (instances == instance_id).astype(np.uint8)
-                
-                for geom_geojson, val in rasterio.features.shapes(
-                    instance_mask, transform=src.transform
-                ):
-                    if val != 1:
-                        continue
+            with tqdm(total=len(unique_instances), desc="Processing watershed instances") as pbar:
+                for instance_id in unique_instances:
+                    instance_mask = (instances == instance_id).astype(np.uint8)
+                    
+                    for geom_geojson, val in rasterio.features.shapes(
+                        instance_mask, transform=src.transform
+                    ):
+                        if val != 1:
+                            continue
+                            
+                        geom = shapely.geometry.shape(geom_geojson)
                         
-                    geom = shapely.geometry.shape(geom_geojson)
-                    
-                    if close_interiors:
-                        geom = shapely.geometry.Polygon(geom.exterior)
-                    if simplify > 0:
-                        geom = geom.simplify(simplify)
-                    
-                    if is_meters:
-                        geom_proj_meters = geom
-                    else:
-                        geom_proj_meters = shapely.geometry.shape(
-                            fiona.transform.transform_geom(
-                                original_crs, equal_area_crs, geom_geojson
+                        if close_interiors:
+                            geom = shapely.geometry.Polygon(geom.exterior)
+                        if simplify > 0:
+                            geom = geom.simplify(simplify)
+                        
+                        if is_meters:
+                            geom_proj_meters = geom
+                        else:
+                            geom_proj_meters = shapely.geometry.shape(
+                                fiona.transform.transform_geom(
+                                    original_crs, equal_area_crs, geom_geojson
+                                )
                             )
-                        )
+                        
+                        area = geom_proj_meters.area
+                        perimeter = geom_proj_meters.length
+                        
+                        if area < min_size or (max_size is not None and area > max_size):
+                            continue
+                        
+                        if is_geojson:
+                            geom = transform(affine, geom)
+                        
+                        rows.append({
+                            "geometry": shapely.geometry.mapping(geom),
+                            "properties": {
+                                "id": str(i),
+                                "area": area * 0.0001,
+                                "perimeter": perimeter,
+                            },
+                        })
+                        i += 1
                     
-                    area = geom_proj_meters.area
-                    perimeter = geom_proj_meters.length
-                    
-                    if area < min_size or (max_size is not None and area > max_size):
-                        continue
-                    
-                    if is_geojson:
-                        geom = transform(affine, geom)
-                    
-                    rows.append({
-                        "geometry": shapely.geometry.mapping(geom),
-                        "properties": {
-                            "id": str(i),
-                            "area": area * 0.0001,
-                            "perimeter": perimeter,
-                        },
-                    })
-                    i += 1
+                    pbar.update(1)
         else:
             with tqdm(total=total_iterations, desc="Processing mask windows") as pbar:
                 for y in range(0, input_height, polygonization_stride):
