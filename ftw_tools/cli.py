@@ -703,64 +703,12 @@ def inference_run(
     + SUPPORTED_POLY_FORMATS_TXT,
 )
 @click.option(
-    "--simplify",
-    "-s",
-    type=click.FloatRange(min=0.0),
-    default=15,
+    "--algorithm",
+    "-a",
+    type=click.Choice(["simple", "watershed"]),
+    default="simple",
     show_default=True,
-    help="Simplification factor to use when polygonizing in the unit of the CRS, e.g. meters for Sentinel-2 imagery in UTM. Set to 0 to disable simplification.",
-)
-@click.option(
-    "--min_size",
-    "-sn",
-    type=click.FloatRange(min=0.0),
-    default=500,
-    show_default=True,
-    help="Minimum area size in square meters to include in the output. Set to 0 to disable.",
-)
-@click.option(
-    "--max_size",
-    "-sx",
-    type=click.FloatRange(min=0.0),
-    default=None,
-    show_default=True,
-    help="Maximum area size in square meters to include in the output. Disabled by default.",
-)
-@click.option(
-    "--overwrite",
-    "-f",
-    is_flag=True,
-    default=False,
-    show_default=True,
-    help="Overwrite output if it exists.",
-)
-@click.option(
-    "--close_interiors",
-    is_flag=True,
-    default=False,
-    show_default=True,
-    help="Remove the interiors holes in the polygons.",
-)
-def inference_polygonize(
-    input, out, simplify, min_size, max_size, overwrite, close_interiors
-):
-    from ftw_tools.postprocess.polygonize import polygonize
-
-    polygonize(input, out, simplify, min_size, max_size, overwrite, close_interiors)
-
-
-@inference.command(
-    "polygonize-watershed",
-    help="Polygonize using hierarchical watershed instance segmentation.",
-)
-@click.argument("input", type=click.Path(exists=True), required=True)
-@click.option(
-    "--out",
-    "-o",
-    type=click.Path(exists=False),
-    default=None,
-    help="Output filename for the polygonized data. Defaults to the name of the input file with '.parquet' file extension. "
-    + SUPPORTED_POLY_FORMATS_TXT,
+    help="Polygonization algorithm. 'simple' uses connected components, 'watershed' uses hierarchical watershed for better field separation.",
 )
 @click.option(
     "--simplify",
@@ -806,23 +754,22 @@ def inference_polygonize(
     type=click.FloatRange(min=0.0, max=1.0),
     default=0.5,
     show_default=True,
-    help="Threshold for extent binary mask (0.0-1.0).",
+    help="Threshold for extent binary mask (watershed algorithm only).",
 )
 @click.option(
     "--t_bound",
     type=click.FloatRange(min=0.0, max=1.0),
     default=0.2,
     show_default=True,
-    help="Threshold for watershed horizontal cut (0.0-1.0).",
+    help="Threshold for watershed horizontal cut (watershed algorithm only).",
 )
-def inference_polygonize_watershed(
-    input, out, simplify, min_size, max_size, overwrite, close_interiors, t_ext, t_bound
+def inference_polygonize(
+    input, out, algorithm, simplify, min_size, max_size, overwrite, close_interiors, t_ext, t_bound
 ):
-    from ftw_tools.postprocess.watershed_polygonize import polygonize_watershed_cli
+    from ftw_tools.postprocess.polygonize import polygonize
+    polygonize(input, out, simplify, min_size, max_size, overwrite, close_interiors, algorithm, t_ext, t_bound)
 
-    polygonize_watershed_cli(
-        input, out, simplify, min_size, max_size, overwrite, close_interiors, t_ext, t_bound
-    )
+
 
 
 @inference.command(
