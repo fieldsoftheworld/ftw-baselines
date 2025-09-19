@@ -23,15 +23,15 @@ def test_scene_selection_earthsearch():
         scene_selection,
         [
             "--bbox=-93.68708939,41.9530844,-93.64078526,41.98070608",
-            "--year=2022",
+            "--year=2023",
             "--cloud_cover_max=20",
             "--buffer_days=14",
             "--stac_host=earthsearch",
         ],
     )
     assert result.exit_code == 0, result.output
-    assert "S2B_15TVG_20220327_0_L2A" in result.output  # window a
-    assert "S2B_15TVG_20221125_0_L2A" in result.output  # window b
+    assert "S2A_T15TVG_20230406T170330_L2A" in result.output  # window a
+    assert "S2A_T15TVG_20231112T170622_L2A" in result.output  # window b
 
 
 def test_scene_selection_mspc():

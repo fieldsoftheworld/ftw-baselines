@@ -5,6 +5,7 @@ from typing import Any, Optional, Union
 
 import lightning
 import matplotlib.pyplot as plt
+import numpy as np
 import segmentation_models_pytorch as smp
 import torch
 import torch.nn as nn
@@ -17,8 +18,15 @@ from torchgeo.datasets import unbind_samples
 from torchgeo.models import FCN
 from torchgeo.trainers.base import BaseTask
 from torchmetrics import MetricCollection
-from torchmetrics.classification import MulticlassAccuracy, MulticlassJaccardIndex
+from torchmetrics.classification import (
+    MulticlassAccuracy,
+    MulticlassJaccardIndex,
+    MulticlassPrecision,
+    MulticlassRecall,
+)
 from torchvision.models._api import WeightsEnum
+
+from ..postprocess.metrics import get_object_level_metrics
 
 
 class CustomSemanticSegmentationTask(BaseTask):
@@ -103,7 +111,7 @@ class CustomSemanticSegmentationTask(BaseTask):
                 "ignore_index has no effect on training when loss='jaccard'",
                 UserWarning,
             )
-
+        self.class_names = ["background", "field", "boundary", "unknown"]
         self.weights = weights
         super().__init__()
         print(self.hparams)
@@ -146,22 +154,40 @@ class CustomSemanticSegmentationTask(BaseTask):
         """Initialize the performance metrics."""
         num_classes: int = self.hparams["num_classes"]
         ignore_index: Optional[int] = self.hparams["ignore_index"]
-        metrics = MetricCollection(
-            [
-                MulticlassAccuracy(
-                    num_classes=num_classes,
-                    ignore_index=ignore_index,
-                    multidim_average="global",
-                    average="micro",
+
+        base_metrics = {
+            "precision": MulticlassPrecision(
+                num_classes, average=None, ignore_index=ignore_index
+            ),
+            "recall": MulticlassRecall(
+                num_classes, average=None, ignore_index=ignore_index
+            ),
+            "iou": MulticlassJaccardIndex(
+                num_classes, average=None, ignore_index=ignore_index
+            ),
+        }
+        self.train_metrics = MetricCollection(base_metrics, prefix="train/")
+        self.val_metrics = self.train_metrics.clone(prefix="val/")
+        self.test_metrics = self.train_metrics.clone(prefix="test/")
+
+        self.val_agg = MetricCollection(
+            {
+                "precision_macro": MulticlassPrecision(
+                    num_classes, average="macro", ignore_index=ignore_index
                 ),
-                MulticlassJaccardIndex(
-                    num_classes=num_classes, ignore_index=ignore_index, average="micro"
+                "recall_macro": MulticlassRecall(
+                    num_classes, average="macro", ignore_index=ignore_index
                 ),
-            ]
+                "iou_macro": MulticlassJaccardIndex(
+                    num_classes, average="macro", ignore_index=ignore_index
+                ),
+            },
+            prefix="val/",
         )
-        self.train_metrics = metrics.clone(prefix="train_")
-        self.val_metrics = metrics.clone(prefix="val_")
-        self.test_metrics = metrics.clone(prefix="test_")
+
+        self.val_tps = 0
+        self.val_fps = 0
+        self.val_fns = 0
 
     def configure_models(self) -> None:
         """Initialize the model.
@@ -240,6 +266,22 @@ class CustomSemanticSegmentationTask(BaseTask):
         if patch_weights:
             self.transfer_weights(self.model, backbone)
 
+    def _log_per_class(self, metrics_dict, split: str):
+        # metrics_dict like {"precision": tensor(C,), "recall": tensor(C,), "iou": tensor(C,)}
+        for name, values in metrics_dict.items():
+            # values is shape [C]
+            for i, v in enumerate(values):
+                cname = self.class_names[i]
+                if cname == "field":
+                    self.log(
+                        f"{name}/{cname}",
+                        v,
+                        on_step=False,
+                        on_epoch=True,
+                        prog_bar=False,
+                        sync_dist=True,
+                    )
+
     def training_step(
         self, batch: Any, batch_idx: int, dataloader_idx: int = 0
     ) -> Tensor:
@@ -254,12 +296,20 @@ class CustomSemanticSegmentationTask(BaseTask):
             The loss tensor.
         """
         x = batch["image"]
-        y = batch["mask"]
+        y = batch["mask"].squeeze(1)
         y_hat = self(x)
         loss: Tensor = self.criterion(y_hat, y)
-        self.log("train_loss", loss)
-        self.train_metrics(y_hat, y)
-        self.log_dict(self.train_metrics)
+
+        self.log(
+            "train/loss",
+            loss,
+            on_step=True,
+            on_epoch=True,
+            prog_bar=True,
+            sync_dist=True,
+        )
+        self.train_metrics.update(y_hat, y)
+
         return loss
 
     def validation_step(
@@ -273,12 +323,28 @@ class CustomSemanticSegmentationTask(BaseTask):
             dataloader_idx: Index of the current dataloader.
         """
         x = batch["image"]
-        y = batch["mask"]
+        y = batch["mask"].squeeze(1)
         y_hat = self(x)
         loss: Tensor = self.criterion(y_hat, y)
-        self.log("val_loss", loss)
-        self.val_metrics(y_hat, y)
-        self.log_dict(self.val_metrics)
+
+        for i in range(y_hat.shape[0]):
+            output = y_hat[i].argmax(dim=0).cpu().numpy().astype(np.uint8)
+            mask = y[i].cpu().numpy().astype(np.uint8)
+            tps, fps, fns = get_object_level_metrics(mask, output, iou_threshold=0.5)
+            self.val_tps += tps
+            self.val_fps += fps
+            self.val_fns += fns
+
+        self.log(
+            "val/loss",
+            loss,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            sync_dist=True,
+        )
+        self.val_metrics.update(y_hat, y)
+        self.val_agg.update(y_hat, y)
 
         if (
             batch_idx < 10
@@ -322,29 +388,11 @@ class CustomSemanticSegmentationTask(BaseTask):
             dataloader_idx: Index of the current dataloader.
         """
         x = batch["image"]
-        y = batch["mask"]
+        y = batch["mask"].squeeze(1)
         y_hat = self(x)
         loss: Tensor = self.criterion(y_hat, y)
         self.log("test_loss", loss)
-        self.test_metrics(y_hat, y)
-        self.log_dict(self.test_metrics)
-
-    def predict_step(
-        self, batch: Any, batch_idx: int, dataloader_idx: int = 0
-    ) -> Tensor:
-        """Compute the predicted class probabilities.
-
-        Args:
-            batch: The output of your DataLoader.
-            batch_idx: Integer displaying index of this batch.
-            dataloader_idx: Index of the current dataloader.
-
-        Returns:
-            Output predicted probabilities.
-        """
-        x = batch["image"]
-        y_hat: Tensor = self(x).softmax(dim=1)
-        return y_hat
+        self.test_metrics.update(y_hat, y)
 
     def configure_optimizers(
         self,
@@ -366,6 +414,49 @@ class CustomSemanticSegmentationTask(BaseTask):
     def on_train_epoch_start(self) -> None:
         lr = self.optimizers().param_groups[0]["lr"]
         self.logger.experiment.add_scalar("lr", lr, self.current_epoch)
+
+    def on_train_epoch_end(self):
+        computed = self.train_metrics.compute()
+        self._log_per_class(computed, "train")
+        self.train_metrics.reset()
+
+    def on_validation_epoch_end(self) -> None:
+        object_precision = (
+            self.val_tps / (self.val_tps + self.val_fps)
+            if (self.val_tps + self.val_fps) > 0
+            else 0
+        )
+        object_recall = (
+            self.val_tps / (self.val_tps + self.val_fns)
+            if (self.val_tps + self.val_fns) > 0
+            else 0
+        )
+        object_f1 = (
+            2 * object_precision * object_recall / (object_precision + object_recall)
+            if (object_precision + object_recall) > 0
+            else 0
+        )
+        self.log("val/object_precision", object_precision)
+        self.log("val/object_recall", object_recall)
+        self.log("val/object_f1", object_f1)
+
+        self.val_tps = 0
+        self.val_fps = 0
+        self.val_fns = 0
+
+        per_class = self.val_metrics.compute()
+        self._log_per_class(per_class, "val")
+        self.val_metrics.reset()
+
+        # log aggregates (single scalars)
+        agg = self.val_agg.compute()
+        self.log_dict(agg, on_step=False, on_epoch=True, sync_dist=True)
+        self.val_agg.reset()
+
+    def on_test_epoch_end(self):
+        per_class = self.test_metrics.compute()
+        self._log_per_class(per_class, "test")
+        self.test_metrics.reset()
 
     def transfer_weights(self, model, backbone):
         base_model = None

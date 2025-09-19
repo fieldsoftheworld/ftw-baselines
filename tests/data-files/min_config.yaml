@@ -17,7 +17,7 @@ model:
   class_path: ftw_tools.torchgeo.trainers.CustomSemanticSegmentationTask
   init_args:
     class_weights: [0.31,0.68]
-    loss: "ce" 
+    loss: "ce"
     model: "unet"
     backbone: "efficientnet-b3"
     weights: true

@@ -1,57 +1,55 @@
 [build-system]
-requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+requires = [ "setuptools>=61" ]
 
 [project]
 name = "ftw-tools"
 version = "2.0.0"
-license = "MIT"
-license-files = ["LICENSE"]
 description = "Fields of The World (FTW) Command Line Interface (CLI) for data management, ML processing, and more."
-readme = 'README.md'
+readme = "README.md"
+license = "MIT"
+license-files = [ "LICENSE" ]
 authors = [
-    { name = "Hannah Kerner", email = "hkerner@asu.edu" },
-    { name = "Matthias Mohr", email = "matthias@mohr.ws" },
-    { name = "Caleb Robinson", email = "Caleb.Robinson@microsoft.com" },
-    { name = "Aninda Ghosh", email = "aghosh57@asu.edu" },
-    { name = "Chris Holmes", email = "cholmes@tgengine.org" },
-    { name = "Snehal Chaudhari", email = "sschaud5@asu.edu" },
+  { name = "Hannah Kerner", email = "hkerner@asu.edu" },
+  { name = "Matthias Mohr", email = "matthias@mohr.ws" },
+  { name = "Caleb Robinson", email = "Caleb.Robinson@microsoft.com" },
+  { name = "Aninda Ghosh", email = "aghosh57@asu.edu" },
+  { name = "Chris Holmes", email = "cholmes@tgengine.org" },
+  { name = "Snehal Chaudhari", email = "sschaud5@asu.edu" },
 ]
-classifiers = [
-  "Development Status :: 4 - Beta",
-  "Programming Language :: Python :: 3",
-]
-
 requires-python = ">=3.11,<3.13"
 
-[project.urls]
-Homepage = "https://fieldsofthe.world/"
-Repository = "https://github.com/fieldsoftheworld/ftw-baselines.git"
-Issues = "https://github.com/fieldsoftheworld/ftw-baselines/issues"
-Changelog = "https://github.com/fieldsoftheworld/ftw-baselines/blob/main/CHANGELOG.md"
-
-[project.optional-dependencies]
-delineate-anything = [
-  "ultralytics>8.3.0,<9.0",
-]
-dev = [
-    "ruff",        # Code formatting tool
-    "pytest",      # Testing framework
-    "pre-commit",  # Run tests on commit
-]
-all = [
-    "ftw-tools[dev,delineate-anything]",
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
 ]
 
-[project.scripts]
-ftw = "ftw_tools.cli:ftw"
+optional-dependencies.all = [
+  "ftw-tools[dev,delineate-anything]",
+]
+optional-dependencies.delineate-anything = [
+  "ultralytics>8.3,<9",
+]
+optional-dependencies.dev = [
+  "pre-commit", # Run tests on commit
+  "pytest",     # Testing framework
+  "ruff",       # Code formatting tool
+]
+urls.Changelog = "https://github.com/fieldsoftheworld/ftw-baselines/blob/main/CHANGELOG.md"
+urls.Homepage = "https://fieldsofthe.world/"
+urls.Issues = "https://github.com/fieldsoftheworld/ftw-baselines/issues"
+urls.Repository = "https://github.com/fieldsoftheworld/ftw-baselines.git"
+scripts.ftw = "ftw_tools.cli:ftw"
 
 [tool.setuptools]
-packages = { find = { where = ["."] } }
-include-package-data = true  # Includes non-Python files specified in MANIFEST.in
+packages = { find = { where = [ "." ] } }
+include-package-data = true               # Includes non-Python files specified in MANIFEST.in
 
 [tool.ruff]
-extend-exclude = ["*.ipynb"]
+extend-exclude = [ "*.ipynb" ]
 
 [tool.pytest.ini_options]
 pythonpath = [
@@ -64,8 +62,8 @@ pythonpath = [
 
 [tool.pixi.project]
 name = "ftw-baselines"
-channels = ["conda-forge", "pytorch"]
-platforms = ["linux-64", "osx-64", "osx-arm64", "win-64"]
+channels = [ "conda-forge", "pytorch" ]
+platforms = [ "linux-64", "osx-64", "osx-arm64", "win-64" ]
 
 [tool.pixi.dependencies]
 python = ">=3.11,<3.13"
@@ -103,14 +101,14 @@ pyproj = ">=3.6,<4.0"
 pystac = ">=1.8,<2.0"
 rioxarray = ">=0.15,<1.0"
 planetary-computer = ">=1.0,<2.0"
-odc-stac = ">=0.4.0,<1.0" # see https://github.com/fieldsoftheworld/ftw-baselines/issues/77
-torchgeo = ">=0.7.0,<1.0" # see https://github.com/fieldsoftheworld/ftw-baselines/issues/79
+odc-stac = ">=0.4.0,<1.0"         # see https://github.com/fieldsoftheworld/ftw-baselines/issues/77
+torchgeo = ">=0.7.0,<1.0"         # see https://github.com/fieldsoftheworld/ftw-baselines/issues/79
 ultralytics = ">=8.3.163,<9"
 
 [tool.pixi.pypi-dependencies]
 # Version-constrained packages (MUST remain PyPI)
 pyarrow = "==16.1.0"  # CRITICAL: filesystem registration error with newer versions, see https://github.com/apache/arrow/issues/44696
-fiboa-cli = "==0.7.0"  # Not available on conda-forge
+fiboa-cli = "==0.7.0" # Not available on conda-forge
 
 # Parallel processing (kept on PyPI to avoid pyarrow version conflicts)
 dask = "==2025.5.1"
@@ -121,20 +119,19 @@ ruff = ">=0.1,<1.0"
 pytest = ">=7.4,<9.0"
 pre-commit = ">=4.0,<=5.0"
 
-
 [tool.pixi.system-requirements]
 cuda = "12"
 
 [tool.pixi.environments]
-default = {solve-group = "default"}
-dev = {features = ["dev"], solve-group = "default"}
+default = { solve-group = "default" }
+dev = { features = [ "dev" ], solve-group = "default" }
 
 [tool.pixi.tasks]
 # Code quality
 format = "ruff format ftw_tools/"
 lint = "ruff check ftw_tools/ --fix --select I"
 test = "pytest tests/"
-check-all = {depends-on = ["format", "lint", "test"]}
+check-all = { depends-on = [ "format", "lint", "test" ] }
 
 # FTW commands
 ftw = "ftw"

@@ -14,6 +14,7 @@ os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 from ftw_tools.settings import (
     ALL_COUNTRIES,
     LULC_COLLECTIONS,
+    S2_COLLECTIONS,
     SUPPORTED_POLY_FORMATS_TXT,
     TEMPORAL_OPTIONS,
 )
@@ -38,6 +39,89 @@ class ModelVersions(enum.StrEnum):
 
 # All commands are meant to use dashes as separator for words.
 # All parameters are meant to use underscores as separator for words.
+
+
+# Common parameter definitions for shared CLI options
+def common_bbox_option():
+    """Common bbox option for inference commands."""
+    return click.option(
+        "--bbox",
+        type=str,
+        default=None,
+        help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'",
+        callback=parse_bbox,
+    )
+
+
+def common_year_option():
+    """Common year option for inference commands."""
+    return click.option(
+        "--year",
+        type=click.IntRange(min=2015, max=datetime.date.today().year),
+        required=True,
+        help="Year to run model inference over",
+    )
+
+
+def common_cloud_cover_option():
+    """Common cloud cover option for inference commands."""
+    return click.option(
+        "--cloud_cover_max",
+        "-ccx",
+        type=click.IntRange(min=0, max=100),
+        default=20,
+        show_default=True,
+        help="Maximum percentage of cloud cover allowed in the Sentinel-2 scene",
+    )
+
+
+def common_buffer_days_option():
+    """Common buffer days option for inference commands."""
+    return click.option(
+        "--buffer_days",
+        "-b",
+        type=click.IntRange(min=0),
+        default=14,
+        show_default=True,
+        help="Number of days to buffer the date for querying to help balance decreasing cloud cover "
+        "and selecting a date near the crop calendar indicated date.",
+    )
+
+
+def common_stac_host_option():
+    """Common STAC host option for inference commands."""
+    return click.option(
+        "--stac_host",
+        "-h",
+        type=click.Choice(["mspc", "earthsearch"]),
+        default="mspc",
+        show_default=True,
+        help="The host to download the imagery from. mspc = Microsoft Planetary Computer, earthsearch = EarthSearch (Element84/AWS).",
+    )
+
+
+def common_s2_collection_option():
+    """Common S2 collection option for inference commands."""
+    return click.option(
+        "--s2_collection",
+        "-s2",
+        type=click.Choice(list(S2_COLLECTIONS.keys())),
+        default="c1",
+        show_default=True,
+        help="Sentinel-2 collection to use with EarthSearch only: 'old-baseline' = sentinel-2-l2a, 'c1' = sentinel-2-c1-l2a (default). Ignored when using MSPC.",
+    )
+
+
+def common_verbose_option():
+    """Common verbose option for inference commands."""
+    return click.option(
+        "--verbose",
+        "-v",
+        is_flag=True,
+        default=False,
+        show_default=True,
+        help="Enable verbose output showing STAC calls, scene details, and download URLs.",
+    )
 
 
 @click.group()
@@ -178,14 +262,6 @@ def model_fit(config, ckpt_path, cli_args):
     help="GPU to use, zero-based index. Set to -1 to use CPU. CPU is also always used if CUDA is not available.",
 )
 @click.option(
-    "--postprocess",
-    "-pp",
-    is_flag=True,
-    default=False,
-    show_default=True,
-    help="Apply postprocessing to the model output",
-)
-@click.option(
     "--iou_threshold",
     "-iou",
     type=click.FloatRange(min=0.0, max=1.0),
@@ -225,17 +301,24 @@ def model_fit(config, ckpt_path, cli_args):
     show_default=True,
     help="Temporal option",
 )
+@click.option(
+    "--swap_order",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Whether to run inference on (window_a, window_b) instead of the default (window_b, window_a).",
+)
 def model_test(
     model,
     countries,
     dir,
     gpu,
-    postprocess,
     iou_threshold,
     out,
     model_predicts_3_classes,
     test_on_3_classes,
     temporal_options,
+    swap_order,
 ):
     from ftw_tools.models.baseline_eval import test
 
@@ -244,12 +327,12 @@ def model_test(
         dir,
         gpu,
         countries,
-        postprocess,
         iou_threshold,
         out,
         model_predicts_3_classes,
         test_on_3_classes,
         temporal_options,
+        swap_order,
     )
 
 
@@ -310,36 +393,10 @@ def inference():
     required=True,
     help="Path to the model checkpoint.",
 )
-@click.option(
-    "--year",
-    type=click.IntRange(min=2015, max=datetime.date.today().year),
-    required=True,
-    help="Year to run model inference over",
-)
-@click.option(
-    "--bbox",
-    type=str,
-    default=None,
-    help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'",
-    callback=parse_bbox,
-)
-@click.option(
-    "--cloud_cover_max",
-    "-ccx",
-    type=click.IntRange(min=0, max=100),
-    default=20,
-    show_default=True,
-    help="Maximum percentage of cloud cover allowed in the Sentinel-2 scene",
-)
-@click.option(
-    "--buffer_days",
-    "-b",
-    type=click.IntRange(min=0),
-    default=14,
-    show_default=True,
-    help="Number of days to buffer the date for querying to help balance decreasing cloud cover "
-    "and selecting a date near the crop calendar indicated date.",
-)
+@common_year_option()
+@common_bbox_option()
+@common_cloud_cover_option()
+@common_buffer_days_option()
 @click.option(
     "--overwrite",
     "-f",
@@ -400,14 +457,9 @@ def inference():
     show_default=True,
     help="Run inference in MPS mode (Apple GPUs).",
 )
-@click.option(
-    "--stac_host",
-    "-h",
-    type=click.Choice(["mspc", "earthsearch"]),
-    default="mspc",
-    show_default=True,
-    help="The host to download the imagery from. mspc = Microsoft Planetary Computer, earthsearch = EarthSearch (Element84/AWS).",
-)
+@common_stac_host_option()
+@common_s2_collection_option()
+@common_verbose_option()
 def ftw_inference_all(
     out,
     model,
@@ -424,6 +476,8 @@ def ftw_inference_all(
     padding,
     mps_mode,
     stac_host,
+    s2_collection,
+    verbose,
 ):
     """Run all inference commands from crop calendar scene selection, then download, inference and polygonize."""
     from ftw_tools.download.download_img import create_input, scene_selection
@@ -445,6 +499,8 @@ def ftw_inference_all(
         stac_host=stac_host,
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
+        s2_collection=s2_collection,
+        verbose=verbose,
     )
 
     # Download imagery
@@ -455,6 +511,8 @@ def ftw_inference_all(
         overwrite=overwrite,
         bbox=bbox,
         stac_host=stac_host,
+        s2_collection=s2_collection,
+        verbose=verbose,
     )
 
     # Run inference
@@ -483,36 +541,10 @@ def ftw_inference_all(
 @inference.command(
     "scene-selection", help="Select Sentinel-2 scenes for inference with crop calendar"
 )
-@click.option(
-    "--year",
-    type=click.IntRange(min=2015, max=datetime.date.today().year),
-    required=True,
-    help="Year to run model inference over",
-)
-@click.option(
-    "--bbox",
-    type=str,
-    default=None,
-    help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'",
-    callback=parse_bbox,
-)
-@click.option(
-    "--cloud_cover_max",
-    "-ccx",
-    type=click.IntRange(min=0, max=100),
-    default=20,
-    show_default=True,
-    help="Maximum percentage of cloud cover allowed in the Sentinel-2 scene",
-)
-@click.option(
-    "--buffer_days",
-    "-b",
-    type=click.IntRange(min=0),
-    default=14,
-    show_default=True,
-    help="Number of days to buffer the date for querying to help balance decreasing cloud cover "
-    "and selecting a date near the crop calendar indicated date.",
-)
+@common_year_option()
+@common_bbox_option()
+@common_cloud_cover_option()
+@common_buffer_days_option()
 @click.option(
     "--out",
     "-o",
@@ -520,15 +552,12 @@ def ftw_inference_all(
     default=None,
     help="Output JSON file to save the scene selection results. If not provided, prints to stdout.",
 )
-@click.option(
-    "--stac_host",
-    "-h",
-    type=click.Choice(["mspc", "earthsearch"]),
-    default="mspc",
-    show_default=True,
-    help="The host to download the imagery from. mspc = Microsoft Planetary Computer, earthsearch = EarthSearch (Element84/AWS).",
-)
-def scene_selection(year, bbox, cloud_cover_max, buffer_days, out, stac_host):
+@common_stac_host_option()
+@common_s2_collection_option()
+@common_verbose_option()
+def scene_selection(
+    year, bbox, cloud_cover_max, buffer_days, out, stac_host, s2_collection, verbose
+):
     """Download Sentinel-2 scenes for inference."""
     from ftw_tools.download.download_img import scene_selection
 
@@ -538,6 +567,8 @@ def scene_selection(year, bbox, cloud_cover_max, buffer_days, out, stac_host):
         stac_host=stac_host,
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
+        s2_collection=s2_collection,
+        verbose=verbose,
     )
     if out:
         # persist results to json
@@ -573,22 +604,13 @@ def scene_selection(year, bbox, cloud_cover_max, buffer_days, out, stac_host):
     show_default=True,
     help="Overwrites the outputs if they exist",
 )
-@click.option(
-    "--bbox",
-    type=str,
-    default=None,
-    help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'",
-    callback=parse_bbox,
-)
-@click.option(
-    "--stac_host",
-    "-h",
-    type=click.Choice(["mspc", "earthsearch"]),
-    default="mspc",
-    show_default=True,
-    help="The host to download the imagery from. mspc = Microsoft Planetary Computer, earthsearch = EarthSearch (Element84/AWS).",
-)
-def inference_download(win_a, win_b, out, overwrite, bbox, stac_host):
+@common_bbox_option()
+@common_stac_host_option()
+@common_s2_collection_option()
+@common_verbose_option()
+def inference_download(
+    win_a, win_b, out, overwrite, bbox, stac_host, s2_collection, verbose
+):
     from ftw_tools.download.download_img import create_input
 
     create_input(
@@ -598,6 +620,8 @@ def inference_download(win_a, win_b, out, overwrite, bbox, stac_host):
         overwrite=overwrite,
         bbox=bbox,
         stac_host=stac_host,
+        s2_collection=s2_collection,
+        verbose=verbose,
     )
 
 
