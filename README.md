@@ -22,12 +22,15 @@ This repository provides the codebase for working with the [FTW dataset](https:/
     - [Common Issues with Conda](#common-issues-with-conda)
     - [Verify Installation](#verify-installation-1)
 - [Predicting field boundaries](#predicting-field-boundaries)
-  - [1. Download the model](#1-download-the-model)
-  - [2. FTW Inference all (using `ftw inference all`)](#2-ftw-inference-all-using-ftw-inference-all)
-  - [3. Download S2 image scene (using `ftw inference download`)](#3-download-s2-image-scene-using-ftw-inference-download)
-  - [4. Run inference (using `ftw inference run`)](#4-run-inference-using-ftw-inference-run)
-  - [5. Filter predictions by land cover (using `ftw inference filter-by-lulc`)](#5-filter-predictions-by-land-cover-using-ftw-inference-filter-by-lulc)
-  - [6. Polygonize the output (using `ftw inference polygonize`)](#6-polygonize-the-output-using-ftw-inference-polygonize)
+  - [FTW Semantic Segmentation Baseline Model](#ftw-semantic-segmentation-baseline-model)
+    - [1. Download the model](#1-download-the-model)
+    - [2. FTW Inference all (using `ftw inference all`)](#2-ftw-inference-all-using-ftw-inference-all)
+    - [3. Download S2 image scene (using `ftw inference download`)](#3-download-s2-image-scene-using-ftw-inference-download)
+    - [4. Run inference (using `ftw inference run`)](#4-run-inference-using-ftw-inference-run)
+    - [5. Filter predictions by land cover (using `ftw inference filter-by-lulc`)](#5-filter-predictions-by-land-cover-using-ftw-inference-filter-by-lulc)
+    - [6. Polygonize the output (using `ftw inference polygonize`)](#6-polygonize-the-output-using-ftw-inference-polygonize)
+  - [Delineate Anything](#delineate-anything)
+    - [1. End-to-end inference (using `ftw inference instance-segmentation-all`)](#1-end-to-end-inference-using-ftw-inference-instance-segmentation-all)
 - [FTW Baseline Dataset](#ftw-baseline-dataset)
   - [Download the FTW Baseline Dataset](#download-the-ftw-baseline-dataset)
   - [Visualize the FTW Baseline Dataset](#visualize-the-ftw-baseline-dataset)
@@ -175,7 +178,9 @@ The following commands show the steps for using the FTW CLI to obtain the FTW mo
 
 > **Note**: If using pixi, you can either use `pixi run` for individual commands (e.g., `pixi run ftw inference download ...`) or activate the environment first with `pixi shell` and then use commands directly. All examples below show the direct commands.
 
-### 1. Download the model
+### FTW Semantic Segmentation Baseline Model
+
+#### 1. Download the model
 
 In order to use `ftw inference`, you need a trained model. You can either download a pre-trained model (FTW pre-trained models can be found in the [Releases](https://github.com/fieldsoftheworld/ftw-baselines/releases) list) or you can train your own model as explained in the [Training](./EXPERIMENTS.md#training) section. This example will use an FTW pre-trained model (with options for either 3 Class or 2 Class).
 
@@ -194,7 +199,7 @@ In order to use `ftw inference`, you need a trained model. You can either downlo
 
 **Note**: If you want more control ie provide specific Sentinel2 scenes to work with follow steps 3-6 to run each part of the inference pipeline sequentially. There is the option to run step 2 `all` which links together the distinct inference steps. If you decide to run step 2 you will get extracted field boundaries as polygons and don't need to proceed with steps 3-6.
 
-### 2. FTW Inference all (using `ftw inference all`)
+#### 2. FTW Inference all (using `ftw inference all`)
 
 This single CLI call handles the complete inference pipeline: Sentinel-2 scene selection, imagery download, model inference, and polygonization. Sentinel-2 data is selected based on the crop [calendar harvest dates](https://github.com/ucg-uv/research_products/tree/main?tab=readme-ov-file#-citation).
 
@@ -252,7 +257,7 @@ This will create the following files in the output directory:
 - `inference_output.tif` - The raw model inference output
 - `polygons.parquet` - The final polygonized field boundaries
 
-### 3. Download S2 image scene (using `ftw inference download`)
+#### 3. Download S2 image scene (using `ftw inference download`)
 
 Steps 3-5 all use `ftw inference`. We provide the `inference` CLI commands to allow users to run models that have been pre-trained on FTW on any temporal pair of S2 images.
 
@@ -303,7 +308,7 @@ Run this line to download our S2 scenes of interest. This line specifies a bound
 
   If you are looking to download data from the FTW Baseline Dataset, you would use `ftw data download`. You can see an example of this lower on this README in the [FTW Baseline Dataset](#ftw-baseline-dataset) section.
 
-### 4. Run inference (using `ftw inference run`)
+#### 4. Run inference (using `ftw inference run`)
 
 `ftw inference run` is the command that will run a given model on overlapping patches of input imagery (i.e. the output of `ftw inference download`) and stitch the results together in GeoTIFF format.
 
@@ -337,7 +342,7 @@ Let's run inference on the entire downloaded scene.
   ftw inference run inference_imagery/austria_example.tif --model 3_Class_FULL_FTW_Pretrained.ckpt --out austria_example_output_full.tif --gpu 0 --overwrite
   ```
 
-### 5. Filter predictions by land cover (using `ftw inference filter-by-lulc`)
+#### 5. Filter predictions by land cover (using `ftw inference filter-by-lulc`)
 
 FTW models are known to make some errors where land parcels that are not cropland (for example, pasture) are segmented as fields. You can try to filter out these errors by filtering the predicted map using a land cover/land use map. The `ftw inference filter-by-lulc` command filters the GeoTIFF predictions raster to only include pixels that are cropland in the land cover map.
 
@@ -363,7 +368,7 @@ Options:
   --help                  Show this message and exit.
 ```
 
-### 6. Polygonize the output (using `ftw inference polygonize`)
+#### 6. Polygonize the output (using `ftw inference polygonize`)
 
 You can then use the `ftw inference polygonize` command to convert the output of the inference into a vector format (defaults to GeoParquet/[fiboa](https://github.com/fiboa/), with GeoPackage, FlatGeobuf and GeoJSON as other options).
 
@@ -404,6 +409,141 @@ This results in a fiboa-compliant file named `austria_example_output_full.parque
 ![Sample Prediction Output](/assets/austria_prediction.png)
 
 And that's it! In 4 lines of code, you obtained an FTW model, downloaded S2 data, ran model inference on that data, and polygonized the output to have a final parquet product.
+
+### Delineate Anything
+
+#### 1. End-to-end inference (using `ftw inference instance-segmentation-all`)
+
+[Delineate Anything](https://lavreniuk.github.io/Delineate-Anything/) is a pretrained instance segmentation which can detect and segment out individual field boundaries directly to polygons without an intermediate predictions raster. It's trained on the [FBIS-22M](https://huggingface.co/datasets/MykolaL/FBIS-22M) which is a large-scale, multi-resolution dataset comprising 672,909 high-resolution satellite image patches (0.25 m – 10 m) and 22,926,427 instance masks of individual fields. The model comes in two variants: `DelineateAnything` and `DelineateAnything-S`. `DelineateAnything` is the full model and `DelineateAnything-S` is a smaller model that is faster to run (see table below for details). If you use this model in your research, please cite the [Delineate Anything paper](https://arxiv.org/abs/2504.02534).
+
+| Method                 | mAP@0.5 | mAP@0.5:0.95 | Latency (ms) | Size     |
+|------------------------|---------|--------------|--------------|----------|
+| **Delineate Anything-S** | 0.632   | 0.383        | 16.8         | 17.6 MB  |
+| **Delineate Anything**   | 0.720   | 0.477        | 25.0         | 125 MB   |
+
+You can run Delineate Anything on a single scene using the `ftw inference instance-segmentation-all` command or optionally on an existing local file using `ftw inference run-instance-segmentation`. See below for examples.
+
+Note that inference uses patching with overlap which will result in duplicate polygons in the overlapping regions. Postprocessing is used to merge polygons via IoU and containment thresholds which are defined by the `--overlap_iou_threshold` and `--overlap_contain_threshold` parameters. For large scenes with many polygons or using a low confidence threshold, this can become computationally slow.
+
+Example usage:
+
+```bash
+ftw inference instance-segmentation-all \
+    S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729 \
+    --bbox=13.0,48.0,13.2,48.2 \
+    --out_dir=instance-segmentation-output \
+    --gpu=0 \
+    --model=DelineateAnything \
+    --resize_factor=2 \
+    --patch_size=256 \
+    --max_detections=100 \
+    --iou_threshold=0.3 \
+    --conf_threshold=0.05 \
+    --simplify=2 \
+    --min_size=500 \
+    --close_interiors \
+    --overlap_iou_threshold=0.2 \
+    --overlap_contain_threshold=0.8 \
+    --overwrite
+```
+
+Usage:
+
+```text
+ftw inference instance-segmentation-all --help
+Usage: ftw inference instance-segmentation-all [OPTIONS] INPUT
+
+  Run all inference instance segmentation commands from download and
+  inference.
+
+Options:
+  --bbox TEXT                     Bounding box to use for the download in the
+                                  format 'minx,miny,maxx,maxy'
+  -o, --out_dir TEXT              Directory to save downloaded inference
+                                  imagery, and inference output to  [required]
+  -h, --stac_host [mspc|earthsearch]
+                                  The host to download the imagery from. mspc
+                                  = Microsoft Planetary Computer, earthsearch
+                                  = EarthSearch (Element84/AWS).  [default:
+                                  mspc]
+  -m, --model [DelineateAnything|DelineateAnything-S]
+                                  The model to use for inference.  [default:
+                                  DelineateAnything]
+  --gpu INTEGER RANGE             GPU ID to use. If not provided, CPU will be
+                                  used by default.  [x>=0]
+  -r, --resize_factor INTEGER RANGE
+                                  Resize factor to use for inference.
+                                  [default: 2; x>=1]
+  -ps, --patch_size INTEGER RANGE
+                                  Size of patch to use for inference.
+                                  [x>=128]
+  -bs, --batch_size INTEGER RANGE
+                                  Batch size.  [default: 4; x>=1]
+  --num_workers INTEGER RANGE     Number of workers to use for inference.
+                                  [default: 4; x>=1]
+  --max_detections INTEGER RANGE  Maximum number of detections to keep per
+                                  patch.  [default: 100; x>=1]
+  -iou, --iou_threshold FLOAT RANGE
+                                  IoU threshold for matching predictions to
+                                  ground truths  [default: 0.1; 0.0<=x<=1.0]
+  -ct, --conf_threshold FLOAT RANGE
+                                  Confidence threshold for keeping detections.
+                                  [default: 0.1; 0.0<=x<=1.0]
+  -p, --padding INTEGER RANGE     Pixels to discard from each side of the
+                                  patch.  [x>=0]
+  -f, --overwrite                 Overwrites the outputs if they exist
+  -mps, --mps_mode                Run inference in MPS mode (Apple GPUs).
+  -s, --simplify FLOAT RANGE      Simplification factor to use when
+                                  polygonizing in the unit of the CRS, e.g.
+                                  meters for Sentinel-2 imagery in UTM. Set to
+                                  0 to disable simplification.  [default: 2;
+                                  x>=0.0]
+  -sn, --min_size FLOAT RANGE     Minimum area size in square meters to
+                                  include in the output. Set to 0 to disable.
+                                  [default: 500; x>=0.0]
+  -sx, --max_size FLOAT RANGE     Maximum area size in square meters to
+                                  include in the output. Disabled by default.
+                                  [default: 100000; x>=0.0]
+  --close_interiors               Remove the interiors holes in the polygons.
+                                  [default: True]
+  -oit, --overlap_iou_threshold FLOAT RANGE
+                                  Overlap IoU threshold for merging polygons.
+                                  [default: 0.2; 0.0<=x<=1.0]
+  -cot, --overlap_contain_threshold FLOAT RANGE
+                                  Overlap containment threshold for merging polygons.
+                                  [default: 0.5; 0.0<=x<=1.0]
+                                  patch.  [default: 100; x>=1]
+  -iou, --iou_threshold FLOAT RANGE
+                                  IoU threshold for matching predictions to
+                                  ground truths  [default: 0.3; 0.0<=x<=1.0]
+  -ct, --conf_threshold FLOAT RANGE
+                                  Confidence threshold for keeping detections.
+                                  [default: 0.05; 0.0<=x<=1.0]
+  -p, --padding INTEGER RANGE     Pixels to discard from each side of the
+                                  patch.  [x>=0]
+  -f, --overwrite                 Overwrites the outputs if they exist
+  -mps, --mps_mode                Run inference in MPS mode (Apple GPUs).
+  -s, --simplify FLOAT RANGE      Simplification factor to use when
+                                  polygonizing in the unit of the CRS, e.g.
+                                  meters for Sentinel-2 imagery in UTM. Set to
+                                  0 to disable simplification.  [default: 2;
+                                  x>=0.0]
+  -sn, --min_size FLOAT RANGE     Minimum area size in square meters to
+                                  include in the output. Set to 0 to disable.
+                                  [default: 500; x>=0.0]
+  -sx, --max_size FLOAT RANGE     Maximum area size in square meters to
+                                  include in the output. Disabled by default.
+                                  [default: 100000; x>=0.0]
+  --close_interiors               Remove the interiors holes in the polygons.
+                                  [default: True]
+  -oit, --overlap_iou_threshold FLOAT RANGE
+                                  Overlap IoU threshold for merging polygons.
+                                  [default: 0.2; 0.0<=x<=1.0]
+  -cot, --overlap_contain_threshold FLOAT RANGE
+                                  Overlap containment threshold for merging
+                                  polygons.  [default: 0.8; 0.0<=x<=1.0]
+  --help                          Show this message and exit.
+```
 
 ## FTW Baseline Dataset
 

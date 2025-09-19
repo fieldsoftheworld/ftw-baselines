@@ -8,6 +8,9 @@ from typing import Optional
 import click
 import wget
 
+# torchvision.ops.nms is not supported on MPS yet
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+
 from ftw_tools.settings import (
     ALL_COUNTRIES,
     LULC_COLLECTIONS,
@@ -433,6 +436,13 @@ def inference():
     help="Batch size.",
 )
 @click.option(
+    "--num_workers",
+    type=click.IntRange(min=1),
+    default=4,
+    show_default=True,
+    help="Number of workers to use for inference.",
+)
+@click.option(
     "--padding",
     "-p",
     type=click.IntRange(min=0),
@@ -462,6 +472,7 @@ def ftw_inference_all(
     gpu,
     patch_size,
     batch_size,
+    num_workers,
     padding,
     mps_mode,
     stac_host,
@@ -513,6 +524,7 @@ def ftw_inference_all(
         gpu=gpu,
         patch_size=patch_size,
         batch_size=batch_size,
+        num_workers=num_workers,
         padding=padding,
         overwrite=overwrite,
         mps_mode=mps_mode,
@@ -576,7 +588,7 @@ def scene_selection(
     help="Download 2 Sentinel-2 scenes & stack them in a single file for inference.",
 )
 @click.option("--win_a", "-a", type=str, required=True, help=WIN_HELP.format(x="A"))
-@click.option("--win_b", "-b", type=str, required=True, help=WIN_HELP.format(x="B"))
+@click.option("--win_b", "-b", type=str, default=None, help=WIN_HELP.format(x="B"))
 @click.option(
     "--out",
     "-o",
@@ -663,6 +675,13 @@ def inference_download(
     help="Batch size.",
 )
 @click.option(
+    "--num_workers",
+    type=click.IntRange(min=1),
+    default=4,
+    show_default=True,
+    help="Number of workers to use for inference.",
+)
+@click.option(
     "--padding",
     "-p",
     type=click.IntRange(min=0),
@@ -693,6 +712,7 @@ def inference_run(
     gpu,
     patch_size,
     batch_size,
+    num_workers,
     padding,
     overwrite,
     mps_mode,
@@ -707,9 +727,443 @@ def inference_run(
         gpu,
         patch_size,
         batch_size,
+        num_workers,
         padding,
         overwrite,
         mps_mode,
+    )
+
+
+@inference.command(
+    "run-instance-segmentation",
+    help="Run an instance segmentation model inference on a single Sentinel-2 L2A satellite images specified via INPUT.",
+)
+@click.argument("input", type=click.Path(exists=True), required=True)
+@click.option(
+    "--model",
+    "-m",
+    type=click.Choice(["DelineateAnything", "DelineateAnything-S"]),
+    default="DelineateAnything",
+    show_default=True,
+    help="The model to use for inference.",
+)
+@click.option(
+    "--out",
+    "-o",
+    type=click.Path(exists=False),
+    default=None,
+    help="Output filename for the polygonized data. Defaults to the name of the input file with parquet extension. "
+    + SUPPORTED_POLY_FORMATS_TXT,
+)
+@click.option(
+    "--gpu",
+    type=click.IntRange(min=0),
+    default=None,
+    help="GPU ID to use. If not provided, CPU will be used by default.",
+)
+@click.option(
+    "--resize_factor",
+    "-r",
+    type=click.IntRange(min=1),
+    default=2,
+    show_default=True,
+    help="Resize factor to use for inference.",
+)
+@click.option(
+    "--patch_size",
+    "-ps",
+    type=click.IntRange(min=128),
+    default=256,
+    help="Size of patch to use for inference.",
+)
+@click.option(
+    "--batch_size",
+    "-bs",
+    type=click.IntRange(min=1),
+    default=4,
+    show_default=True,
+    help="Batch size.",
+)
+@click.option(
+    "--num_workers",
+    type=click.IntRange(min=1),
+    default=4,
+    show_default=True,
+    help="Number of workers to use for inference.",
+)
+@click.option(
+    "--max_detections",
+    type=click.IntRange(min=1),
+    default=100,
+    show_default=True,
+    help="Maximum number of detections to keep per patch.",
+)
+@click.option(
+    "--iou_threshold",
+    "-iou",
+    type=click.FloatRange(min=0.0, max=1.0),
+    default=0.3,
+    show_default=True,
+    help="IoU threshold for matching predictions to ground truths",
+)
+@click.option(
+    "--conf_threshold",
+    "-ct",
+    type=click.FloatRange(min=0.0, max=1.0),
+    default=0.05,
+    show_default=True,
+    help="Confidence threshold for keeping detections.",
+)
+@click.option(
+    "--padding",
+    "-p",
+    type=click.IntRange(min=0),
+    default=None,
+    help="Pixels to discard from each side of the patch.",
+)
+@click.option(
+    "--overwrite",
+    "-f",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Overwrites the outputs if they exist",
+)
+@click.option(
+    "--mps_mode",
+    "-mps",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Run inference in MPS mode (Apple GPUs).",
+)
+@click.option(
+    "--simplify",
+    "-s",
+    type=click.FloatRange(min=0.0),
+    default=2,
+    show_default=True,
+    help="Simplification factor to use when polygonizing in the unit of the CRS, e.g. meters for Sentinel-2 imagery in UTM. Set to 0 to disable simplification.",
+)
+@click.option(
+    "--min_size",
+    "-sn",
+    type=click.FloatRange(min=0.0),
+    default=500,
+    show_default=True,
+    help="Minimum area size in square meters to include in the output. Set to 0 to disable.",
+)
+@click.option(
+    "--max_size",
+    "-sx",
+    type=click.FloatRange(min=0.0),
+    default=100000,
+    show_default=True,
+    help="Maximum area size in square meters to include in the output. Disabled by default.",
+)
+@click.option(
+    "--close_interiors",
+    is_flag=True,
+    default=True,
+    show_default=True,
+    help="Remove the interiors holes in the polygons.",
+)
+@click.option(
+    "--overlap_iou_threshold",
+    "-oit",
+    type=click.FloatRange(min=0.0, max=1.0),
+    default=0.2,
+    show_default=True,
+    help="Overlap IoU threshold for merging polygons.",
+)
+@click.option(
+    "--overlap_contain_threshold",
+    "-cot",
+    type=click.FloatRange(min=0.0, max=1.0),
+    default=0.8,
+    show_default=True,
+    help="Overlap containment threshold for merging polygons.",
+)
+def inference_run_instance_segmentation(
+    input,
+    model,
+    out,
+    gpu,
+    resize_factor,
+    patch_size,
+    batch_size,
+    num_workers,
+    max_detections,
+    iou_threshold,
+    conf_threshold,
+    padding,
+    overwrite,
+    mps_mode,
+    simplify,
+    min_size,
+    max_size,
+    close_interiors,
+    overlap_iou_threshold,
+    overlap_contain_threshold,
+):
+    from ftw_tools.models.baseline_inference import run_instance_segmentation
+
+    run_instance_segmentation(
+        input=input,
+        model=model,
+        out=out,
+        gpu=gpu,
+        num_workers=num_workers,
+        patch_size=patch_size,
+        resize_factor=resize_factor,
+        batch_size=batch_size,
+        max_detections=max_detections,
+        iou_threshold=iou_threshold,
+        conf_threshold=conf_threshold,
+        padding=padding,
+        overwrite=overwrite,
+        mps_mode=mps_mode,
+        simplify=simplify,
+        min_size=min_size,
+        max_size=max_size,
+        close_interiors=close_interiors,
+        overlap_iou_threshold=overlap_iou_threshold,
+        overlap_contain_threshold=overlap_contain_threshold,
+    )
+
+
+@inference.command(
+    "instance-segmentation-all",
+    help="Run all inference instance segmentation commands from download and inference.",
+)
+@click.argument("input", type=str, required=True)
+@click.option(
+    "--bbox",
+    type=str,
+    default=None,
+    help="Bounding box to use for the download in the format 'minx,miny,maxx,maxy'",
+    callback=parse_bbox,
+)
+@click.option(
+    "--out_dir",
+    "-o",
+    type=str,
+    required=True,
+    help="Directory to save downloaded inference imagery, and inference output to",
+)
+@click.option(
+    "--stac_host",
+    "-h",
+    type=click.Choice(["mspc", "earthsearch"]),
+    default="mspc",
+    show_default=True,
+    help="The host to download the imagery from. mspc = Microsoft Planetary Computer, earthsearch = EarthSearch (Element84/AWS).",
+)
+@click.option(
+    "--model",
+    "-m",
+    type=click.Choice(["DelineateAnything", "DelineateAnything-S"]),
+    default="DelineateAnything",
+    show_default=True,
+    help="The model to use for inference.",
+)
+@click.option(
+    "--gpu",
+    type=click.IntRange(min=0),
+    default=None,
+    help="GPU ID to use. If not provided, CPU will be used by default.",
+)
+@click.option(
+    "--resize_factor",
+    "-r",
+    type=click.IntRange(min=1),
+    default=2,
+    show_default=True,
+    help="Resize factor to use for inference.",
+)
+@click.option(
+    "--patch_size",
+    "-ps",
+    type=click.IntRange(min=128),
+    default=256,
+    help="Size of patch to use for inference.",
+)
+@click.option(
+    "--batch_size",
+    "-bs",
+    type=click.IntRange(min=1),
+    default=4,
+    show_default=True,
+    help="Batch size.",
+)
+@click.option(
+    "--num_workers",
+    type=click.IntRange(min=1),
+    default=4,
+    show_default=True,
+    help="Number of workers to use for inference.",
+)
+@click.option(
+    "--max_detections",
+    type=click.IntRange(min=1),
+    default=100,
+    show_default=True,
+    help="Maximum number of detections to keep per patch.",
+)
+@click.option(
+    "--iou_threshold",
+    "-iou",
+    type=click.FloatRange(min=0.0, max=1.0),
+    default=0.3,
+    show_default=True,
+    help="IoU threshold for matching predictions to ground truths",
+)
+@click.option(
+    "--conf_threshold",
+    "-ct",
+    type=click.FloatRange(min=0.0, max=1.0),
+    default=0.05,
+    show_default=True,
+    help="Confidence threshold for keeping detections.",
+)
+@click.option(
+    "--padding",
+    "-p",
+    type=click.IntRange(min=0),
+    default=None,
+    help="Pixels to discard from each side of the patch.",
+)
+@click.option(
+    "--overwrite",
+    "-f",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Overwrites the outputs if they exist",
+)
+@click.option(
+    "--mps_mode",
+    "-mps",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Run inference in MPS mode (Apple GPUs).",
+)
+@click.option(
+    "--simplify",
+    "-s",
+    type=click.FloatRange(min=0.0),
+    default=2,
+    show_default=True,
+    help="Simplification factor to use when polygonizing in the unit of the CRS, e.g. meters for Sentinel-2 imagery in UTM. Set to 0 to disable simplification.",
+)
+@click.option(
+    "--min_size",
+    "-sn",
+    type=click.FloatRange(min=0.0),
+    default=500,
+    show_default=True,
+    help="Minimum area size in square meters to include in the output. Set to 0 to disable.",
+)
+@click.option(
+    "--max_size",
+    "-sx",
+    type=click.FloatRange(min=0.0),
+    default=100000,
+    show_default=True,
+    help="Maximum area size in square meters to include in the output. Disabled by default.",
+)
+@click.option(
+    "--close_interiors",
+    is_flag=True,
+    default=True,
+    show_default=True,
+    help="Remove the interiors holes in the polygons.",
+)
+@click.option(
+    "--overlap_iou_threshold",
+    "-oit",
+    type=click.FloatRange(min=0.0, max=1.0),
+    default=0.2,
+    show_default=True,
+    help="Overlap IoU threshold for merging polygons.",
+)
+@click.option(
+    "--overlap_contain_threshold",
+    "-cot",
+    type=click.FloatRange(min=0.0, max=1.0),
+    default=0.8,
+    show_default=True,
+    help="Overlap containment threshold for merging polygons.",
+)
+def inference_run_instance_segmentation_all(
+    input,
+    bbox,
+    out_dir,
+    stac_host,
+    model,
+    gpu,
+    resize_factor,
+    patch_size,
+    batch_size,
+    num_workers,
+    max_detections,
+    iou_threshold,
+    conf_threshold,
+    padding,
+    overwrite,
+    mps_mode,
+    simplify,
+    min_size,
+    max_size,
+    close_interiors,
+    overlap_iou_threshold,
+    overlap_contain_threshold,
+):
+    """Run all inference instance segmentation commands from download and inference."""
+    from ftw_tools.download.download_img import create_input
+    from ftw_tools.models.baseline_inference import run_instance_segmentation
+
+    # Ensure output directory exists
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
+    # Set output paths
+    inference_data = os.path.join(out_dir, "inference_data.tif")
+    inf_output_path = os.path.join(out_dir, "inference_output.parquet")
+
+    # Download imagery
+    create_input(
+        win_a=input,
+        win_b=None,
+        out=inference_data,
+        overwrite=overwrite,
+        bbox=bbox,
+        stac_host=stac_host,
+    )
+
+    # Run inference
+    run_instance_segmentation(
+        input=inference_data,
+        model=model,
+        out=inf_output_path,
+        gpu=gpu,
+        num_workers=num_workers,
+        patch_size=patch_size,
+        resize_factor=resize_factor,
+        batch_size=batch_size,
+        max_detections=max_detections,
+        iou_threshold=iou_threshold,
+        conf_threshold=conf_threshold,
+        padding=padding,
+        overwrite=overwrite,
+        mps_mode=mps_mode,
+        simplify=simplify,
+        min_size=min_size,
+        max_size=max_size,
+        close_interiors=close_interiors,
+        overlap_iou_threshold=overlap_iou_threshold,
+        overlap_contain_threshold=overlap_contain_threshold,
     )
 
 
