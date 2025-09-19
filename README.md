@@ -217,7 +217,7 @@ Options:
                            help balance decreasing cloud cover and selecting a
                            date near the crop calendar indicated date.
                            [default: 14]
-  -o, --out_dir TEXT       Directory to save downloaded inference imagery, and
+  -o, --out TEXT           Directory to save downloaded inference imagery, and
                            inference output to  [required]
   -f, --overwrite          Overwrites the outputs if they exist
   -m, --model PATH         Path to the model checkpoint.  [required]
@@ -238,7 +238,7 @@ Example usage:
 ftw inference all \
     --bbox=13.0,48.0,13.2,48.2 \
     --year=2024 \
-    --out_dir=/path/to/output \
+    --out=/path/to/output \
     --cloud_cover_max=20 \
     --buffer_days=14 \
     --model=/path/to/model.ckpt \
