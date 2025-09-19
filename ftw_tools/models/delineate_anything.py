@@ -1,3 +1,4 @@
+import os
 from typing import Literal
 
 import geopandas as gpd
@@ -8,6 +9,9 @@ import torch
 import torch.nn as nn
 import torchvision.transforms.v2 as T
 import ultralytics
+
+# torchvision.ops.nms is not supported on MPS yet
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
 
 class DelineateAnything:
@@ -119,7 +123,7 @@ class DelineateAnything:
             max_det=self.max_detections,
             iou=self.iou_threshold,
             device=self.device,
-            half=True,
+            half=False,
             verbose=False,
         )
         # Rescale masks and boxes to original patch size

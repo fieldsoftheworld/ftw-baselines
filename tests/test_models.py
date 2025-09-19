@@ -14,7 +14,7 @@ def test_delineate_anything():
     device = "cpu"
     model = DelineateAnything(
         model="DelineateAnything-S",
-        image_size=(320, 320),
+        resize_factor=2,
         max_detections=50,
         iou_threshold=0.6,
         conf_threshold=0.1,

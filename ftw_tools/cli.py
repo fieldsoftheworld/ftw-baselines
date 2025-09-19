@@ -8,6 +8,9 @@ from typing import Optional
 import click
 import wget
 
+# torchvision.ops.nms is not supported on MPS yet
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+
 from ftw_tools.settings import (
     ALL_COUNTRIES,
     LULC_COLLECTIONS,
