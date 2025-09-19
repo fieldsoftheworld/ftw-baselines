@@ -1,36 +1,69 @@
+import argparse
 import os
 import subprocess
 
+import pandas as pd
 import yaml
 
-if __name__ == "__main__":
-    countries = [
-        "austria",
-        "belgium",
-        "brazil",
-        "cambodia",
-        "corsica",
-        "croatia",
-        "denmark",
-        "estonia",
-        "finland",
-        "france",
-        "germany",
-        "india",
-        "kenya",
-        "latvia",
-        "lithuania",
-        "luxembourg",
-        "netherlands",
-        "portugal",
-        "rwanda",
-        "slovakia",
-        "slovenia",
-        "south_africa",
-        "spain",
-        "sweden",
-        "vietnam",
-    ]
+COUNTRIES = [
+    "austria",
+    "belgium",
+    "brazil",
+    "cambodia",
+    "corsica",
+    "croatia",
+    "denmark",
+    "estonia",
+    "finland",
+    "france",
+    "germany",
+    "india",
+    "kenya",
+    "latvia",
+    "lithuania",
+    "luxembourg",
+    "netherlands",
+    "portugal",
+    "rwanda",
+    "slovakia",
+    "slovenia",
+    "south_africa",
+    "spain",
+    "sweden",
+    "vietnam",
+]
+
+# This removes the countries with presence only data, and Portugal
+FULL_DATA_COUNTRIES = [
+    "austria",
+    "belgium",
+    "cambodia",
+    "corsica",
+    "croatia",
+    "denmark",
+    "estonia",
+    "finland",
+    "france",
+    "germany",
+    "latvia",
+    "lithuania",
+    "luxembourg",
+    "netherlands",
+    "slovakia",
+    "slovenia",
+    "south_africa",
+    "spain",
+    "sweden",
+    "vietnam",
+]
+
+
+def main(args):
+    existing_checkpoints = set()
+    if os.path.exists(args.output_fn):
+        df = pd.read_csv(args.output_fn)
+        existing_checkpoints = set(df["train_checkpoint"].values)
+    print(f"Found {len(existing_checkpoints)} existing checkpoints in {args.output_fn}")
 
     checkpoints = []
     for root, dirs, files in os.walk("logs/"):
@@ -38,22 +71,75 @@ if __name__ == "__main__":
             if file.endswith("last.ckpt"):
                 parent_dir = os.path.dirname(root)
                 config_file_path = os.path.join(parent_dir, "config.yaml")
+                checkpoint_path = os.path.join(root, file)
                 if os.path.isfile(config_file_path):
+                    if checkpoint_path in existing_checkpoints:
+                        print(f"Skipping existing checkpoint {checkpoint_path}")
+                        continue
+
                     with open(config_file_path, "r") as conf_file:
                         config_data = yaml.safe_load(conf_file)
 
                     model_predicts_classes = (
                         config_data.get("model").get("init_args").get("num_classes", 3)
                     )
-                    checkpoints.append(
-                        (os.path.join(root, file), model_predicts_classes)
-                    )
+                    checkpoints.append((checkpoint_path, model_predicts_classes))
                 else:
                     print(f"Missing config for checkpoint {root}")
 
+    print(f"Running evaluation on {len(checkpoints)} checkpoints:")
+    for ckpt, _ in checkpoints:
+        print(f"  {ckpt}")
+
     for checkpoints_data in checkpoints:
         (checkpoint, model_predicts_classes) = checkpoints_data
-        for country in countries:
+        # Test on all countries first
+        if model_predicts_classes == 2:
+            # Test on the same country
+            command = [
+                "ftw",
+                "model",
+                "test",
+                "--gpu",
+                str(args.gpu),
+                "--dir",
+                "data/ftw",
+                "--model",
+                checkpoint,
+                "--out",
+                args.output_fn,
+            ]
+            if args.swap_order:
+                command.append("--swap_order")
+            for country in FULL_DATA_COUNTRIES:
+                command.append("--countries")
+                command.append(country)
+            subprocess.call(command)
+        elif model_predicts_classes == 3:
+            # Test on the same country
+            command = [
+                "ftw",
+                "model",
+                "test",
+                "--gpu",
+                str(args.gpu),
+                "--dir",
+                "data/ftw",
+                "--model",
+                checkpoint,
+                "--out",
+                args.output_fn,
+                "--model_predicts_3_classes",
+            ]
+            if args.swap_order:
+                command.append("--swap_order")
+            for country in FULL_DATA_COUNTRIES:
+                command.append("--countries")
+                command.append(country)
+            subprocess.call(command)
+
+        # Then test on each country individually
+        for country in COUNTRIES:
             if model_predicts_classes == 2:
                 # Test on the same country
                 command = [
@@ -61,16 +147,18 @@ if __name__ == "__main__":
                     "model",
                     "test",
                     "--gpu",
-                    "0",
+                    str(args.gpu),
                     "--dir",
                     "data/ftw",
                     "--model",
                     checkpoint,
                     "--out",
-                    "results/experiments-ftw_release-2_classes.csv",
+                    args.output_fn,
                     "--countries",
                     country,
                 ]
+                if args.swap_order:
+                    command.append("--swap_order")
                 subprocess.call(command)
             elif model_predicts_classes == 3:
                 # Test on the same country
@@ -79,16 +167,30 @@ if __name__ == "__main__":
                     "model",
                     "test",
                     "--gpu",
-                    "0",
+                    str(args.gpu),
                     "--dir",
                     "data/ftw",
                     "--model",
                     checkpoint,
                     "--out",
-                    "results/experiments-ftw_release-3_classes.csv",
+                    args.output_fn,
                     "--countries",
                     country,
                     "--model_predicts_3_classes",
-                    "True",
                 ]
+                if args.swap_order:
+                    command.append("--swap_order")
                 subprocess.call(command)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run evaluation")
+    parser.add_argument("--gpu", type=int, required=True, help="GPU ID to use")
+    parser.add_argument(
+        "--swap_order",
+        action="store_true",
+        help="Whether to swap the order of temporal images",
+    )
+    parser.add_argument("--output_fn", required=True, type=str, help="Output filename")
+    args = parser.parse_args()
+    main(args)

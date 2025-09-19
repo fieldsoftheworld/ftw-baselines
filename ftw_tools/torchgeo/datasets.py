@@ -46,6 +46,7 @@ class FTW(NonGeoDataset):
         checksum: bool = False,
         load_boundaries: bool = False,
         temporal_options: str = "stacked",
+        swap_order: bool = False,
         num_samples: int = -1,
     ) -> None:
         """Initialize a new FTW dataset instance.
@@ -59,7 +60,8 @@ class FTW(NonGeoDataset):
                 entry and returns a transformed version
             checksum: if True, check the MD5 of the downloaded files (may be slow)
             load_boundaries: if True, load the 3 class masks with boundaries
-            temporal_options : for abalation study, valid option are (stacked, windowA, windowB, median, rgb)
+            temporal_options : for abalation study, valid option are (stacked, windowA, windowB, median, rgb, random_window)
+            swap_order: if True, swap the order of temporal data (i.e. use window A first)
         Raises:
             AssertionError: if ``countries`` argument is invalid
             AssertionError: if ``split`` argument is invalid
@@ -85,6 +87,7 @@ class FTW(NonGeoDataset):
         self.load_boundaries = load_boundaries
         self.temporal_options = temporal_options
         self.num_samples = num_samples
+        self.swap_order = swap_order
 
         if self.load_boundaries:
             print("Loading 3 Class Masks, with Boundaries")
@@ -92,6 +95,14 @@ class FTW(NonGeoDataset):
             print("Loading 2 Class Masks, without Boundaries")
 
         print("Temporal option: ", temporal_options)
+        if swap_order:
+            if temporal_options not in ("stacked", "rgb"):
+                raise ValueError(
+                    "Can only use swap_order with temporal_options stacked or rgb"
+                )
+            print("Using window A first, then window B")
+        else:
+            print("Using window B first, then window A")
 
         if not self._check_integrity():
             raise RuntimeError(
@@ -275,6 +286,19 @@ class FTW(NonGeoDataset):
                     window_a_img = window_a_img[:3]
                 images.append(window_a_img)
 
+        if self.temporal_options == "random_window":
+            if random.random() < 0.5:
+                with rasterio.open(filenames["window_a"]) as f:
+                    window_a_img = f.read()
+                images.append(window_a_img)
+            else:
+                with rasterio.open(filenames["window_b"]) as f:
+                    window_b_img = f.read()
+                images.append(window_b_img)
+
+        if self.swap_order and len(images) == 2:
+            images = [images[1], images[0]]
+
         if self.temporal_options == "median":
             images = np.array(images).astype(np.int32)
             image = np.median(images, axis=0).astype(np.int32)
@@ -317,7 +341,7 @@ class FTW(NonGeoDataset):
             )
             img2 = img2.numpy().transpose(1, 2, 0)
 
-        mask = sample["mask"].numpy()
+        mask = sample["mask"].numpy().squeeze()
         num_panels = 3 if self.temporal_options in ("stacked", "rgb") else 2
         if "prediction" in sample:
             num_panels += 1
@@ -341,7 +365,7 @@ class FTW(NonGeoDataset):
             panel_id += 1
 
         if "prediction" in sample:
-            axs[panel_id].imshow(predictions)
+            axs[panel_id].imshow(predictions, vmin=0, vmax=2, cmap="gray")
             axs[panel_id].axis("off")
 
         if suptitle is not None:

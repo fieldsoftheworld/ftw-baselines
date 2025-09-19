@@ -298,6 +298,13 @@ def model_fit(config, ckpt_path, cli_args):
     show_default=True,
     help="Temporal option",
 )
+@click.option(
+    "--swap_order",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Whether to run inference on (window_a, window_b) instead of the default (window_b, window_a).",
+)
 def model_test(
     model,
     countries,
@@ -308,6 +315,7 @@ def model_test(
     model_predicts_3_classes,
     test_on_3_classes,
     temporal_options,
+    swap_order,
 ):
     from ftw_tools.models.baseline_eval import test
 
@@ -321,6 +329,7 @@ def model_test(
         model_predicts_3_classes,
         test_on_3_classes,
         temporal_options,
+        swap_order,
     )
 
 

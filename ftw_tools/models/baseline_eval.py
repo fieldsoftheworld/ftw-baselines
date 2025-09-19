@@ -5,7 +5,6 @@ import numpy as np
 import torch
 from lightning.pytorch.cli import LightningCLI
 from torch.utils.data import DataLoader
-from torchgeo.datamodules import BaseDataModule
 from torchgeo.trainers import BaseTask
 from torchmetrics import JaccardIndex, MetricCollection, Precision, Recall
 from tqdm import tqdm
@@ -14,6 +13,29 @@ from ftw_tools.postprocess.metrics import get_object_level_metrics
 from ftw_tools.torchgeo.datamodules import preprocess
 from ftw_tools.torchgeo.datasets import FTW
 from ftw_tools.torchgeo.trainers import CustomSemanticSegmentationTask
+
+FULL_DATA_COUNTRIES = [
+    "austria",
+    "belgium",
+    "cambodia",
+    "corsica",
+    "croatia",
+    "denmark",
+    "estonia",
+    "finland",
+    "france",
+    "germany",
+    "latvia",
+    "lithuania",
+    "luxembourg",
+    "netherlands",
+    "slovakia",
+    "slovenia",
+    "south_africa",
+    "spain",
+    "sweden",
+    "vietnam",
+]
 
 
 def fit(config, ckpt_path, cli_args):
@@ -42,7 +64,6 @@ def fit(config, ckpt_path, cli_args):
     # Run the LightningCLI with the constructed arguments
     cli = LightningCLI(
         model_class=BaseTask,
-        datamodule_class=BaseDataModule,
         seed_everything_default=0,
         subclass_mode_model=True,
         subclass_mode_data=True,
@@ -54,7 +75,7 @@ def fit(config, ckpt_path, cli_args):
 
 
 def test(
-    model,
+    model_path,
     dir,
     gpu,
     countries,
@@ -63,6 +84,7 @@ def test(
     model_predicts_3_classes,
     test_on_3_classes,
     temporal_options,
+    swap_order,
 ):
     """Command to test the model."""
     print("Running test command")
@@ -78,7 +100,7 @@ def test(
     print("Loading model")
     tic = time.time()
     trainer = CustomSemanticSegmentationTask.load_from_checkpoint(
-        model, map_location="cpu"
+        model_path, map_location="cpu"
     )
     model = trainer.model.eval().to(device)
     print(f"Model loaded in {time.time() - tic:.2f}s")
@@ -93,6 +115,7 @@ def test(
         transforms=preprocess,
         load_boundaries=test_on_3_classes,
         temporal_options=temporal_options,
+        swap_order=swap_order,
     )
     dl = DataLoader(ds, batch_size=64, shuffle=False, num_workers=12)
     print(f"Created dataloader with {len(ds)} samples in {time.time() - tic:.2f}s")
@@ -133,9 +156,7 @@ def test(
         images = batch["image"].to(device)
         masks = batch["mask"].to(device)
         with torch.inference_mode():
-            outputs = model(images)
-
-        outputs = outputs.argmax(dim=1)
+            outputs = model(images).argmax(dim=1)
 
         if model_predicts_3_classes:
             new_outputs = torch.zeros(
@@ -186,6 +207,10 @@ def test(
     print(f"Object level precision: {object_precision:.4f}")
     print(f"Object level recall: {object_recall:.4f}")
 
+    country_str = ";".join(countries)
+    if set(countries) == set(FULL_DATA_COUNTRIES):
+        country_str = "all"
+
     if out is not None:
         if not os.path.exists(out):
             with open(out, "w") as f:
@@ -194,5 +219,5 @@ def test(
                 )
         with open(out, "a") as f:
             f.write(
-                f"{model},{countries},{pixel_level_iou},{pixel_level_precision},{pixel_level_recall},{object_precision},{object_recall}\n"
+                f"{model_path},{country_str},{pixel_level_iou},{pixel_level_precision},{pixel_level_recall},{object_precision},{object_recall}\n"
             )
