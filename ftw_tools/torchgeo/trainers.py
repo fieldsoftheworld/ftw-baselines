@@ -10,12 +10,13 @@ import segmentation_models_pytorch as smp
 import torch
 import torch.nn as nn
 import torchvision.models as models
+from einops import rearrange
 from matplotlib.figure import Figure
 from torch import Tensor
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torchgeo.datasets import unbind_samples
-from torchgeo.models import FCN
+from torchgeo.models import FCN, FCSiamConc, FCSiamDiff
 from torchgeo.trainers.base import BaseTask
 from torchmetrics import MetricCollection
 from torchmetrics.classification import (
@@ -27,6 +28,7 @@ from torchmetrics.classification import (
 from torchvision.models._api import WeightsEnum
 
 from ..postprocess.metrics import get_object_level_metrics
+from .models import FCSiamAvg
 
 
 class CustomSemanticSegmentationTask(BaseTask):
@@ -247,11 +249,35 @@ class CustomSemanticSegmentationTask(BaseTask):
                 classes=num_classes,
                 **model_kwargs,
             )
+        elif model == "fcsiamdiff":
+            self.model = FCSiamDiff(
+                encoder_name=backbone,
+                encoder_weights="imagenet" if weights is True else None,
+                in_channels=in_channels // 2,
+                classes=num_classes,
+            )
+        elif model == "fcsiamconc":
+            self.model = FCSiamConc(
+                encoder_name=backbone,
+                encoder_weights="imagenet" if weights is True else None,
+                in_channels=in_channels // 2,
+                classes=num_classes,
+            )
+        elif model == "fcsiamavg":
+            self.model = FCSiamAvg(
+                encoder_name=backbone,
+                encoder_weights="imagenet" if weights is True else None,
+                in_channels=in_channels // 2,
+                classes=num_classes,
+            )
         else:
             raise ValueError(
                 f"Model type '{model}' is not valid. "
                 "Currently, only supports 'unet', 'deeplabv3+', and 'fcn', 'upernet', 'segformer', and 'dpt'."
             )
+
+        if in_channels < 5 and model in ["fcsiamdiff", "fcsiamconc", "fcsiamavg"]:
+            raise ValueError(f"FCSiam models require more than one input image.")
 
         # Freeze backbone
         if self.hparams["freeze_backbone"] and model in ["unet", "deeplabv3+"]:
@@ -297,7 +323,12 @@ class CustomSemanticSegmentationTask(BaseTask):
         """
         x = batch["image"]
         y = batch["mask"].squeeze(1)
-        y_hat = self(x)
+
+        if self.hparams["model"] in ["fcsiamdiff", "fcsiamconc", "fcsiamavg"]:
+            y_hat = self(rearrange(x, "b (t c) h w -> b t c h w", t=2))
+        else:
+            y_hat = self(x)
+
         loss: Tensor = self.criterion(y_hat, y)
 
         self.log(
@@ -324,7 +355,12 @@ class CustomSemanticSegmentationTask(BaseTask):
         """
         x = batch["image"]
         y = batch["mask"].squeeze(1)
-        y_hat = self(x)
+
+        if self.hparams["model"] in ["fcsiamdiff", "fcsiamconc", "fcsiamavg"]:
+            y_hat = self(rearrange(x, "b (t c) h w -> b t c h w", t=2))
+        else:
+            y_hat = self(x)
+
         loss: Tensor = self.criterion(y_hat, y)
 
         for i in range(y_hat.shape[0]):
@@ -389,7 +425,12 @@ class CustomSemanticSegmentationTask(BaseTask):
         """
         x = batch["image"]
         y = batch["mask"].squeeze(1)
-        y_hat = self(x)
+
+        if self.hparams["model"] in ["fcsiamdiff", "fcsiamconc", "fcsiamavg"]:
+            y_hat = self(rearrange(x, "b (t c) h w -> b t c h w", t=2))
+        else:
+            y_hat = self(x)
+
         loss: Tensor = self.criterion(y_hat, y)
         self.log("test_loss", loss)
         self.test_metrics.update(y_hat, y)
