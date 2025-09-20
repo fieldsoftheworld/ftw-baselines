@@ -64,7 +64,9 @@ def test_model_fit(caplog):
 
     # Run minimal fit
     result = runner.invoke(model_fit, ["-c", CONFIG_FILE])
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
     assert "Train countries: ['rwanda']" in result.output
     assert "`Trainer.fit` stopped: `max_epochs=1` reached." in caplog.text
     assert "Finished" in result.output
@@ -90,7 +92,9 @@ def test_model_test():
             "results.csv",
         ],
     )
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
     assert "Running test command" in result.output
     assert "Created dataloader" in result.output
     assert "Object level recall: 0.0000" in result.output

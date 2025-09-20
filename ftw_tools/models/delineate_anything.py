@@ -10,6 +10,7 @@ import torchvision.transforms.v2 as T
 
 try:
     import ultralytics
+    from ultralytics.engine.results import Results
 except ModuleNotFoundError:
     raise ModuleNotFoundError(
         "ultralytics is not installed. Please install it with 'pip install ultralytics'."
@@ -67,7 +68,7 @@ class DelineateAnything:
 
     @staticmethod
     def polygonize(
-        result: ultralytics.engine.results.Results,
+        result: Results,
         transform: rasterio.Affine,
         crs=rasterio.CRS,
     ) -> gpd.GeoDataFrame:
@@ -85,7 +86,7 @@ class DelineateAnything:
         def pixel_to_geo(x, y, z=None):
             return transform * (x, y)
 
-        df = result.to_df()
+        df = result.to_df().to_pandas()
         df["geometry"] = df["segments"].apply(
             lambda x: shapely.geometry.Polygon(zip(x["y"], x["x"]))
         )
@@ -95,7 +96,7 @@ class DelineateAnything:
         df.drop(["name", "class", "box", "segments"], axis=1, inplace=True)
         return gpd.GeoDataFrame(df, geometry=df["geometry"], crs=crs)
 
-    def __call__(self, image: torch.Tensor) -> list[ultralytics.engine.results.Results]:
+    def __call__(self, image: torch.Tensor) -> list[Results]:
         """Forward pass through the model.
 
         Args:
