@@ -405,6 +405,18 @@ This results in a fiboa-compliant file named `austria_example_output_full.parque
 
 And that's it! In 4 lines of code, you obtained an FTW model, downloaded S2 data, ran model inference on that data, and polygonized the output to have a final parquet product.
 
+## Run Inference in Colab Notebook 
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/fieldsoftheworld/ftw-baselines/blob/main/notebooks/ftw_inference.ipynb)
+
+This notebook demonstrates how to:
+- Define a **Region of Interest (ROI)**  
+- Extract **seasonal crop calendar information**  
+- Query **Sentinel-2 imagery** from the Microsoft Planetary Computer  
+- Download data in the **FTW format**  
+- Run **inference with FTW CLI tools**  
+
+
+
 ## FTW Baseline Dataset
 
 Download and unpack the FTW Baseline Dataset using the FTW CLI.
