@@ -71,7 +71,7 @@ class DelineateAnything:
 
     @staticmethod
     def polygonize(
-        result: ultralytics.engine.results.Results,
+        result: Results,
         transform: rasterio.Affine,
         crs=rasterio.CRS,
     ) -> gpd.GeoDataFrame | None:
@@ -89,7 +89,7 @@ class DelineateAnything:
         def pixel_to_geo(x, y, z=None):
             return transform * (x, y)
 
-        df = result.to_df()
+        df = result.to_df().to_pandas()
         if len(df) == 0:
             return None
 
@@ -107,7 +107,7 @@ class DelineateAnything:
         df.drop(["name", "class", "box", "segments"], axis=1, inplace=True)
         return gpd.GeoDataFrame(df, geometry=df["geometry"], crs=crs)
 
-    def __call__(self, image: torch.Tensor) -> list[ultralytics.engine.results.Results]:
+    def __call__(self, image: torch.Tensor) -> list[Results]:
         """Forward pass through the model.
 
         Args:

@@ -1,7 +1,7 @@
 [build-system]
-build-backend = "setuptools.build_meta"
+build-backend = "hatchling.build"
 
-requires = [ "setuptools>=61" ]
+requires = [ "hatchling" ]
 
 [project]
 name = "ftw-tools"
@@ -18,25 +18,13 @@ authors = [
   { name = "Chris Holmes", email = "cholmes@tgengine.org" },
   { name = "Snehal Chaudhari", email = "sschaud5@asu.edu" },
 ]
-requires-python = ">=3.11,<3.13"
 
+requires-python = ">=3.11,<3.13"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
-]
-
-optional-dependencies.all = [
-  "ftw-tools[dev,delineate-anything]",
-]
-optional-dependencies.delineate-anything = [
-  "ultralytics>8.3,<9",
-]
-optional-dependencies.dev = [
-  "pre-commit", # Run tests on commit
-  "pytest",     # Testing framework
-  "ruff",       # Code formatting tool
 ]
 urls.Changelog = "https://github.com/fieldsoftheworld/ftw-baselines/blob/main/CHANGELOG.md"
 urls.Homepage = "https://fieldsofthe.world/"
@@ -44,95 +32,8 @@ urls.Issues = "https://github.com/fieldsoftheworld/ftw-baselines/issues"
 urls.Repository = "https://github.com/fieldsoftheworld/ftw-baselines.git"
 scripts.ftw = "ftw_tools.cli:ftw"
 
-[tool.setuptools]
-packages = { find = { where = [ "." ] } }
-include-package-data = true               # Includes non-Python files specified in MANIFEST.in
-
 [tool.ruff]
 extend-exclude = [ "*.ipynb" ]
 
 [tool.pytest.ini_options]
-pythonpath = [
-  ".",
-]
-
-# ===============================================================================
-# Pixi Configuration
-# ===============================================================================
-
-[tool.pixi.project]
-name = "ftw-baselines"
-channels = [ "conda-forge", "pytorch" ]
-platforms = [ "linux-64", "osx-64", "osx-arm64", "win-64" ]
-
-[tool.pixi.dependencies]
-python = ">=3.11,<3.13"
-
-# System dependencies (from env.yml) - pinned for stability
-gdal = ">=3.10,<3.12"
-libgdal-arrow-parquet = ">=3.10,<3.12"
-notebook = ">=7.0,<8.0"
-
-# Core Python packages
-pip = ">=25.1.1,<26"
-click = ">=8.2.1,<9.0"
-tqdm = ">=4.65,<5.0"
-pyyaml = ">=6.0,<7.0"
-python-wget = ">=3.2,<4.0"
-numpy = ">=1.24,<3.0"
-scipy = ">=1.11,<2.0"
-matplotlib = ">=3.7,<4.0"
-tenacity = ">=9.1.2,<10.0"
-
-# PyTorch ecosystem (use pytorch channel for better CUDA support)
-pytorch = ">=2.4,<2.8"
-torchvision = ">=0.19,<0.23"
-pytorch-lightning = ">=2.0,<2.6"
-kornia = ">=0.7,<1.0"
-tensorboard = ">=2.15,<3.0"
-
-# Geospatial stack (critical: install together for compatibility)
-geopandas = ">=0.14,<2.0"
-rasterio = ">=1.3,<2.0"
-fiona = ">=1.9,<2.0"
-pyproj = ">=3.6,<4.0"
-
-# Data processing (moved from PyPI based on analysis)
-pystac = ">=1.8,<2.0"
-rioxarray = ">=0.15,<1.0"
-planetary-computer = ">=1.0,<2.0"
-odc-stac = ">=0.4.0,<1.0"         # see https://github.com/fieldsoftheworld/ftw-baselines/issues/77
-torchgeo = ">=0.7.0,<1.0"         # see https://github.com/fieldsoftheworld/ftw-baselines/issues/79
-ultralytics = ">=8.3.163,<9"
-
-[tool.pixi.pypi-dependencies]
-# Version-constrained packages (MUST remain PyPI)
-pyarrow = "==16.1.0"  # CRITICAL: filesystem registration error with newer versions, see https://github.com/apache/arrow/issues/44696
-fiboa-cli = "==0.7.0" # Not available on conda-forge
-
-# Parallel processing (kept on PyPI to avoid pyarrow version conflicts)
-dask = "==2025.5.1"
-distributed = ">=2025.3.0,<2026.0"
-
-[tool.pixi.feature.dev.dependencies]
-ruff = ">=0.1,<1.0"
-pytest = ">=7.4,<9.0"
-pre-commit = ">=4.0,<=5.0"
-
-[tool.pixi.system-requirements]
-cuda = "12"
-
-[tool.pixi.environments]
-default = { solve-group = "default" }
-dev = { features = [ "dev" ], solve-group = "default" }
-
-[tool.pixi.tasks]
-# Code quality
-format = "ruff format ftw_tools/"
-lint = "ruff check ftw_tools/ --fix --select I"
-test = "pytest tests/"
-check-all = { depends-on = [ "format", "lint", "test" ] }
-
-# FTW commands
-ftw = "ftw"
-install-dev = "python -m pip install -e ."
+pythonpath = [ "." ]
