@@ -96,99 +96,59 @@ def main(args):
 
     for checkpoints_data in checkpoints:
         (checkpoint, model_predicts_classes, temporal_option) = checkpoints_data
-        # Test on all countries first
-        if model_predicts_classes == 2:
-            # Test on the same country
-            command = [
-                "ftw",
-                "model",
-                "test",
-                "--gpu",
-                str(args.gpu),
-                "--dir",
-                "data/ftw",
-                "--temporal_options", temporal_option,
-                "--model",
-                checkpoint,
-                "--out",
-                args.output_fn,
-            ]
-            if args.swap_order:
-                command.append("--swap_order")
-            for country in FULL_DATA_COUNTRIES:
-                command.append("--countries")
-                command.append(country)
-            subprocess.call(command)
-        elif model_predicts_classes == 3:
-            # Test on the same country
-            command = [
-                "ftw",
-                "model",
-                "test",
-                "--gpu",
-                str(args.gpu),
-                "--dir",
-                "data/ftw",
-                "--temporal_options", temporal_option,
-                "--model",
-                checkpoint,
-                "--out",
-                args.output_fn,
-                "--model_predicts_3_classes",
-            ]
-            if args.swap_order:
-                command.append("--swap_order")
-            for country in FULL_DATA_COUNTRIES:
-                command.append("--countries")
-                command.append(country)
-            subprocess.call(command)
+
+        # First test on the full test set
+        command = [
+            "ftw",
+            "model",
+            "test",
+            "--gpu",
+            str(args.gpu),
+            "--dir",
+            "data/ftw",
+            "--temporal_options", temporal_option,
+            "--model",
+            checkpoint,
+            "--out",
+            args.output_fn,
+        ]
+        if model_predicts_classes == 3:
+            command.append("--model_predicts_3_classes")
+        if args.swap_order:
+            command.append("--swap_order")
+        if args.split == "val":
+            command.append("--use_val_set")
+        for country in FULL_DATA_COUNTRIES:
+            command.append("--countries")
+            command.append(country)
+        subprocess.call(command)
 
         # Then test on each country individually
         if args.country_eval:
             for country in COUNTRIES:
-                if model_predicts_classes == 2:
-                    # Test on the same country
-                    command = [
-                        "ftw",
-                        "model",
-                        "test",
-                        "--gpu",
-                        str(args.gpu),
-                        "--dir",
-                        "data/ftw",
-                        "--temporal_options", temporal_option,
-                        "--model",
-                        checkpoint,
-                        "--out",
-                        args.output_fn,
-                        "--countries",
-                        country,
-                    ]
-                    if args.swap_order:
-                        command.append("--swap_order")
-                    subprocess.call(command)
-                elif model_predicts_classes == 3:
-                    # Test on the same country
-                    command = [
-                        "ftw",
-                        "model",
-                        "test",
-                        "--gpu",
-                        str(args.gpu),
-                        "--dir",
-                        "data/ftw",
-                        "--temporal_options", temporal_option,
-                        "--model",
-                        checkpoint,
-                        "--out",
-                        args.output_fn,
-                        "--countries",
-                        country,
-                        "--model_predicts_3_classes",
-                    ]
-                    if args.swap_order:
-                        command.append("--swap_order")
-                    subprocess.call(command)
+                command = [
+                    "ftw",
+                    "model",
+                    "test",
+                    "--gpu",
+                    str(args.gpu),
+                    "--dir",
+                    "data/ftw",
+                    "--temporal_options", temporal_option,
+                    "--model",
+                    checkpoint,
+                    "--out",
+                    args.output_fn,
+                    "--countries",
+                    country,
+                ]
+                if model_predicts_classes == 3:
+                    command.append("--model_predicts_3_classes")
+                if args.split == "val":
+                    command.append("--use_val_set")
+                if args.swap_order:
+                    command.append("--swap_order")
+                subprocess.call(command)
 
 
 if __name__ == "__main__":
@@ -203,6 +163,13 @@ if __name__ == "__main__":
         "--country_eval",
         action="store_true",
         help="Whether to evaluate on all countries separately",
+    )
+    parser.add_argument(
+        "--split",
+        type=str,
+        default="test",
+        choices=["test", "val"],
+        help="Which data split to use for evaluation",
     )
     parser.add_argument("--output_fn", required=True, type=str, help="Output filename")
     args = parser.parse_args()
