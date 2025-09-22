@@ -19,6 +19,8 @@ from torch.utils.data import DataLoader
 from torchgeo.datasets import stack_samples
 from torchgeo.samplers import GridGeoSampler
 from tqdm import tqdm
+import shapely.geometry
+import fiona
 
 from ftw_tools.models.utils import convert_to_fiboa, postprocess_instance_polygons
 from ftw_tools.torchgeo.datamodules import preprocess
@@ -162,11 +164,16 @@ def run(
     )
 
     # Run inference
+    input_height, input_width = input_shape[0], input_shape[1]
     if save_scores:
-        output_mask = np.zeros([3, input_shape[0], input_shape[1]], dtype=np.float32)
+        out_channels = 3
+        output_mask = np.zeros([3, input_height, input_width], dtype=np.float32)
     else:
-        output_mask = np.zeros([1, input_shape[0], input_shape[1]], dtype=np.uint8)
+        out_channels = 1
+        output_mask = np.zeros([1, input_height, input_width], dtype=np.uint8)
     dl_enumerator = tqdm(dataloader)
+
+    inference_geoms = []
 
     for batch in dl_enumerator:
         images = batch["image"].to(device)
@@ -209,6 +216,11 @@ def run(
 
         for i in range(len(bboxes)):
             minx, miny, maxx, maxy = bboxes[i]
+
+            # Save the polygon of this patch for debugging/visualization
+            geom = shapely.geometry.mapping(shapely.geometry.box(minx, miny, maxx, maxy))
+            inference_geoms.append(geom)
+
             left, bottom = ~transform * (minx, miny)
             right, top = ~transform * (maxx, maxy)
             left, right, top, bottom = (
@@ -217,23 +229,49 @@ def run(
                 int(np.round(top)),
                 int(np.round(bottom)),
             )
-            pleft = left + padding
-            pright = right - padding
-            ptop = top + padding
-            pbottom = bottom - padding
-            out_channels, destination_height, destination_width = output_mask[
-                :, ptop:pbottom, pleft:pright
-            ].shape
+
+            # Determine per-side effective padding (no padding when on image border)
+            effective_left_pad = 0 if left <= 0 else padding
+            effective_right_pad = 0 if right >= input_width else padding
+            effective_top_pad = 0 if top <= 0 else padding
+            effective_bottom_pad = 0 if bottom >= input_height else padding
+
+            # Interior (after trimming padding) in destination image coordinates
+            pleft = left + effective_left_pad
+            pright = right - effective_right_pad
+            ptop = top + effective_top_pad
+            pbottom = bottom - effective_bottom_pad
+
+            # Clamp to image bounds to avoid negative or overflow indices
+            dst_left = max(pleft, 0)
+            dst_top = max(ptop, 0)
+            dst_right = min(pright, input_width)
+            dst_bottom = min(pbottom, input_height)
+
+            # Source indices within prediction patch.
+            src_left = effective_left_pad + (dst_left - pleft)
+            src_right = effective_left_pad + (dst_right - pleft)
+            src_top = effective_top_pad + (dst_top - ptop)
+            src_bottom = effective_top_pad + (dst_bottom - ptop)
+
+            h, w = predictions[i].shape
+            src_left = max(0, min(src_left, w))
+            src_right = max(0, min(src_right, w))
+            src_top = max(0, min(src_top, h))
+            src_bottom = max(0, min(src_bottom, h))
+            if src_right <= src_left or src_bottom <= src_top:
+                continue
+
             if save_scores:
-                inp = predictions[i]
+                inp = predictions[i, src_top:src_bottom, src_left:src_right]
             else:
-                inp = predictions[:, i]
-            inp = inp[
-                :,
-                padding : padding + destination_height,
-                padding : padding + destination_width,
-            ]
-            output_mask[:, ptop:pbottom, pleft:pright] = inp
+                inp = predictions[:, i, src_top:src_bottom, src_left:src_right]
+            output_mask[dst_top:dst_bottom, dst_left:dst_right] = inp
+
+    # Some code to save prediction footprints
+    # with fiona.open("inference_footprints.geojson", "w", driver="GeoJSON", crs=profile["crs"], schema={"geometry": "Polygon", "properties": {}}) as dst:
+    #     for geom in inference_geoms:
+    #         dst.write({"geometry": geom, "properties": {}})
 
     with rasterio.open(input) as src:
         profile = src.profile
