@@ -84,10 +84,12 @@ def test(
     model_predicts_3_classes,
     test_on_3_classes,
     temporal_options,
+    use_val_set,
     swap_order,
 ):
     """Command to test the model."""
-    print("Running test command")
+    target_split = "val" if use_val_set else "test"
+    print(f"Running test command on the {target_split} set")
     if gpu is None:
         gpu = -1
 
@@ -111,7 +113,7 @@ def test(
     ds = FTW(
         root=dir,
         countries=countries,
-        split="test",
+        split=target_split,
         transforms=preprocess,
         load_boundaries=test_on_3_classes,
         temporal_options=temporal_options,
@@ -215,7 +217,7 @@ def test(
         if not os.path.exists(out):
             with open(out, "w") as f:
                 f.write(
-                    "train_checkpoint,test_countries,pixel_level_iou,pixel_level_precision,pixel_level_recall,object_level_precision,object_level_recall\n"
+                    "train_checkpoint,countries,pixel_level_iou,pixel_level_precision,pixel_level_recall,object_level_precision,object_level_recall\n"
                 )
         with open(out, "a") as f:
             f.write(

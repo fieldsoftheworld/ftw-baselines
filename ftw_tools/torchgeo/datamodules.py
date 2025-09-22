@@ -74,6 +74,7 @@ class FTWDataModule(LightningDataModule):
         self.load_boundaries = kwargs.pop("load_boundaries", False)
         self.temporal_options = temporal_options
         self.num_samples = num_samples
+        self.ignore_sample_fn = kwargs.pop("ignore_sample_fn", None)
 
         # for the temporal option windowA, windowB and median we will have 4 channel input
         if self.temporal_options in ("windowA", "windowB", "median", "random_window"):
@@ -132,6 +133,7 @@ class FTWDataModule(LightningDataModule):
                 load_boundaries=self.load_boundaries,
                 temporal_options=self.temporal_options,
                 num_samples=self.num_samples,
+                ignore_sample_fn=self.ignore_sample_fn,
             )
         if stage in ["fit", "validate"]:
             self.val_dataset = FTW(
