@@ -9,12 +9,9 @@ import numpy as np
 import pandas as pd
 import rasterio
 import torch
-<<<<<<< HEAD
 import torch.nn.functional as F
-=======
 import torchgeo
 from packaging.version import Version, parse
->>>>>>> dd2667e (Adding torchgeo version selection in inference)
 from kornia.constants import Resample
 from rasterio.enums import ColorInterp
 from rasterio.transform import from_bounds
