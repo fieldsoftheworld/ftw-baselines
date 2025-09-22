@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 import torchvision.transforms.v2 as T
 import ultralytics
+from ultralytics.engine.results import Results
 
 # torchvision.ops.nms is not supported on MPS yet
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
