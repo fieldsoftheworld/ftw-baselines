@@ -6,6 +6,7 @@ import torch
 from lightning.pytorch.cli import LightningCLI
 from torch.utils.data import DataLoader
 from torchgeo.trainers import BaseTask
+from einops import rearrange
 from torchmetrics import JaccardIndex, MetricCollection, Precision, Recall
 from tqdm import tqdm
 
@@ -104,6 +105,7 @@ def test(
     trainer = CustomSemanticSegmentationTask.load_from_checkpoint(
         model_path, map_location="cpu"
     )
+    model_type = trainer.hparams["model"]
     model = trainer.model.eval().to(device)
     print(f"Model loaded in {time.time() - tic:.2f}s")
 
@@ -155,8 +157,13 @@ def test(
     all_fps = 0
     all_fns = 0
     for batch in tqdm(dl):
-        images = batch["image"].to(device)
+        images = batch["image"]
         masks = batch["mask"].to(device)
+
+        if model_type in ["fcsiamdiff", "fcsiamconc", "fcsiamavg"]:
+            images = rearrange(images, "b (t c) h w -> b t c h w", t=2)
+        images = images.to(device)
+
         with torch.inference_mode():
             outputs = model(images).argmax(dim=1)
 

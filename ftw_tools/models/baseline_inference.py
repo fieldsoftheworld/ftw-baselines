@@ -11,6 +11,7 @@ import rasterio
 import torch
 import torch.nn.functional as F
 import torchgeo
+from einops import rearrange
 from packaging.version import Version, parse
 from kornia.constants import Resample
 from rasterio.enums import ColorInterp
@@ -129,6 +130,7 @@ def run(
     )
     task.freeze()
     model = task.model.eval().to(device)
+    model_type = task.hparams["model"]
 
     if mps_mode:
         up_sample = K.Resize(
@@ -176,12 +178,12 @@ def run(
     inference_geoms = []
 
     for batch in dl_enumerator:
-        images = batch["image"].to(device)
+        images = batch["image"]
         images = up_sample(images)
 
-        # WinB then WinA (B02_t2, B03_t2, B04_t2, B08_t2, B02_t1, B03_t1, B04_t1, B08_t1)
-        num_bands = images.shape[1] // 2
-        images = torch.cat([images[:, num_bands:], images[:, :num_bands]], dim=1)
+        if model_type in ["fcsiamdiff", "fcsiamconc", "fcsiamavg"]:
+            images = rearrange(images, "b (t c) h w -> b t c h w", t=2)
+        images = images.to(device)
 
         # torchgeo>=0.8 switched from BoundingBox to slices
         # torchgeo>=0.6 refers to the bounding box as "bounds" instead of "bbox"
