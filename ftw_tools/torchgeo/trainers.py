@@ -27,6 +27,7 @@ from torchmetrics.classification import (
 )
 from torchvision.models._api import WeightsEnum
 
+from .losses import PixelWeightedCE
 from ..postprocess.metrics import get_object_level_metrics
 from .models import FCSiamAvg
 
@@ -49,6 +50,7 @@ class CustomSemanticSegmentationTask(BaseTask):
         loss: str = "ce",
         class_weights: Optional[list] = None,
         ignore_index: Optional[int] = None,
+        pixel_weight_scale: Optional[float] = None,
         lr: float = 1e-3,
         patience: int = 10,
         patch_weights: bool = False,
@@ -129,6 +131,10 @@ class CustomSemanticSegmentationTask(BaseTask):
         class_weights = None
         if self.hparams["class_weights"] is not None:
             class_weights = torch.tensor(self.hparams["class_weights"])
+        pixel_weight_scale = 1.0
+        if self.hparams["pixel_weight_scale"] is not None:
+            pixel_weight_scale = self.hparams["pixel_weight_scale"]
+
         if loss == "ce":
             if self.hparams["class_weights"] is not None:
                 class_weights = torch.tensor(self.hparams["class_weights"])
@@ -137,6 +143,15 @@ class CustomSemanticSegmentationTask(BaseTask):
             ignore_value = -1000 if ignore_index is None else ignore_index
             self.criterion = nn.CrossEntropyLoss(
                 ignore_index=ignore_value, weight=class_weights
+            )
+        elif loss == "pixel_weighted_ce":
+            self.criterion = PixelWeightedCE(
+                kernel_size=7,
+                sigma=3.0,
+                target_class=2,
+                scale=pixel_weight_scale,
+                class_weights=class_weights,
+                ignore_index=ignore_index,
             )
         elif loss == "jaccard":
             self.criterion = smp.losses.JaccardLoss(

@@ -48,6 +48,7 @@ class FTW(NonGeoDataset):
         temporal_options: str = "stacked",
         swap_order: bool = False,
         num_samples: int = -1,
+        ignore_sample_fn: Optional[str] = None
     ) -> None:
         """Initialize a new FTW dataset instance.
 
@@ -62,6 +63,7 @@ class FTW(NonGeoDataset):
             load_boundaries: if True, load the 3 class masks with boundaries
             temporal_options : for abalation study, valid option are (stacked, windowA, windowB, median, rgb, random_window)
             swap_order: if True, swap the order of temporal data (i.e. use window A first)
+            ignore_sample_fn: path to a filename with a list of samples to ignore
         Raises:
             AssertionError: if ``countries`` argument is invalid
             AssertionError: if ``split`` argument is invalid
@@ -115,6 +117,15 @@ class FTW(NonGeoDataset):
         self.filenames = []
         all_filenames = []
 
+        bad_samples = set()
+        if ignore_sample_fn is not None:
+            with open(ignore_sample_fn, "r") as f:
+                lines = f.readlines()
+                for line in lines:
+                    country, sample_idx = line.split(",")
+                    bad_samples.add((country, sample_idx.strip()))
+            print(f"Ignoring samples: {len(bad_samples)}")
+
         for country in self.countries:
             country_root: str = os.path.join(self.root, country)
             chips_fn = os.path.join(country_root, f"chips_{country}.parquet")
@@ -123,6 +134,10 @@ class FTW(NonGeoDataset):
             aoi_ids = chips_df["aoi_id"].values
 
             for idx in aoi_ids:
+
+                if (country, idx) in bad_samples:
+                    continue
+
                 window_b_fn = Path(
                     os.path.join(country_root, "s2_images/window_b", f"{idx}.tif")
                 )

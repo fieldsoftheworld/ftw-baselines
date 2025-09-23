@@ -9,6 +9,9 @@ import numpy as np
 import pandas as pd
 import rasterio
 import torch
+import torchgeo
+from einops import rearrange
+from packaging.version import Version, parse
 from kornia.constants import Resample
 from rasterio.enums import ColorInterp
 from rasterio.transform import from_bounds
@@ -16,12 +19,17 @@ from torch.utils.data import DataLoader
 from torchgeo.datasets import stack_samples
 from torchgeo.samplers import GridGeoSampler
 from tqdm import tqdm
+import shapely.geometry
+import fiona
 
 from ftw_tools.models.utils import convert_to_fiboa, postprocess_instance_polygons
 from ftw_tools.torchgeo.datamodules import preprocess
 from ftw_tools.torchgeo.datasets import SingleRasterDataset
 from ftw_tools.torchgeo.trainers import CustomSemanticSegmentationTask
 
+TORCHGEO_06 = Version("0.6.0")
+TORCHGEO_08 = Version("0.8.0.dev0")
+TORCHGEO_CURRENT = parse(torchgeo.__version__)
 
 def setup_inference(
     input,
@@ -120,6 +128,7 @@ def run(
     )
     task.freeze()
     model = task.model.eval().to(device)
+    model_type = task.hparams["model"]
 
     if mps_mode:
         up_sample = K.Resize(
@@ -158,19 +167,32 @@ def run(
     output_mask = np.zeros(input_shape, dtype=np.uint8)
     dl_enumerator = tqdm(dataloader)
 
+    inference_geoms = []
+
     for batch in dl_enumerator:
-        images = batch["image"].to(device)
+        images = batch["image"]
         images = up_sample(images)
 
-        # WinB then WinA (B02_t2, B03_t2, B04_t2, B08_t2, B02_t1, B03_t1, B04_t1, B08_t1)
-        num_bands = images.shape[1] // 2
-        images = torch.cat([images[:, num_bands:], images[:, :num_bands]], dim=1)
+        if model_type in ["fcsiamdiff", "fcsiamconc", "fcsiamavg"]:
+            images = rearrange(images, "b (t c) h w -> b t c h w", t=2)
+        images = images.to(device)
 
+        # torchgeo>=0.8 switched from BoundingBox to slices
         # torchgeo>=0.6 refers to the bounding box as "bounds" instead of "bbox"
-        if "bounds" in batch and batch["bounds"] is not None:
-            bboxes = batch["bounds"]
+        bboxes = []
+        if TORCHGEO_CURRENT >= TORCHGEO_08:
+            for slices in batch["bounds"]:
+                minx = slices[0].start
+                maxx = slices[0].stop
+                miny = slices[1].start
+                maxy = slices[1].stop
+                bboxes.append((minx, miny, maxx, maxy))
+        elif TORCHGEO_CURRENT >= TORCHGEO_06:
+            for bbox in batch["bounds"]:
+                bboxes.append((bbox.minx, bbox.miny, bbox.maxx, bbox.maxy))
         else:
-            bboxes = batch["bbox"]
+            for bbox in batch["bbox"]:
+                bboxes.append((bbox.minx, bbox.miny, bbox.maxx, bbox.maxy))
 
         with torch.inference_mode():
             predictions = model(images)
@@ -178,27 +200,60 @@ def run(
             predictions = down_sample(predictions.float()).int().cpu().numpy()[0]
 
         for i in range(len(bboxes)):
-            bb = bboxes[i]
-            left, top = ~transform * (bb.minx, bb.maxy)
-            right, bottom = ~transform * (bb.maxx, bb.miny)
+            minx, miny, maxx, maxy = bboxes[i]
+
+            # Save the polygon of this patch for debugging/visualization
+            geom = shapely.geometry.mapping(shapely.geometry.box(minx, miny, maxx, maxy))
+            inference_geoms.append(geom)
+
+            left, bottom = ~transform * (minx, miny)
+            right, top = ~transform * (maxx, maxy)
             left, right, top, bottom = (
                 int(np.round(left)),
                 int(np.round(right)),
                 int(np.round(top)),
                 int(np.round(bottom)),
             )
-            pleft = left + padding
-            pright = right - padding
-            ptop = top + padding
-            pbottom = bottom - padding
-            destination_height, destination_width = output_mask[
-                ptop:pbottom, pleft:pright
-            ].shape
-            inp = predictions[i][
-                padding : padding + destination_height,
-                padding : padding + destination_width,
-            ]
-            output_mask[ptop:pbottom, pleft:pright] = inp
+
+            # Determine per-side effective padding (no padding when on image border)
+            effective_left_pad = 0 if left <= 0 else padding
+            effective_right_pad = 0 if right >= input_width else padding
+            effective_top_pad = 0 if top <= 0 else padding
+            effective_bottom_pad = 0 if bottom >= input_height else padding
+
+            # Interior (after trimming padding) in destination image coordinates
+            pleft = left + effective_left_pad
+            pright = right - effective_right_pad
+            ptop = top + effective_top_pad
+            pbottom = bottom - effective_bottom_pad
+
+            # Clamp to image bounds to avoid negative or overflow indices
+            dst_left = max(pleft, 0)
+            dst_top = max(ptop, 0)
+            dst_right = min(pright, input_width)
+            dst_bottom = min(pbottom, input_height)
+
+            # Source indices within prediction patch.
+            src_left = effective_left_pad + (dst_left - pleft)
+            src_right = effective_left_pad + (dst_right - pleft)
+            src_top = effective_top_pad + (dst_top - ptop)
+            src_bottom = effective_top_pad + (dst_bottom - ptop)
+
+            h, w = predictions[i].shape
+            src_left = max(0, min(src_left, w))
+            src_right = max(0, min(src_right, w))
+            src_top = max(0, min(src_top, h))
+            src_bottom = max(0, min(src_bottom, h))
+            if src_right <= src_left or src_bottom <= src_top:
+                continue
+
+            inp = predictions[i][src_top:src_bottom, src_left:src_right]
+            output_mask[dst_top:dst_bottom, dst_left:dst_right] = inp
+
+    # Some code to save prediction footprints
+    # with fiona.open("inference_footprints.geojson", "w", driver="GeoJSON", crs=profile["crs"], schema={"geometry": "Polygon", "properties": {}}) as dst:
+    #     for geom in inference_geoms:
+    #         dst.write({"geometry": geom, "properties": {}})
 
     with rasterio.open(input) as src:
         profile = src.profile
