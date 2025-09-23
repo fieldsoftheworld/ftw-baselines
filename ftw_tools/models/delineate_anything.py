@@ -90,7 +90,10 @@ class DelineateAnything:
         def pixel_to_geo(x, y, z=None):
             return transform * (x, y)
 
-        df = result.to_df().to_pandas()
+        df = result.to_df()
+        if hasattr(df, "to_pandas"):
+            df = df.to_pandas()
+
         if len(df) == 0:
             return None
 

@@ -8,7 +8,7 @@ pytest.importorskip("ultralytics")
 
 
 def test_delineate_anything():
-    import ultralytics
+    from ultralytics.engine.results import Results
 
     from ftw_tools.models.delineate_anything import DelineateAnything
 
@@ -30,7 +30,7 @@ def test_delineate_anything():
         results = model(x)
 
     assert len(results) == 1
-    assert isinstance(results[0], ultralytics.engine.results.Results)
+    assert isinstance(results[0], Results)
 
     # test conversion of results to polygons
     transform = rasterio.Affine(1, 0, 0, 0, -1, 0)
