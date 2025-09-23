@@ -247,6 +247,7 @@ class CustomSemanticSegmentationTask(BaseTask):
                 encoder_weights="imagenet" if weights is True else None,
                 in_channels=in_channels,
                 classes=num_classes,
+                decoder_readout="ignore",
                 **model_kwargs,
             )
         elif model == "fcsiamdiff":

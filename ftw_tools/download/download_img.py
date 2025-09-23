@@ -12,8 +12,8 @@ import pandas as pd
 import planetary_computer as pc
 import pystac
 import pystac_client
-import rioxarray  # seems unused but is needed
-import xarray as xr
+import rioxarray  # noqa: F401
+import xarray as xr  # noqa: F401
 from pystac.extensions.eo import EOExtension as eo
 from shapely.geometry import box, shape
 from tenacity import retry, stop_after_attempt, wait_random_exponential
@@ -521,7 +521,9 @@ def create_input(
     os.makedirs(os.path.dirname(out), exist_ok=True)
 
     # Load the items
-    identifiers = [win_a, win_b]
+    identifiers = [win_a]
+    if win_b is not None:
+        identifiers.append(win_b)
     items = []
     timestamp = None
     version = 0
@@ -563,9 +565,10 @@ def create_input(
 
     shapes = [shape(item.geometry) for item in items]
     # Ensure the images intersect
-    if not shapes[0].intersects(shapes[1]):
-        print("The provided images do not intersect. Exiting.")
-        return
+    if len(shapes) > 1:
+        if not shapes[0].intersects(shapes[1]):
+            print("The provided images do not intersect. Exiting.")
+            return
 
     if stac_host == "mspc":
         bands = MSPC_BANDS_OF_INTEREST
@@ -583,7 +586,7 @@ def create_input(
 
     tic = time.time()
     data = odc.stac.load(
-        [items[0], items[1]],
+        items,
         bands=bands,
         dtype="uint16",
         resampling="bilinear",

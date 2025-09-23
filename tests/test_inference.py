@@ -9,6 +9,8 @@ from ftw_tools.cli import (
     inference_download,
     inference_polygonize,
     inference_run,
+    inference_run_instance_segmentation,
+    inference_run_instance_segmentation_all,
     model_download,
     scene_selection,
 )
@@ -108,6 +110,28 @@ def test_inference_download_via_mspc():
     assert os.path.exists(inference_image)
 
 
+def test_inference_download_single():
+    runner = CliRunner()
+
+    # Download imagery by ID from Microsoft Planetary Computer
+    inference_image = "inference_imagery/austria_example.tif"
+    result = runner.invoke(
+        inference_download,
+        [
+            "--win_a=S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729",
+            "--bbox=13.0,48.0,13.2,48.2",
+            "-o",
+            inference_image,
+            "-f",
+            "--stac_host=mspc",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert "Writing output" in result.output
+    assert "Finished merging and writing output" in result.output
+    assert os.path.exists(inference_image)
+
+
 def test_inference_run():
     runner = CliRunner()
 
@@ -199,3 +223,56 @@ def test_ftw_inference_all():
             f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
         )
         assert "Finished inference and saved output" in result.output
+
+
+def test_instance_segmentation_inference():
+    runner = CliRunner()
+
+    # Check required files are present
+    inf_input_path = "./tests/data-files/inference-img.tif"
+    assert os.path.exists(inf_input_path)
+
+    # Run inference
+    inf_output_path = "austria_example_output_full.parquet"
+    result = runner.invoke(
+        inference_run_instance_segmentation,
+        [
+            inf_input_path,
+            "--model",
+            "DelineateAnything-S",
+            "--out",
+            inf_output_path,
+            "--gpu",
+            "0",
+            "--overwrite",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert os.path.exists(inf_output_path)
+
+
+def test_instance_segmentation_inference_all():
+    runner = CliRunner()
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        out_dir = os.path.join(temp_dir, "inference_output")
+        downloaded_path = os.path.join(out_dir, "inference_data.tif")
+        output_path = os.path.join(out_dir, "inference_output.parquet")
+
+        result = runner.invoke(
+            inference_run_instance_segmentation_all,
+            [
+                "S2B_MSIL2A_20210617T100559_R022_T33UUP_20210624T063729",
+                "--bbox=13.0,48.0,13.2,48.2",
+                "--model",
+                "DelineateAnything-S",
+                "--out_dir",
+                out_dir,
+                "--gpu",
+                "0",
+                "--overwrite",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert os.path.exists(downloaded_path)
+        assert os.path.exists(output_path)
