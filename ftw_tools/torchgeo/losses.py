@@ -12,7 +12,9 @@ class Dice(DiceLoss):
 
     def aggregate_loss(self, loss: torch.Tensor) -> torch.Tensor:
         if self.class_weights is not None:
-            loss = loss * self.class_weights.to(loss.device)
+            weights = self.class_weights.to(loss.device)
+            loss = (loss * weights) / weights.sum()
+
         if self.use_log_cosh:
             loss = torch.log(torch.cosh(loss))
         return loss.mean()
