@@ -29,7 +29,7 @@ from torchvision.models._api import WeightsEnum
 
 from ..postprocess.metrics import get_object_level_metrics
 from .models import FCSiamAvg
-from .losses import WeightedDiceLoss
+from .losses import Dice
 
 class CustomSemanticSegmentationTask(BaseTask):
     """Semantic Segmentation.
@@ -147,8 +147,8 @@ class CustomSemanticSegmentationTask(BaseTask):
                 "multiclass", ignore_index=ignore_index, normalized=True
             )
         elif loss == "dice":
-            self.criterion = WeightedDiceLoss(mode="multiclass", 
-                                              class_weights=class_weights, log_loss=True, ignore_index=ignore_index)
+            self.criterion = Dice(mode="multiclass", 
+                                 ignore_index=ignore_index, class_weights=class_weights)
         
         else:
             raise ValueError(
