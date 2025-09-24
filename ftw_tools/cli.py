@@ -457,6 +457,13 @@ def inference():
     show_default=True,
     help="Run inference in MPS mode (Apple GPUs).",
 )
+@click.option(
+    "--save_scores",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Save segmentation logit scores instead of classes (argmax of scores)",
+)
 @common_stac_host_option()
 @common_s2_collection_option()
 @common_verbose_option()
@@ -475,6 +482,7 @@ def ftw_inference_all(
     num_workers,
     padding,
     mps_mode,
+    save_scores,
     stac_host,
     s2_collection,
     verbose,
@@ -528,6 +536,7 @@ def ftw_inference_all(
         padding=padding,
         overwrite=overwrite,
         mps_mode=mps_mode,
+        save_scores=save_scores,
     )
 
     # Polygonize the output
@@ -704,6 +713,13 @@ def inference_download(
     show_default=True,
     help="Run inference in MPS mode (Apple GPUs).",
 )
+@click.option(
+    "--save_scores",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Save segmentation logit scores instead of classes (argmax of scores)",
+)
 def inference_run(
     input,
     model,
@@ -716,6 +732,7 @@ def inference_run(
     padding,
     overwrite,
     mps_mode,
+    save_scores,
 ):
     from ftw_tools.models.baseline_inference import run
 
@@ -731,6 +748,7 @@ def inference_run(
         padding,
         overwrite,
         mps_mode,
+        save_scores,
     )
 
 

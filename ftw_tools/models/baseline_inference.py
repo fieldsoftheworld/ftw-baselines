@@ -105,6 +105,7 @@ def run(
     padding,
     overwrite,
     mps_mode,
+    save_scores,
 ):
     device, transform, input_shape, patch_size, stride, padding = setup_inference(
         input, out, gpu, patch_size, padding, overwrite, mps_mode
@@ -155,7 +156,10 @@ def run(
     )
 
     # Run inference
-    output_mask = np.zeros(input_shape, dtype=np.uint8)
+    if save_scores:
+        output_mask = np.zeros([3, input_shape[0], input_shape[1]], dtype=np.float32)
+    else:
+        output_mask = np.zeros([1, input_shape[0], input_shape[1]], dtype=np.uint8)
     dl_enumerator = tqdm(dataloader)
 
     for batch in dl_enumerator:
@@ -174,8 +178,13 @@ def run(
 
         with torch.inference_mode():
             predictions = model(images)
-            predictions = predictions.argmax(axis=1).unsqueeze(0)
-            predictions = down_sample(predictions.float()).int().cpu().numpy()[0]
+            if save_scores:
+                predictions = (
+                    down_sample(predictions.float()).cpu().numpy().astype(np.float32)
+                )
+            else:
+                predictions = predictions.argmax(axis=1).unsqueeze(0)
+                predictions = down_sample(predictions.float()).int().cpu().numpy()
 
         for i in range(len(bboxes)):
             bb = bboxes[i]
@@ -191,25 +200,32 @@ def run(
             pright = right - padding
             ptop = top + padding
             pbottom = bottom - padding
-            destination_height, destination_width = output_mask[
-                ptop:pbottom, pleft:pright
+            out_channels, destination_height, destination_width = output_mask[
+                :, ptop:pbottom, pleft:pright
             ].shape
-            inp = predictions[i][
+            if save_scores:
+                inp = predictions[i]
+            else:
+                inp = predictions[:, i]
+            inp = inp[
+                :,
                 padding : padding + destination_height,
                 padding : padding + destination_width,
             ]
-            output_mask[ptop:pbottom, pleft:pright] = inp
+            output_mask[:, ptop:pbottom, pleft:pright] = inp
 
     with rasterio.open(input) as src:
         profile = src.profile
         tags = src.tags()
 
+    out_dtype = "float32" if save_scores else "uint8"
+
     # Save predictions
     profile.update(
         {
             "driver": "GTiff",
-            "count": 1,
-            "dtype": "uint8",
+            "count": out_channels,
+            "dtype": out_dtype,
             "compress": "lzw",
             "nodata": 0,
             "blockxsize": 512,
@@ -221,9 +237,14 @@ def run(
 
     with rasterio.open(out, "w", **profile) as dst:
         dst.update_tags(**tags)
-        dst.write_colormap(1, {1: (255, 0, 0), 2: (0, 255, 0)})
-        dst.colorinterp = [ColorInterp.palette]
-        dst.write(output_mask, 1)
+        if save_scores:
+            # write all logit channels
+            dst.write(output_mask)
+        else:
+            # palette only for single-band labels
+            dst.write_colormap(1, {1: (255, 0, 0), 2: (0, 255, 0)})
+            dst.colorinterp = [ColorInterp.palette]
+            dst.write(output_mask[0], 1)
 
     print(f"Finished inference and saved output to {out} in {time.time() - tic:.2f}s")
 
