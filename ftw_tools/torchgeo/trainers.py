@@ -29,7 +29,7 @@ from torchvision.models._api import WeightsEnum
 
 from ..postprocess.metrics import get_object_level_metrics
 from .models import FCSiamAvg
-
+from .losses import WeightedDiceLoss
 
 class CustomSemanticSegmentationTask(BaseTask):
     """Semantic Segmentation.
@@ -76,7 +76,7 @@ class CustomSemanticSegmentationTask(BaseTask):
             num_classes: Number of prediction classes.
             num_filters: Number of filters. Only applicable when model='fcn'.
             loss: Name of the loss function, currently supports
-                'ce', 'jaccard' or 'focal' loss.
+                'ce', 'jaccard' or 'focal' or 'dice' loss.
             class_weights: Optional rescaling weight given to each
                 class and used with 'ce' loss.
             ignore_index: Optional integer class index to ignore in the loss and
@@ -146,10 +146,14 @@ class CustomSemanticSegmentationTask(BaseTask):
             self.criterion = smp.losses.FocalLoss(
                 "multiclass", ignore_index=ignore_index, normalized=True
             )
+        elif loss == "dice":
+            self.criterion = WeightedDiceLoss(mode="multiclass", 
+                                              class_weights=class_weights, log_loss=True, ignore_index=ignore_index)
+        
         else:
             raise ValueError(
                 f"Loss type '{loss}' is not valid. "
-                "Currently, supports 'ce', 'jaccard' or 'focal' loss."
+                "Currently, supports 'ce', 'jaccard' or 'focal' or 'dice' loss."
             )
 
     def configure_metrics(self) -> None:
