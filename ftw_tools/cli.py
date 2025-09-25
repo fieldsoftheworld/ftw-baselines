@@ -462,7 +462,7 @@ def inference():
     is_flag=True,
     default=False,
     show_default=True,
-    help="Save segmentation logit scores instead of classes (argmax of scores)",
+    help="Save segmentation softmax scores (rescaled to [0,255]) instead of classes (argmax of scores)",
 )
 @common_stac_host_option()
 @common_s2_collection_option()
@@ -718,7 +718,7 @@ def inference_download(
     is_flag=True,
     default=False,
     show_default=True,
-    help="Save segmentation logit scores instead of classes (argmax of scores)",
+    help="Save segmentation softmax scores (rescaled to [0,255]) instead of classes (argmax of scores)",
 )
 def inference_run(
     input,

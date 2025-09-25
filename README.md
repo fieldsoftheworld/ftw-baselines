@@ -249,8 +249,8 @@ Options:
                                   1024x1024px and a smaller value otherwise.
                                   [x>=0]
   -mps, --mps_mode                Run inference in MPS mode (Apple GPUs).
-  --save_scores                   Save segmentation logit scores instead of
-                                  classes (argmax of scores)
+  --save_scores                   Save segmentation softmax scores (rescaled to [0,255])
+                                  instead of classes (argmax of scores)
   -h, --stac_host [mspc|earthsearch]
                                   The host to download the imagery from. mspc
                                   = Microsoft Planetary Computer, earthsearch
@@ -375,8 +375,8 @@ Options:
                                   [x>=0]
   -f, --overwrite                 Overwrite outputs if they exist.
   -mps, --mps_mode                Run inference in MPS mode (Apple GPUs).
-  --save_scores                   Save segmentation logit scores instead of
-                                  classes (argmax of scores)
+  --save_scores                   Save segmentation softmax scores (rescaled to [0,255])
+                                  instead of classes (argmax of scores)
   --help                          Show this message and exit.
 ```
 

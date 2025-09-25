@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import rasterio
 import torch
+import torch.nn.functional as F
 from kornia.constants import Resample
 from rasterio.enums import ColorInterp
 from rasterio.transform import from_bounds
@@ -179,9 +180,13 @@ def run(
         with torch.inference_mode():
             predictions = model(images)
             if save_scores:
+                # compute softmax to interpret logits as probabilities [0, 1]
+                predictions = F.softmax(predictions, dim=1)
                 predictions = (
                     down_sample(predictions.float()).cpu().numpy().astype(np.float32)
                 )
+                # rescale probabilities from [0, 1] to [0, 255] and store as uint8
+                predictions = (predictions * 255).clip(0, 255).astype(np.uint8)
             else:
                 predictions = predictions.argmax(axis=1).unsqueeze(0)
                 predictions = down_sample(predictions.float()).int().cpu().numpy()
@@ -218,15 +223,14 @@ def run(
         profile = src.profile
         tags = src.tags()
 
-    out_dtype = "float32" if save_scores else "uint8"
-
     # Save predictions
     profile.update(
         {
             "driver": "GTiff",
             "count": out_channels,
-            "dtype": out_dtype,
+            "dtype": "uint8",
             "compress": "lzw",
+            "predictor": 2,
             "nodata": 0,
             "blockxsize": 512,
             "blockysize": 512,
