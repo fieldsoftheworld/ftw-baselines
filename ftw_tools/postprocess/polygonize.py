@@ -26,6 +26,7 @@ def polygonize(
     max_size=None,
     overwrite=False,
     close_interiors=False,
+    polygonization_stride=2048,
 ):
     """Polygonize the output from inference."""
 
@@ -66,7 +67,6 @@ def polygonize(
 
         input_height, input_width = src.shape
         mask = (src.read(1) == 1).astype(np.uint8)
-        polygonization_stride = 2048
         total_iterations = math.ceil(input_height / polygonization_stride) * math.ceil(
             input_width / polygonization_stride
         )
