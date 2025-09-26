@@ -208,33 +208,63 @@ ftw inference all --help
 
 Usage: ftw inference all [OPTIONS]
 
-  Run all inference commands from crop calendar scene selection, then
-  download, inference and polygonize.
+  Run all inference commands from crop calendar scene selection,then download,
+  inference and polygonize.
 
 Options:
-  --bbox TEXT              Bounding box to use for the download in the format
-                           'minx,miny,maxx,maxy'
-  --year INTEGER           Year to run model inference over  [required]
-  --cloud_cover_max INTEGER
-                           Max percent cloud cover in sentinel2 scene
-                           [default: 20]
-  --buffer_days INTEGER    Number of days to buffer the date for querying to
-                           help balance decreasing cloud cover and selecting a
-                           date near the crop calendar indicated date.
-                           [default: 14]
-  -o, --out TEXT           Directory to save downloaded inference imagery, and
-                           inference output to  [required]
-  -f, --overwrite          Overwrites the outputs if they exist
-  -m, --model PATH         Path to the model checkpoint.  [required]
-  --resize_factor INTEGER  Resize factor to use for inference.  [default: 2]
-  --gpu INTEGER            GPU ID to use. If not provided, CPU will be used by
-                           default.
-  --patch_size INTEGER     Size of patch to use for inference. Defaults to
-                           1024 unless the image is < 1024x1024px.
-  --batch_size INTEGER     Batch size.  [default: 2]
-  --padding INTEGER        Pixels to discard from each side of the patch.
-  --mps_mode               Run inference in MPS mode (Apple GPUs).
-  --help                   Show this message and exit.
+  -o, --out PATH                  Directory to save downloaded inference
+                                  imagery, and inference output to  [required]
+  -m, --model PATH                Path to the model checkpoint.  [required]
+  --year INTEGER RANGE            Year to run model inference over
+                                  [2015<=x<=2025; required]
+  --bbox TEXT                     Bounding box to use for the download in the
+                                  format 'minx,miny,maxx,maxy'
+  -ccx, --cloud_cover_max INTEGER RANGE
+                                  Maximum percentage of cloud cover allowed in
+                                  the Sentinel-2 scene  [default: 20;
+                                  0<=x<=100]
+  -b, --buffer_days INTEGER RANGE
+                                  Number of days to buffer the date for
+                                  querying to help balance decreasing cloud
+                                  cover and selecting a date near the crop
+                                  calendar indicated date.  [default: 14;
+                                  x>=0]
+  -f, --overwrite                 Overwrites the outputs if they exist
+  -r, --resize_factor INTEGER RANGE
+                                  Resize factor to use for inference.
+                                  [default: 2; x>=1]
+  --gpu INTEGER                   GPU to use, zero-based index. Set to -1 to
+                                  use CPU. CPU is also always used if CUDA or
+                                  MPS is not available.  [default: -1]
+  -ps, --patch_size INTEGER RANGE
+                                  Size of patch to use for inference. Defaults
+                                  to 1024 unless the image is < 1024x1024px
+                                  and a smaller value otherwise.  [x>=128]
+  -bs, --batch_size INTEGER RANGE
+                                  Batch size.  [default: 2; x>=1]
+  --num_workers INTEGER RANGE     Number of workers to use for inference.
+                                  [default: 4; x>=1]
+  -p, --padding INTEGER RANGE     Pixels to discard from each side of the
+                                  patch. Defaults to 64 unless the image is <
+                                  1024x1024px and a smaller value otherwise.
+                                  [x>=0]
+  -mps, --mps_mode                Run inference in MPS mode (Apple GPUs).
+  --save_scores                   Save segmentation softmax scores (rescaled to [0,255])
+                                  instead of classes (argmax of scores)
+  -h, --stac_host [mspc|earthsearch]
+                                  The host to download the imagery from. mspc
+                                  = Microsoft Planetary Computer, earthsearch
+                                  = EarthSearch (Element84/AWS).  [default:
+                                  mspc]
+  -s2, --s2_collection [old-baseline|c1]
+                                  Sentinel-2 collection to use with
+                                  EarthSearch only: 'old-baseline' =
+                                  sentinel-2-l2a, 'c1' = sentinel-2-c1-l2a
+                                  (default). Ignored when using MSPC.
+                                  [default: c1]
+  -v, --verbose                   Enable verbose output showing STAC calls,
+                                  scene details, and download URLs.
+  --help                          Show this message and exit.
 ```
 
 Example usage:
@@ -321,19 +351,33 @@ Usage: ftw inference run [OPTIONS] INPUT
   INPUT.
 
 Options:
-  -m, --model PATH         Path to the model checkpoint.  [required]
-  -o, --out TEXT           Output filename.  [required]
-  --resize_factor INTEGER  Resize factor to use for inference.  [default: 2]
-  --gpu INTEGER            GPU ID to use. If not provided, CPU will be used by
-                           default.
-  --patch_size INTEGER     Size of patch to use for inference. Defaults to
-                           1024 unless the image is < 1024x1024px.
-  --batch_size INTEGER     Batch size.  [default: 2]
-  --padding INTEGER        Pixels to discard from each side of the patch.
-                           Defaults to 64 unless the image is < 1024x1024px.
-  -f, --overwrite          Overwrite outputs if they exist.
-  --mps_mode               Run inference in MPS mode (Apple GPUs).
-  --help                   Show this message and exit.
+  -m, --model PATH                Path to the model checkpoint.  [required]
+  -o, --out PATH                  Output filename for the inference imagery.
+                                  Defaults to the name of the input file name
+                                  with 'inference.' prefix.
+  -r, --resize_factor INTEGER RANGE
+                                  Resize factor to use for inference.
+                                  [default: 2; x>=1]
+  --gpu INTEGER                   GPU to use, zero-based index. Set to -1 to
+                                  use CPU. CPU is also always used if CUDA or
+                                  MPS is not available.  [default: -1]
+  -ps, --patch_size INTEGER RANGE
+                                  Size of patch to use for inference. Defaults
+                                  to 1024 unless the image is < 1024x1024px
+                                  and a smaller value otherwise.  [x>=128]
+  -bs, --batch_size INTEGER RANGE
+                                  Batch size.  [default: 2; x>=1]
+  --num_workers INTEGER RANGE     Number of workers to use for inference.
+                                  [default: 4; x>=1]
+  -p, --padding INTEGER RANGE     Pixels to discard from each side of the
+                                  patch. Defaults to 64 unless the image is <
+                                  1024x1024px and a smaller value otherwise.
+                                  [x>=0]
+  -f, --overwrite                 Overwrite outputs if they exist.
+  -mps, --mps_mode                Run inference in MPS mode (Apple GPUs).
+  --save_scores                   Save segmentation softmax scores (rescaled to [0,255])
+                                  instead of classes (argmax of scores)
+  --help                          Show this message and exit.
 ```
 
 Let's run inference on the entire downloaded scene.
