@@ -9,6 +9,7 @@ import scipy.stats
 import xarray as xr
 
 from ftw_tools.download.crop_calendar import ensure_crop_calendar_exists
+from ftw_tools.settings import CROP_CAL_SUMMER_END, CROP_CAL_SUMMER_START
 
 logger = logging.getLogger()
 
@@ -95,10 +96,10 @@ def get_harvest_integer_from_bbox(
 
     if start_year_raster_path is None:
         cache_dir = ensure_crop_calendar_exists()
-        start_year_raster_path = str(cache_dir / "sc_sos_3x3_v2_cog.tiff")
+        start_year_raster_path = str(cache_dir / CROP_CAL_SUMMER_START)
     if end_year_raster_path is None:
         cache_dir = ensure_crop_calendar_exists()
-        end_year_raster_path = str(cache_dir / "sc_eos_3x3_v2_cog.tiff")
+        end_year_raster_path = str(cache_dir / CROP_CAL_SUMMER_END)
 
     start_harvest_dset = xr.open_dataset(start_year_raster_path, engine="rasterio")
     end_harvest_dset = xr.open_dataset(end_year_raster_path, engine="rasterio")

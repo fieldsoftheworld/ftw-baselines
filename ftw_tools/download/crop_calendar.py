@@ -3,11 +3,7 @@ from pathlib import Path
 
 import wget
 
-CROP_CALENDAR_BASE_URL = "https://github.com/fieldsoftheworld/ftw-baselines/raw/main/assets/global_crop_calendar/"
-CROP_CALENDAR_FILES = [
-    "sc_sos_3x3_v2_cog.tiff",
-    "sc_eos_3x3_v2_cog.tiff",
-]
+from ftw_tools.settings import CROP_CALENDAR_BASE_URL, CROP_CALENDAR_FILES
 
 
 def get_crop_calendar_cache_dir() -> Path:
