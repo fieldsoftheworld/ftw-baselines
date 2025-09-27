@@ -1199,6 +1199,14 @@ def inference_run_instance_segmentation_all(
     + SUPPORTED_POLY_FORMATS_TXT,
 )
 @click.option(
+    "--algorithm",
+    "-a",
+    type=click.Choice(["simple", "watershed"]),
+    default="simple",
+    show_default=True,
+    help="Polygonization algorithm. 'simple' uses connected components, 'watershed' uses hierarchical watershed for better field separation.",
+)
+@click.option(
     "--simplify",
     "-s",
     type=click.FloatRange(min=0.0),
@@ -1237,12 +1245,27 @@ def inference_run_instance_segmentation_all(
     show_default=True,
     help="Remove the interiors holes in the polygons.",
 )
+@click.option(
+    "--t_ext",
+    type=click.FloatRange(min=0.0, max=1.0),
+    default=0.5,
+    show_default=True,
+    help="Threshold for extent binary mask (watershed algorithm only).",
+)
+@click.option(
+    "--t_bound",
+    type=click.FloatRange(min=0.0, max=1.0),
+    default=0.2,
+    show_default=True,
+    help="Threshold for watershed horizontal cut (watershed algorithm only).",
+)
 def inference_polygonize(
-    input, out, simplify, min_size, max_size, overwrite, close_interiors
+    input, out, algorithm, simplify, min_size, max_size, overwrite, close_interiors, t_ext, t_bound
 ):
     from ftw_tools.postprocess.polygonize import polygonize
+    polygonize(input, out, simplify, min_size, max_size, overwrite, close_interiors, algorithm, t_ext, t_bound)
 
-    polygonize(input, out, simplify, min_size, max_size, overwrite, close_interiors)
+
 
 
 @inference.command(
