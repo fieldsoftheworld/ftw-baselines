@@ -1237,12 +1237,22 @@ def inference_run_instance_segmentation_all(
     show_default=True,
     help="Remove the interiors holes in the polygons.",
 )
+@click.option(
+    "--stride",
+    "-st",
+    type=click.IntRange(min=0),
+    default=2048,
+    show_default=True,
+    help="Stride size (in pixels) for cutting tif into smaller tiles for polygonizing. Helps avoid OOM errors.",
+)
 def inference_polygonize(
-    input, out, simplify, min_size, max_size, overwrite, close_interiors
+    input, out, simplify, min_size, max_size, overwrite, close_interiors, stride
 ):
     from ftw_tools.postprocess.polygonize import polygonize
 
-    polygonize(input, out, simplify, min_size, max_size, overwrite, close_interiors)
+    polygonize(
+        input, out, simplify, min_size, max_size, overwrite, close_interiors, stride
+    )
 
 
 @inference.command(
