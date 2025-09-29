@@ -38,9 +38,8 @@ def test_crop_calendar_download(temp_cache_dir):
     if cache_dir.exists():
         shutil.rmtree(cache_dir)
 
-    result = download_crop_calendar_files()
+    download_crop_calendar_files()
 
-    assert result is True
     assert cache_dir.exists()
 
     for filename in CROP_CALENDAR_FILES:
@@ -80,9 +79,7 @@ def test_force_redownload_integration(temp_cache_dir):
         for filename in CROP_CALENDAR_FILES
     }
 
-    result = download_crop_calendar_files(force=True)
-
-    assert result is True
+    download_crop_calendar_files(force=True)
 
     for filename in CROP_CALENDAR_FILES:
         new_size = (cache_dir / filename).stat().st_size
@@ -116,6 +113,5 @@ def test_download_crop_calendar_files_failure(mock_wget, temp_cache_dir):
     """Test handling of download failure."""
     mock_wget.side_effect = Exception("Network error")
 
-    result = download_crop_calendar_files()
-
-    assert result is False
+    with pytest.raises(Exception, match="Network error"):
+        download_crop_calendar_files()

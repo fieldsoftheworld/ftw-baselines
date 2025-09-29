@@ -36,43 +36,32 @@ def ensure_crop_calendar_exists() -> Path:
 
     if not all_files_exist:
         print("Downloading crop calendar files (first-time setup)...")
-        success = download_crop_calendar_files()
-        if not success:
-            raise RuntimeError("Failed to download crop calendar files")
+        download_crop_calendar_files()
 
     return cache_dir
 
 
-def download_crop_calendar_files(force: bool = False) -> bool:
+def download_crop_calendar_files(force: bool = False) -> None:
     """Download all crop calendar files.
 
     Args:
         force: If True, re-download even if files exist.
-
-    Returns:
-        True if successful, False otherwise.
     """
     cache_dir = get_crop_calendar_cache_dir()
     cache_dir.mkdir(parents=True, exist_ok=True)
 
-    try:
-        for filename in CROP_CALENDAR_FILES:
-            file_path = cache_dir / filename
+    for filename in CROP_CALENDAR_FILES:
+        file_path = cache_dir / filename
 
-            if file_path.exists() and not force:
-                continue
+        if file_path.exists() and not force:
+            continue
 
-            url = CROP_CALENDAR_BASE_URL + filename
-            print(f"Downloading {filename}...")
+        url = CROP_CALENDAR_BASE_URL + filename
+        print(f"Downloading {filename}...")
 
-            if file_path.exists():
-                file_path.unlink()
+        if file_path.exists():
+            file_path.unlink()
 
-            wget.download(url, str(file_path.resolve()))
+        wget.download(url, str(file_path.resolve()))
 
-        print(f"Files cached at {cache_dir}")
-        return True
-
-    except Exception as e:
-        print(f"Error downloading crop calendar files: {e}")
-        return False
+    print(f"Files cached at {cache_dir}")
