@@ -1245,13 +1245,36 @@ def inference_run_instance_segmentation_all(
     show_default=True,
     help="Stride size (in pixels) for cutting tif into smaller tiles for polygonizing. Helps avoid OOM errors.",
 )
+@click.option(
+    "--softmax_threshold",
+    type=click.IntRange(min=0, max=100),
+    default=None,
+    show_default=True,
+    help="Threshold on softmax scores for class predictions. Note: To use this option, you must pass a tif of scores (using `--save_scores` option from `ftw inference run`).",
+)
 def inference_polygonize(
-    input, out, simplify, min_size, max_size, overwrite, close_interiors, stride
+    input,
+    out,
+    simplify,
+    min_size,
+    max_size,
+    overwrite,
+    close_interiors,
+    stride,
+    softmax_threshold,
 ):
     from ftw_tools.postprocess.polygonize import polygonize
 
     polygonize(
-        input, out, simplify, min_size, max_size, overwrite, close_interiors, stride
+        input,
+        out,
+        simplify,
+        min_size,
+        max_size,
+        overwrite,
+        close_interiors,
+        stride,
+        softmax_threshold,
     )
 
 
