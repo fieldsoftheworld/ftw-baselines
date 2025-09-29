@@ -8,15 +8,21 @@ import scipy
 import scipy.stats
 import xarray as xr
 
-# Harvest day raster paths from https://github.com/ucg-uv/research_products/tree/main
-SUMMER_START_RASTER_PATH = "assets/global_crop_calendar/sc_sos_3x3_v2_cog.tiff"
-SUMMER_END_RASTER_PATH = "assets/global_crop_calendar/sc_eos_3x3_v2_cog.tiff"
+from ftw_tools.download.crop_calendar import ensure_crop_calendar_exists
+from ftw_tools.settings import CROP_CAL_SUMMER_END, CROP_CAL_SUMMER_START
 
 logger = logging.getLogger()
 
 
-def compute_md5(file_path):
-    """Compute the MD5 checksum of a file."""
+def compute_md5(file_path: str) -> str | None:
+    """Compute the MD5 checksum of a file.
+
+    Args:
+        file_path: Path to the file to compute checksum for.
+
+    Returns:
+        The MD5 checksum as a hexadecimal string, or None if file not found.
+    """
     hash_md5 = hashlib.md5()
     try:
         with open(file_path, "rb") as f:
@@ -27,11 +33,19 @@ def compute_md5(file_path):
     return hash_md5.hexdigest()
 
 
-def validate_checksums(checksum_file, root_directory):
-    """Validate checksums stored in a checksum file."""
+def validate_checksums(checksum_file: str, root_directory: str) -> bool:
+    """Validate checksums stored in a checksum file.
+
+    Args:
+        checksum_file: Path to the checksum file.
+        root_directory: Root directory for resolving relative file paths.
+
+    Returns:
+        True if all checksums match, False otherwise.
+    """
     if not os.path.isfile(checksum_file):
         print(f"Checksum file not found: {checksum_file}")
-        return
+        return False
 
     with open(checksum_file, "r") as f:
         lines = f.readlines()
@@ -52,34 +66,40 @@ def validate_checksums(checksum_file, root_directory):
 
 
 def harvest_to_datetime(harvest_day: int, year: int) -> pd.Timestamp:
-    """
-    Convert a harvest integer (day of the year) to a datetime object.
+    """Convert a harvest integer (day of the year) to a datetime object.
 
     Args:
-        harvest_day (int): Day of the year (1-365).
-        year (int): The year for which the date is to be calculated.
+        harvest_day: Day of the year (1-365).
+        year: The year for which the date is to be calculated.
 
     Returns:
-        pd.Timestamp: Corresponding datetime object.
+        Corresponding datetime object.
     """
     return pd.to_datetime(f"{year}-{harvest_day}", format="%Y-%j")
 
 
-# to-do func to get harvest integer from user provided bbox
 def get_harvest_integer_from_bbox(
     bbox: list[float],
-    start_year_raster_path: str = SUMMER_START_RASTER_PATH,
-    end_year_raster_path: str = SUMMER_END_RASTER_PATH,
+    start_year_raster_path: str = None,
+    end_year_raster_path: str = None,
 ) -> list[int]:
-    """
-    Gets harvest integer from a user-provided bounding box. Note currently just uses summer crops.
+    """Gets harvest integer from a user-provided bounding box. Note currently just uses summer crops.
 
     Args:
-        bbox (str): Bounding box in the format 'minx,miny,maxx,maxy'.
+        bbox: Bounding box in the format [minx, miny, maxx, maxy].
+        start_year_raster_path: Optional path to start of year raster.
+        end_year_raster_path: Optional path to end of year raster.
 
     Returns:
-        list: start and end harvest integer (day of the year).
+        Start and end harvest integer (day of the year).
     """
+
+    if start_year_raster_path is None:
+        cache_dir = ensure_crop_calendar_exists()
+        start_year_raster_path = str(cache_dir / CROP_CAL_SUMMER_START)
+    if end_year_raster_path is None:
+        cache_dir = ensure_crop_calendar_exists()
+        end_year_raster_path = str(cache_dir / CROP_CAL_SUMMER_END)
 
     start_harvest_dset = xr.open_dataset(start_year_raster_path, engine="rasterio")
     end_harvest_dset = xr.open_dataset(end_year_raster_path, engine="rasterio")
@@ -114,7 +134,22 @@ def get_harvest_integer_from_bbox(
     return [start_value, end_value]
 
 
-def parse_bbox(ctx, param, value):
+def parse_bbox(
+    ctx: click.Context, param: click.Parameter, value: str | None
+) -> list[float] | None:
+    """Parse and validate a bounding box string.
+
+    Args:
+        ctx: Click context (unused but required for callback).
+        param: Click parameter (unused but required for callback).
+        value: Bounding box string in format 'minx,miny,maxx,maxy'.
+
+    Returns:
+        List of four float values [minx, miny, maxx, maxy], or None if value is None.
+
+    Raises:
+        click.BadParameter: If the bounding box format is invalid.
+    """
     if value is None:
         return None
     if not isinstance(value, str):

@@ -308,9 +308,10 @@ def run_instance_segmentation(
     """
     from .delineate_anything import DelineateAnything
 
-    assert model in ["DelineateAnything", "DelineateAnything-S"], (
-        "Model must be either DelineateAnything or DelineateAnything-S."
-    )
+    assert model in [
+        "DelineateAnything",
+        "DelineateAnything-S",
+    ], "Model must be either DelineateAnything or DelineateAnything-S."
 
     padding = padding if padding is not None else patch_size // 4
     device, _, _, patch_size, stride, _ = setup_inference(
