@@ -20,7 +20,7 @@ class Dice(DiceLoss):
         return loss.mean()
 
 
-class DiceCELoss(nn.Module):
+class DiceCE(nn.Module):
     def __init__(self, weight_ce=0.5, weight_dice=0.5, 
                  ignore_index=None, class_weights=None, 
                  mode="multiclass", classes=None, use_log_cosh=True):
