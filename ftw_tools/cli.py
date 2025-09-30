@@ -1254,13 +1254,37 @@ def inference_run_instance_segmentation_all(
     show_default=True,
     help="Stride size (in pixels) for cutting tif into smaller tiles for polygonizing. Helps avoid OOM errors.",
 )
+@click.option(
+    "--merge_adjacent",
+    "-ma",
+    type=click.IntRange(min=0, max=100),
+    default=None,
+    show_default=True,
+    help="Threshold for merging adjacent polygons. Threshold is the percent of a polygon's perimeter touching another polygon.",
+)
 def inference_polygonize(
-    input, out, simplify, min_size, max_size, overwrite, close_interiors, stride
+    input,
+    out,
+    simplify,
+    min_size,
+    max_size,
+    overwrite,
+    close_interiors,
+    stride,
+    merge_adjacent,
 ):
     from ftw_tools.postprocess.polygonize import polygonize
 
     polygonize(
-        input, out, simplify, min_size, max_size, overwrite, close_interiors, stride
+        input,
+        out,
+        simplify,
+        min_size,
+        max_size,
+        overwrite,
+        close_interiors,
+        stride,
+        merge_adjacent,
     )
 
 
