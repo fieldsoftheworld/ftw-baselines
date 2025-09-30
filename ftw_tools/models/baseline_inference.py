@@ -21,7 +21,6 @@ from torchgeo.datasets import stack_samples
 from torchgeo.samplers import GridGeoSampler
 from tqdm import tqdm
 import shapely.geometry
-import fiona
 
 from ftw_tools.models.utils import convert_to_fiboa, postprocess_instance_polygons
 from ftw_tools.torchgeo.datamodules import preprocess
@@ -31,6 +30,7 @@ from ftw_tools.torchgeo.trainers import CustomSemanticSegmentationTask
 TORCHGEO_06 = Version("0.6.0")
 TORCHGEO_08 = Version("0.8.0.dev0")
 TORCHGEO_CURRENT = parse(torchgeo.__version__)
+
 
 def setup_inference(
     input,
@@ -169,10 +169,9 @@ def run(
     input_height, input_width = input_shape[0], input_shape[1]
     if save_scores:
         out_channels = 3
-        output_mask = np.zeros([3, input_height, input_width], dtype=np.float32)
     else:
         out_channels = 1
-        output_mask = np.zeros([1, input_height, input_width], dtype=np.uint8)
+    output_mask = np.zeros([out_channels, input_height, input_width], dtype=np.uint8)
     dl_enumerator = tqdm(dataloader)
 
     inference_geoms = []
@@ -213,14 +212,16 @@ def run(
                 # rescale probabilities from [0, 1] to [0, 255] and store as uint8
                 predictions = (predictions * 255).clip(0, 255).astype(np.uint8)
             else:
-                predictions = predictions.argmax(axis=1).unsqueeze(0)
+                predictions = predictions.argmax(axis=1).unsqueeze(1)
                 predictions = down_sample(predictions.float()).int().cpu().numpy()
 
         for i in range(len(bboxes)):
             minx, miny, maxx, maxy = bboxes[i]
 
             # Save the polygon of this patch for debugging/visualization
-            geom = shapely.geometry.mapping(shapely.geometry.box(minx, miny, maxx, maxy))
+            geom = shapely.geometry.mapping(
+                shapely.geometry.box(minx, miny, maxx, maxy)
+            )
             inference_geoms.append(geom)
 
             left, bottom = ~transform * (minx, miny)
@@ -256,7 +257,7 @@ def run(
             src_top = effective_top_pad + (dst_top - ptop)
             src_bottom = effective_top_pad + (dst_bottom - ptop)
 
-            h, w = predictions[i].shape
+            _, h, w = predictions[i].shape
             src_left = max(0, min(src_left, w))
             src_right = max(0, min(src_right, w))
             src_top = max(0, min(src_top, h))
@@ -264,11 +265,8 @@ def run(
             if src_right <= src_left or src_bottom <= src_top:
                 continue
 
-            if save_scores:
-                inp = predictions[i, src_top:src_bottom, src_left:src_right]
-            else:
-                inp = predictions[:, i, src_top:src_bottom, src_left:src_right]
-            output_mask[dst_top:dst_bottom, dst_left:dst_right] = inp
+            inp = predictions[i, :, src_top:src_bottom, src_left:src_right]
+            output_mask[:, dst_top:dst_bottom, dst_left:dst_right] = inp
 
     # Some code to save prediction footprints
     # with fiona.open("inference_footprints.geojson", "w", driver="GeoJSON", crs=profile["crs"], schema={"geometry": "Polygon", "properties": {}}) as dst:
@@ -287,13 +285,16 @@ def run(
             "dtype": "uint8",
             "compress": "lzw",
             "predictor": 2,
-            "nodata": 0,
             "blockxsize": 512,
             "blockysize": 512,
             "tiled": True,
             "interleave": "pixel",
         }
     )
+    if save_scores:
+        profile["nodata"] = None
+    else:
+        profile["nodata"] = 0  # background class
 
     with rasterio.open(out, "w", **profile) as dst:
         dst.update_tags(**tags)
