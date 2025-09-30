@@ -302,6 +302,13 @@ def model_fit(config, ckpt_path, cli_args):
     help="Temporal option",
 )
 @click.option(
+    "--use_val_set",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Whether to run evaluation on the val set or test set (default).",
+)
+@click.option(
     "--swap_order",
     is_flag=True,
     default=False,
@@ -318,6 +325,7 @@ def model_test(
     model_predicts_3_classes,
     test_on_3_classes,
     temporal_options,
+    use_val_set,
     swap_order,
 ):
     from ftw_tools.models.baseline_eval import test
@@ -332,6 +340,7 @@ def model_test(
         model_predicts_3_classes,
         test_on_3_classes,
         temporal_options,
+        use_val_set,
         swap_order,
     )
 
