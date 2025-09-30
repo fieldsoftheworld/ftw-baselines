@@ -14,9 +14,9 @@ jobs:
         with:
           pixi-version: v0.49.0
           cache: true
-          cache-key: ${{ runner.os }}-pixi-lint-${{ hashFiles('pixi.lock') }}
+          cache-key: ${{ runner.os }}-pixi-${{ hashFiles('pixi.lock') }}
       - name: Run pre-commit
-        run: pixi run -e lint pre-commit run --all-files
+        run: pixi run -e dev pre-commit run --all-files
 
   build:
     name: Run build
