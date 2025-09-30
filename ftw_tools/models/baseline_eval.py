@@ -3,10 +3,10 @@ import time
 
 import numpy as np
 import torch
+from einops import rearrange
 from lightning.pytorch.cli import LightningCLI
 from torch.utils.data import DataLoader
 from torchgeo.trainers import BaseTask
-from einops import rearrange
 from torchmetrics import JaccardIndex, MetricCollection, Precision, Recall
 from tqdm import tqdm
 

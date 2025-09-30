@@ -20,15 +20,14 @@ from torchgeo.models import FCN, FCSiamConc, FCSiamDiff
 from torchgeo.trainers.base import BaseTask
 from torchmetrics import MetricCollection
 from torchmetrics.classification import (
-    MulticlassAccuracy,
     MulticlassJaccardIndex,
     MulticlassPrecision,
     MulticlassRecall,
 )
 from torchvision.models._api import WeightsEnum
 
-from .losses import PixelWeightedCE
 from ..postprocess.metrics import get_object_level_metrics
+from .losses import PixelWeightedCE
 from .models import FCSiamAvg
 
 
@@ -318,7 +317,7 @@ class CustomSemanticSegmentationTask(BaseTask):
             )
 
         if in_channels < 5 and model in ["fcsiamdiff", "fcsiamconc", "fcsiamavg"]:
-            raise ValueError(f"FCSiam models require more than one input image.")
+            raise ValueError("FCSiam models require more than one input image.")
 
         # Freeze backbone
         if self.hparams["freeze_backbone"] and model in ["unet", "deeplabv3+"]:

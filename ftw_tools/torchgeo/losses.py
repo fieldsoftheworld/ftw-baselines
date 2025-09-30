@@ -1,8 +1,10 @@
+from typing import Optional, Tuple, Union
+
+import kornia as K
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import kornia as K
-from typing import Tuple, Union, Optional
+
 
 class PixelWeightedCE(nn.Module):
     """

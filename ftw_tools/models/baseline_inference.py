@@ -8,19 +8,19 @@ import kornia.augmentation as K
 import numpy as np
 import pandas as pd
 import rasterio
+import shapely.geometry
 import torch
 import torch.nn.functional as F
 import torchgeo
 from einops import rearrange
-from packaging.version import Version, parse
 from kornia.constants import Resample
+from packaging.version import Version, parse
 from rasterio.enums import ColorInterp
 from rasterio.transform import from_bounds
 from torch.utils.data import DataLoader
 from torchgeo.datasets import stack_samples
 from torchgeo.samplers import GridGeoSampler
 from tqdm import tqdm
-import shapely.geometry
 
 from ftw_tools.models.utils import convert_to_fiboa, postprocess_instance_polygons
 from ftw_tools.torchgeo.datamodules import preprocess
