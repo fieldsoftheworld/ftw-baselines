@@ -83,10 +83,14 @@ def main(args):
                     model_predicts_classes = (
                         config_data.get("model").get("init_args").get("num_classes", 3)
                     )
-                    temporal_option = config_data.get("data").get("init_args").get(
-                        "temporal_options", "stacked"
+                    temporal_option = (
+                        config_data.get("data")
+                        .get("init_args")
+                        .get("temporal_options", "stacked")
                     )
-                    checkpoints.append((checkpoint_path, model_predicts_classes, temporal_option))
+                    checkpoints.append(
+                        (checkpoint_path, model_predicts_classes, temporal_option)
+                    )
                 else:
                     print(f"Missing config for checkpoint {root}")
 
@@ -106,7 +110,8 @@ def main(args):
             str(args.gpu),
             "--dir",
             "data/ftw",
-            "--temporal_options", temporal_option,
+            "--temporal_options",
+            temporal_option,
             "--model",
             checkpoint,
             "--out",
@@ -134,7 +139,8 @@ def main(args):
                     str(args.gpu),
                     "--dir",
                     "data/ftw",
-                    "--temporal_options", temporal_option,
+                    "--temporal_options",
+                    temporal_option,
                     "--model",
                     checkpoint,
                     "--out",

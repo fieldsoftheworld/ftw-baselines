@@ -26,6 +26,7 @@ class PixelWeightedCE(nn.Module):
     ignore_index : Optional[int]
         Label to ignore in loss/weight computation (e.g. 255).
     """
+
     def __init__(
         self,
         kernel_size: Union[int, Tuple[int, int]] = 5,
@@ -57,9 +58,7 @@ class PixelWeightedCE(nn.Module):
 
         # Build the blur op (created once; runs on whatever device/tensor you pass)
         self.blur = K.filters.GaussianBlur2d(
-            kernel_size=self.kernel_size,
-            sigma=self.sigma,
-            border_type='reflect'
+            kernel_size=self.kernel_size, sigma=self.sigma, border_type="reflect"
         )
 
     @torch.no_grad()
@@ -74,16 +73,16 @@ class PixelWeightedCE(nn.Module):
         dtype = torch.float32
 
         # Binary map for the chosen class
-        E = (masks == self.target_class)
+        E = masks == self.target_class
         if self.ignore_index is not None:
             E = E & (masks != self.ignore_index)
 
         E = E.to(dtype=dtype).unsqueeze(1)  # (N,1,H,W)
         # Kornia modules track device via input; no manual .to needed
-        weights = self.blur(E).squeeze(1)   # (N,H,W)
+        weights = self.blur(E).squeeze(1)  # (N,H,W)
 
         # If everything is ignored/absent, avoid all-zero weights
-        if (weights.sum() <= 0):
+        if weights.sum() <= 0:
             weights = torch.zeros_like(weights)
 
         return (weights * self.scale) + 1.0  # add 1 to ensure min weight is 1.0
@@ -98,15 +97,16 @@ class PixelWeightedCE(nn.Module):
 
         # Per-pixel CE, no reduction
         ce = F.cross_entropy(
-            preds, masks,
+            preds,
+            masks,
             weight=self.class_weights,
-            reduction='none',
-            ignore_index=-100 if self.ignore_index is None else self.ignore_index
+            reduction="none",
+            ignore_index=-100 if self.ignore_index is None else self.ignore_index,
         )  # (N,H,W), float
 
         # Build weights from blurred target-class mask
         with torch.no_grad():
-            w = self._make_weights(masks) # (N,H,W)
+            w = self._make_weights(masks)  # (N,H,W)
 
             # Zero out weights on ignore pixels to be safe
             if self.ignore_index is not None:

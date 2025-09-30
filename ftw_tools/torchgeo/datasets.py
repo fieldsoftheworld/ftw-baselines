@@ -48,7 +48,7 @@ class FTW(NonGeoDataset):
         temporal_options: str = "stacked",
         swap_order: bool = False,
         num_samples: int = -1,
-        ignore_sample_fn: Optional[str] = None
+        ignore_sample_fn: Optional[str] = None,
     ) -> None:
         """Initialize a new FTW dataset instance.
 
@@ -134,7 +134,6 @@ class FTW(NonGeoDataset):
             aoi_ids = chips_df["aoi_id"].values
 
             for idx in aoi_ids:
-
                 if (country, idx) in bad_samples:
                     continue
 

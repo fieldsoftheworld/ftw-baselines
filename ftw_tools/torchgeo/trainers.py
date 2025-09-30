@@ -162,7 +162,8 @@ class CustomSemanticSegmentationTask(BaseTask):
             )
         elif loss == "ce+dice":
             self.dice_loss = smp.losses.DiceLoss(
-                "multiclass", ignore_index=ignore_index,
+                "multiclass",
+                ignore_index=ignore_index,
             )
 
             if self.hparams["class_weights"] is not None:
@@ -173,9 +174,9 @@ class CustomSemanticSegmentationTask(BaseTask):
             self.ce_loss = nn.CrossEntropyLoss(
                 ignore_index=ignore_value, weight=class_weights
             )
-            self.criterion = lambda y_pred, y_true: self.ce_loss(y_pred, y_true) + self.dice_loss(
+            self.criterion = lambda y_pred, y_true: self.ce_loss(
                 y_pred, y_true
-            )
+            ) + self.dice_loss(y_pred, y_true)
 
         else:
             raise ValueError(
