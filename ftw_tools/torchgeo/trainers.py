@@ -161,6 +161,23 @@ class CustomSemanticSegmentationTask(BaseTask):
             self.criterion = smp.losses.FocalLoss(
                 "multiclass", ignore_index=ignore_index, normalized=True
             )
+        elif loss == "ce+dice":
+            self.dice_loss = smp.losses.DiceLoss(
+                "multiclass", ignore_index=ignore_index,
+            )
+
+            if self.hparams["class_weights"] is not None:
+                class_weights = torch.tensor(self.hparams["class_weights"])
+            else:
+                class_weights = None
+            ignore_value = -1000 if ignore_index is None else ignore_index
+            self.ce_loss = nn.CrossEntropyLoss(
+                ignore_index=ignore_value, weight=class_weights
+            )
+            self.criterion = lambda y_pred, y_true: self.ce_loss(y_pred, y_true) + self.dice_loss(
+                y_pred, y_true
+            )
+
         else:
             raise ValueError(
                 f"Loss type '{loss}' is not valid. "
@@ -228,6 +245,14 @@ class CustomSemanticSegmentationTask(BaseTask):
                 in_channels=in_channels,
                 classes=num_classes,
                 **model_kwargs,
+            )
+        elif model == "unet_r":
+            self.model = smp.Unet(
+                encoder_name=backbone,
+                encoder_weights="imagenet" if weights is True else None,
+                decoder_channels=(16, 32, 64, 128, 256),
+                in_channels=in_channels,
+                classes=num_classes,
             )
         elif model == "deeplabv3+":
             self.model = smp.DeepLabV3Plus(

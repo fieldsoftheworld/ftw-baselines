@@ -9,7 +9,7 @@ import pandas as pd
 import yaml
 
 # list of GPU IDs that we want to use, one job will be started for every ID in the list
-GPUS = [1,2,3,4,5,6,7]
+GPUS = [0,1,2,3,4,5,6,7]
 DRY_RUN = False  # if False then print out the commands to be run, if True then run
 
 
@@ -88,8 +88,12 @@ def main(args: argparse.Namespace):
         existing_checkpoints = set(df["train_checkpoint"].values)
     print(f"Found {len(existing_checkpoints)} existing checkpoints in {args.output_fn}")
 
+    # Walk the user-specified root (defaults to 'logs/') for checkpoint folders
+    search_root = args.search_root
+    if not os.path.isdir(search_root):
+        print(f"Warning: search_root '{search_root}' does not exist or is not a directory.")
     checkpoints = []
-    for root, dirs, files in os.walk("logs/"):
+    for root, dirs, files in os.walk(search_root):
         for file in files:
             if file.endswith("last.ckpt"):
                 parent_dir = os.path.dirname(root)
@@ -190,5 +194,11 @@ if __name__ == '__main__':
         help="Which data split to use for evaluation",
     )
     parser.add_argument("--output_fn", required=True, type=str, help="Output filename")
+    parser.add_argument(
+        "--search_root",
+        type=str,
+        default="logs/",
+        help="Root directory to recursively search for checkpoint directories (default: logs/)",
+    )
     args = parser.parse_args()
     main(args)
