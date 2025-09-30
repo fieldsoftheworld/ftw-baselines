@@ -51,6 +51,10 @@ torchgeo = ">=0.7.0,<1.0"  # see https://github.com/fieldsoftheworld/ftw-baselin
 [feature.delineate-anything.pypi-dependencies]
 ultralytics = ">=8.3.187,<9"
 
+[feature.lint.dependencies]
+ruff = ">=0.1,<1.0"
+pre-commit = ">=4.0,<=5.0"
+
 [feature.dev.pypi-dependencies]
 build = "*"
 
@@ -69,6 +73,7 @@ cuda = "12"
 default = {solve-group = "default"}
 dev = {features = ["dev", "delineate-anything"], solve-group = "default"}
 delineate-anything = {features = ["delineate-anything"], solve-group = "default"}
+lint = {features = ["lint"], solve-group = "lint"}
 
 [tasks]
 # Code quality
