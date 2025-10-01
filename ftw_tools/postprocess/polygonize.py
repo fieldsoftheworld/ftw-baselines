@@ -42,9 +42,9 @@ class UnionFind:
             self.rank[ra] += 1
 
 
-def merge_adjacent_polygons(features, ratio=10):
+def merge_adjacent_polygons(features, ratio):
     """Merge polygons when they overlap or touch sufficiently."""
-    ratio /= 100.0
+    print(f"Merging polygons that overlap at least {ratio * 100}%")
     geoms, ids = [], []
     for f in features:
         g = shapely.geometry.shape(f["geometry"])
@@ -84,7 +84,9 @@ def merge_adjacent_polygons(features, ratio=10):
             shared = gi.boundary.intersection(gj.boundary).length
             if shared > 0:
                 mperim = min(perims[i], perims[j])
-                if mperim > 0 and (shared / mperim) >= ratio:
+                if (mperim > 0 and (shared / mperim) >= ratio) or (
+                    ratio == 0 and gi.touches(gj)
+                ):
                     uf.union(i, j)
 
     # Group by connected components
@@ -243,7 +245,7 @@ def polygonize(
                     pbar.update(1)
 
     # Merge adjacent polygons
-    if merge_adjacent:
+    if merge_adjacent != None:
         rows = merge_adjacent_polygons(rows, merge_adjacent)
 
     if format == "Parquet":

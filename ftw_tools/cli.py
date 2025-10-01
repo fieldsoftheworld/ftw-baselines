@@ -1257,7 +1257,7 @@ def inference_run_instance_segmentation_all(
 @click.option(
     "--merge_adjacent",
     "-ma",
-    type=click.IntRange(min=0, max=100),
+    type=click.FloatRange(min=0.0, max=1.0),
     default=None,
     show_default=True,
     help="Threshold for merging adjacent polygons. Threshold is the percent of a polygon's perimeter touching another polygon.",
