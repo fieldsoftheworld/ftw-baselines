@@ -1247,7 +1247,7 @@ def inference_run_instance_segmentation_all(
 )
 @click.option(
     "--softmax_threshold",
-    type=click.IntRange(min=0, max=100),
+    type=click.FloatRange(min=0, max=1),
     default=None,
     show_default=True,
     help="Threshold on softmax scores for class predictions. Note: To use this option, you must pass a tif of scores (using `--save_scores` option from `ftw inference run`).",

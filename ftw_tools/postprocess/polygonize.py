@@ -27,7 +27,7 @@ def polygonize(
     overwrite=False,
     close_interiors=False,
     polygonization_stride=2048,
-    softmax_threshold=50,
+    softmax_threshold=None,
 ):
     """Polygonize the output from inference."""
 
@@ -71,6 +71,8 @@ def polygonize(
             assert src.count == 3, (
                 "Input tif should have 3 bands (background, interior, boundary scores)."
             )
+            # softmax scores were quantized to [0,255], so convert threshold similarly
+            softmax_threshold *= 255
             # 1st channel: scores for background class, 2nd: interior, 3rd: boundary
             mask = (src.read(2) >= softmax_threshold).astype(np.uint8)
         else:
