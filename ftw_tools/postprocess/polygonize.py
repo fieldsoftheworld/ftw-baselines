@@ -12,10 +12,101 @@ import shapely.geometry
 from affine import Affine
 from fiboa_cli.parquet import create_parquet, features_to_dataframe
 from pyproj import CRS, Transformer
-from shapely.ops import transform
+from shapely.ops import transform, unary_union
 from tqdm import tqdm
 
 from ftw_tools.settings import SUPPORTED_POLY_FORMATS_TXT
+
+
+class UnionFind:
+    def __init__(self, n: int):
+        self.parent = list(range(n))
+        self.rank = [0] * n
+
+    def find(self, x: int) -> int:
+        while self.parent[x] != x:
+            self.parent[x] = self.parent[self.parent[x]]
+            x = self.parent[x]
+        return x
+
+    def union(self, a: int, b: int) -> None:
+        ra, rb = self.find(a), self.find(b)
+        if ra == rb:
+            return
+        if self.rank[ra] < self.rank[rb]:
+            self.parent[ra] = rb
+        elif self.rank[ra] > self.rank[rb]:
+            self.parent[rb] = ra
+        else:
+            self.parent[rb] = ra
+            self.rank[ra] += 1
+
+
+def merge_adjacent_polygons(features, ratio):
+    """Merge polygons when they overlap or touch sufficiently."""
+    print(f"Merging polygons that overlap at least {ratio * 100}%")
+    geoms, ids = [], []
+    for f in features:
+        g = shapely.geometry.shape(f["geometry"])
+        if g.is_empty:
+            continue
+        geoms.append(g)
+        ids.append(str(f.get("properties", {}).get("id", "")))
+
+    n = len(geoms)
+    if n == 0:
+        return []
+
+    perims = [g.length for g in geoms]
+    bboxes = [g.bounds for g in geoms]  # (minx, miny, maxx, maxy)
+
+    uf = UnionFind(n)
+    for i in range(n):
+        minx_i, miny_i, maxx_i, maxy_i = bboxes[i]
+        gi = geoms[i]
+        for j in range(i + 1, n):
+            minx_j, miny_j, maxx_j, maxy_j = bboxes[j]
+            # quick bbox reject
+            if maxx_i < minx_j or maxx_j < minx_i or maxy_i < miny_j or maxy_j < miny_i:
+                continue
+
+            gj = geoms[j]
+            if not gi.intersects(gj):
+                continue
+
+            inter = gi.intersection(gj)
+            # if overlapping (positive area), then merge
+            if getattr(inter, "area", 0.0) > 0.0:
+                uf.union(i, j)
+                continue
+
+            # if touching, then check shared boundary ratio
+            shared = gi.boundary.intersection(gj.boundary).length
+            if shared > 0:
+                mperim = min(perims[i], perims[j])
+                if (mperim > 0 and (shared / mperim) >= ratio) or (
+                    ratio == 0 and gi.touches(gj)
+                ):
+                    uf.union(i, j)
+
+    # Group by connected components
+    comps = {}
+    for k in range(n):
+        r = uf.find(k)
+        comps.setdefault(r, []).append(k)
+
+    # Dissolve components (assumes union is a Polygon)
+    out = []
+    for idxs in comps.values():
+        u = unary_union([geoms[k] for k in idxs])
+        props = {
+            "id": ",".join([ids[k] for k in idxs if ids[k]]),
+            "area": float(u.area),
+            "perimeter": float(u.length),
+        }
+        out.append({"geometry": shapely.geometry.mapping(u), "properties": props})
+
+    return out
 
 
 def polygonize(
@@ -27,6 +118,7 @@ def polygonize(
     overwrite=False,
     close_interiors=False,
     polygonization_stride=2048,
+    merge_adjacent=None,
 ):
     """Polygonize the output from inference."""
 
@@ -151,6 +243,10 @@ def polygonize(
                         i += 1
 
                     pbar.update(1)
+
+    # Merge adjacent polygons
+    if merge_adjacent != None:
+        rows = merge_adjacent_polygons(rows, merge_adjacent)
 
     if format == "Parquet":
         timestamp = tags.get("TIFFTAG_DATETIME", None)
