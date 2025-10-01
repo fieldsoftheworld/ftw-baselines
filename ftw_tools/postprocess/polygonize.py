@@ -119,6 +119,8 @@ def polygonize(
     close_interiors=False,
     polygonization_stride=2048,
     merge_adjacent=None,
+    erode_dilate=0,
+    dilate_erode=0,
 ):
     """Polygonize the output from inference."""
 
@@ -201,6 +203,24 @@ def polygonize(
 
                         geom = shapely.geometry.shape(geom_geojson)
 
+                        if erode_dilate > 0:
+                            # morphological opening
+                            geom = geom.buffer(
+                                -erode_dilate,
+                                join_style=shapely.geometry.JOIN_STYLE.mitre,
+                            ).buffer(
+                                +erode_dilate,
+                                join_style=shapely.geometry.JOIN_STYLE.mitre,
+                            )
+                        if dilate_erode > 0:
+                            # morphological closing
+                            geom = geom.buffer(
+                                +erode_dilate,
+                                join_style=shapely.geometry.JOIN_STYLE.mitre,
+                            ).buffer(
+                                -erode_dilate,
+                                join_style=shapely.geometry.JOIN_STYLE.mitre,
+                            )
                         if close_interiors:
                             geom = shapely.geometry.Polygon(geom.exterior)
                         if simplify > 0:
@@ -230,17 +250,34 @@ def polygonize(
                         if is_geojson:
                             geom = transform(affine, geom)
 
-                        rows.append(
-                            {
-                                "geometry": shapely.geometry.mapping(geom),
-                                "properties": {
-                                    "id": str(i),
-                                    "area": area * 0.0001,  # Add the area in hectares
-                                    "perimeter": perimeter,  # Add the perimeter in meters
-                                },
-                            }
-                        )
-                        i += 1
+                        # explode MultiPolygons if needed
+                        if isinstance(geom, shapely.geometry.MultiPolygon):
+                            for g in geom.geoms:
+                                rows.append(
+                                    {
+                                        "geometry": shapely.geometry.mapping(g),
+                                        "properties": {
+                                            "id": str(i),
+                                            "area": g.area
+                                            * 0.0001,  # Add the area in hectares
+                                            "perimeter": g.length,  # Add the perimeter in meters
+                                        },
+                                    }
+                                )
+                                i += 1
+                        else:
+                            rows.append(
+                                {
+                                    "geometry": shapely.geometry.mapping(geom),
+                                    "properties": {
+                                        "id": str(i),
+                                        "area": area
+                                        * 0.0001,  # Add the area in hectares
+                                        "perimeter": perimeter,  # Add the perimeter in meters
+                                    },
+                                }
+                            )
+                            i += 1
 
                     pbar.update(1)
 

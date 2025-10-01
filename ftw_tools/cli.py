@@ -1262,6 +1262,22 @@ def inference_run_instance_segmentation_all(
     show_default=True,
     help="Threshold for merging adjacent polygons. Threshold is the percent of a polygon's perimeter touching another polygon.",
 )
+@click.option(
+    "--erode_dilate",
+    "-ed",
+    type=click.FloatRange(min=0.0),
+    default=0,
+    show_default=True,
+    help="Distance (in CRS units, e.g., meters) for a morphological opening (erode then dilate) applied to each polygon to shave spurs and remove thin slivers. Set 0 to disable. A good starting value is 0.5–1x the raster pixel size.",
+)
+@click.option(
+    "--dilate_erode",
+    "-de",
+    type=click.FloatRange(min=0.0),
+    default=0,
+    show_default=True,
+    help="Distance (in CRS units, e.g., meters) for a morphological closing (dilate then erode) applied to each polygon to seal hairline gaps, fill pinholes, and connect near-touching parts without net growth. Set 0 to disable. A good starting value is 0.5–1× the raster pixel size.",
+)
 def inference_polygonize(
     input,
     out,
@@ -1272,6 +1288,8 @@ def inference_polygonize(
     close_interiors,
     stride,
     merge_adjacent,
+    erode_dilate,
+    dilate_erode,
 ):
     from ftw_tools.postprocess.polygonize import polygonize
 
@@ -1285,6 +1303,8 @@ def inference_polygonize(
         close_interiors,
         stride,
         merge_adjacent,
+        erode_dilate,
+        dilate_erode,
     )
 
 
