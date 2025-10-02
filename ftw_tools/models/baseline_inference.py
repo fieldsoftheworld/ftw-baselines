@@ -1,6 +1,7 @@
 import math
 import os
 import time
+from pathlib import Path
 from typing import Literal
 
 import geopandas as gpd
@@ -124,21 +125,30 @@ def run(
     # Load model
     if model in MODEL_REGISTRY.keys():
         print(f"Downloading model {model} from {MODEL_REGISTRY[model]}")
-        model = MODEL_REGISTRY[model].url
+        model_path = MODEL_REGISTRY[model].url
+
+        # Ensure cache directory exists
+        cache_dir = Path.home() / ".cache" / "torch" / "hub" / "checkpoints"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+
+        # Download the file to cache (doesn't load it yet)
+        cached_file = cache_dir / f"{model}.ckpt"
+
+        # Only download if not already cached
+        if not cached_file.exists():
+            torch.hub.download_url_to_file(model_path, str(cached_file), progress=True)
+
+        model_path = str(cached_file)
 
     else:
         assert model.endswith(".ckpt"), "Model file must be a .ckpt file."
-
-    model = torch.hub.load_state_dict_from_url(
-        model, map_location=torch.device(device)
-    )  #'cpu'
-
-    # assert os.path.exists(model), f"Model file {model} does not exist."
+        assert os.path.exists(model), f"Model file {model} does not exist."
+        model_path = model
 
     # Load task
     tic = time.time()
     task = CustomSemanticSegmentationTask.load_from_checkpoint(
-        model, map_location="cpu"
+        model_path, map_location="cpu"
     )
     task.freeze()
     model = task.model.eval().to(device)
