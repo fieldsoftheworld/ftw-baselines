@@ -26,6 +26,7 @@ from ftw_tools.utils import parse_bbox
 
 COUNTRIES_CHOICE = ALL_COUNTRIES.copy()
 COUNTRIES_CHOICE.append("all")
+COUNTRIES_CHOICE.append("full_data")
 
 
 class ModelVersions(enum.StrEnum):
@@ -245,7 +246,7 @@ def model_fit(config, ckpt_path, cli_args):
     type=click.Choice(COUNTRIES_CHOICE, case_sensitive=False),
     multiple=True,
     required=True,
-    help="Countries to evaluate on",
+    help="Countries to evaluate on ('full_data' uses all countries except the precense only and Portugal datasets)",
 )
 @click.option(
     "--dir",

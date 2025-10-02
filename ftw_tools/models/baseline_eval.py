@@ -39,6 +39,29 @@ FULL_DATA_COUNTRIES = [
 ]
 
 
+def expand_countries(countries: list[str]) -> list[str]:
+    """Expand the 'full_data' placeholder to the full list of countries.
+
+    Args:
+        countries: List of country names, may contain 'full_data' placeholder
+
+    Returns:
+        List of country names with 'full_data' expanded to FULL_DATA_COUNTRIES.
+        Always returns a new list to avoid modifying the original.
+
+    Examples:
+        >>> expand_countries(['full_data'])
+        ['austria', 'belgium', ...]
+        >>> expand_countries(['rwanda', 'kenya'])
+        ['rwanda', 'kenya']
+        >>> expand_countries(['rwanda', 'full_data', 'kenya'])
+        ['austria', 'belgium', ...]  # full_data replaces entire list
+    """
+    if "full_data" in countries:
+        return FULL_DATA_COUNTRIES.copy()
+    return countries.copy()
+
+
 def fit(config, ckpt_path, cli_args):
     """Command to fit the model."""
     print("Running fit command")
@@ -79,7 +102,7 @@ def test(
     model_path,
     dir,
     gpu,
-    countries,
+    countries: list[str],
     iou_threshold,
     out,
     model_predicts_3_classes,
@@ -93,6 +116,8 @@ def test(
     print(f"Running test command on the {target_split} set")
     if gpu is None:
         gpu = -1
+
+    countries = expand_countries(countries)
 
     # Merge `test_model` function into this test command
     if torch.cuda.is_available() and gpu >= 0:
