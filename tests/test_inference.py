@@ -134,12 +134,6 @@ def test_inference_download_single():
 def test_inference_run():
     runner = CliRunner()
 
-    # Download the pretrained model
-    # runner.invoke(model_download, ["--type=THREE_CLASS_FULL"]) TO-DO FIX
-
-    # model_path = "3_Class_FULL_FTW_Pretrained.ckpt"
-    # assert os.path.exists(model_path)
-
     # Check required files are present
     inf_input_path = "./tests/data-files/inference-img.tif"
     assert os.path.exists(inf_input_path)
@@ -193,15 +187,6 @@ def test_ftw_inference_all():
     runner = CliRunner()
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        # Create temporary model file path
-        model_path = os.path.join(temp_dir, "3_Class_FULL_FTW_Pretrained.ckpt")
-
-        # Download the pretrained model
-        # runner.invoke(model_download, ["--type=THREE_CLASS_FULL"])
-        # downloaded_model = "3_Class_FULL_FTW_Pretrained.ckpt"
-        # if os.path.exists(downloaded_model):
-        #     shutil.move(downloaded_model, model_path)
-
         out_path = os.path.join(temp_dir, "inference_output")
 
         # Run the full inference pipeline

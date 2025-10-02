@@ -28,16 +28,6 @@ from ftw_tools.utils import parse_bbox
 COUNTRIES_CHOICE = ALL_COUNTRIES.copy()
 COUNTRIES_CHOICE.append("all")
 
-
-# class ModelVersions(enum.StrEnum):
-#     """Mapping from short_name to .ckpt file in github."""
-
-#     TWO_CLASS_CCBY = "2_Class_CCBY_FTW_Pretrained.ckpt"
-#     TWO_CLASS_FULL = "2_Class_FULL_FTW_Pretrained.ckpt"
-#     THREE_CLASS_CCBY = "3_Class_CCBY_FTW_Pretrained.ckpt"
-#     THREE_CLASS_FULL = "3_Class_FULL_FTW_Pretrained.ckpt"
-
-
 # All commands are meant to use dashes as separator for words.
 # All parameters are meant to use underscores as separator for words.
 
