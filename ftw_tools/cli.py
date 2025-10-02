@@ -327,33 +327,6 @@ def model_test(
     )
 
 
-# @model.command("download", help="Download model checkpoints")
-# @click.option(
-#     "--type",
-#     type=click.Choice(ModelVersions),
-#     required=True,
-#     help="Short model name corresponding to a .ckpt file in github.",
-# )
-# @click.option(
-#     "--out",
-#     "-o",
-#     type=click.Path(exists=False),
-#     default=None,
-#     show_default=True,
-#     help="File where the file will be stored to. Defaults to the original filename of the selected model.",
-# )
-# def model_download(type: ModelVersions, out: Optional[str] = None):
-#     github_url = f"https://github.com/fieldsoftheworld/ftw-baselines/releases/download/v1/{type.value}"
-#     target = Path(out or type.value)
-#     if target.exists():
-#         print(f"File {target} already exists, skipping download.")
-#         return
-
-#     print(f"Downloading {github_url} to {target}")
-#     target.parent.mkdir(parents=True, exist_ok=True)
-#     wget.download(github_url, str(target.resolve()))
-
-
 ### Inference group
 
 WIN_HELP = "URL to a Sentinel-2 L2A STAC item for the window {x} image. Alternatively, an ID of a STAC Item on Microsoft Planetary Computer."
