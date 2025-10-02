@@ -432,6 +432,11 @@ Options:
                                   compliant), .fgb (FlatGeoBuf), .gpkg
                                   (GeoPackage), .geojson / .json / .ndjson
                                   (GeoJSON)
+  -a, --algorithm [simple|zhangsuen]
+                                  Polygonization algorithm. 'simple' uses
+                                  connected components, 'zhangsuen' thins
+                                  boundary pixels while preserving
+                                  connectivity.  [default: simple]
   -s, --simplify FLOAT RANGE      Simplification factor to use when
                                   polygonizing in the unit of the CRS, e.g.
                                   meters for Sentinel-2 imagery in UTM. Set to

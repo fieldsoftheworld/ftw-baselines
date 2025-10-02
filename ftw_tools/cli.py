@@ -1208,6 +1208,14 @@ def inference_run_instance_segmentation_all(
     + SUPPORTED_POLY_FORMATS_TXT,
 )
 @click.option(
+    "--algorithm",
+    "-a",
+    type=click.Choice(["simple", "zhangsuen"]),
+    default="simple",
+    show_default=True,
+    help="Polygonization algorithm. 'simple' uses connected components, 'zhangsuen' thins boundary pixels while preserving connectivity.",
+)
+@click.option(
     "--simplify",
     "-s",
     type=click.FloatRange(min=0.0),
@@ -1281,6 +1289,7 @@ def inference_run_instance_segmentation_all(
 def inference_polygonize(
     input,
     out,
+    algorithm,
     simplify,
     min_size,
     max_size,
@@ -1296,6 +1305,7 @@ def inference_polygonize(
     polygonize(
         input,
         out,
+        algorithm,
         simplify,
         min_size,
         max_size,
