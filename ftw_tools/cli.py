@@ -246,7 +246,7 @@ def model_fit(config, ckpt_path, cli_args):
     type=click.Choice(COUNTRIES_CHOICE, case_sensitive=False),
     multiple=True,
     required=True,
-    help="Countries to evaluate on ('full_data' uses all countries except the precense only and Portugal datasets)",
+    help="Countries to evaluate on ('full_data' uses all countries except the presence only and Portugal datasets)",
 )
 @click.option(
     "--dir",
