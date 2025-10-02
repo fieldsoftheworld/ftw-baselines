@@ -425,28 +425,35 @@ Usage: ftw inference polygonize [OPTIONS] INPUT
   Results are in the CRS of the given raster image.
 
 Options:
-  -o, --out PATH               Output filename for the polygonized data.
-                               Defaults to the name of the input file with
-                               '.parquet' file extension. Available file
-                               extensions: .parquet (GeoParquet, fiboa-
-                               compliant), .fgb (FlatGeoBuf), .gpkg
-                               (GeoPackage), .geojson / .json / .ndjson
-                               (GeoJSON)
-  -s, --simplify FLOAT RANGE   Simplification factor to use when polygonizing
-                               in the unit of the CRS, e.g. meters for
-                               Sentinel-2 imagery in UTM. Set to 0 to disable
-                               simplification.  [default: 15; x>=0.0]
-  -sn, --min_size FLOAT RANGE  Minimum area size in square meters to include
-                               in the output. Set to 0 to disable.  [default:
-                               500; x>=0.0]
-  -sx, --max_size FLOAT RANGE  Maximum area size in square meters to include
-                               in the output. Disabled by default.  [x>=0.0]
-  -f, --overwrite              Overwrite output if it exists.
-  --close_interiors            Remove the interiors holes in the polygons.
-  -st, --stride INTEGER RANGE  Stride size (in pixels) for cutting tif into
-                               smaller tiles for polygonizing. Helps avoid OOM
-                               errors.  [default: 2048; x>=0]
-  --help                       Show this message and exit.
+  -o, --out PATH                  Output filename for the polygonized data.
+                                  Defaults to the name of the input file with
+                                  '.parquet' file extension. Available file
+                                  extensions: .parquet (GeoParquet, fiboa-
+                                  compliant), .fgb (FlatGeoBuf), .gpkg
+                                  (GeoPackage), .geojson / .json / .ndjson
+                                  (GeoJSON)
+  -s, --simplify FLOAT RANGE      Simplification factor to use when
+                                  polygonizing in the unit of the CRS, e.g.
+                                  meters for Sentinel-2 imagery in UTM. Set to
+                                  0 to disable simplification.  [default: 15;
+                                  x>=0.0]
+  -sn, --min_size FLOAT RANGE     Minimum area size in square meters to
+                                  include in the output. Set to 0 to disable.
+                                  [default: 500; x>=0.0]
+  -sx, --max_size FLOAT RANGE     Maximum area size in square meters to
+                                  include in the output. Disabled by default.
+                                  [x>=0.0]
+  -f, --overwrite                 Overwrite output if it exists.
+  --close_interiors               Remove the interiors holes in the polygons.
+  -st, --stride INTEGER RANGE     Stride size (in pixels) for cutting tif into
+                                  smaller tiles for polygonizing. Helps avoid
+                                  OOM errors.  [default: 2048; x>=0]
+  -ma, --merge_adjacent INTEGER RANGE
+                                  Threshold for merging adjacent polygons.
+                                  Threshold is the percent of a polygon's
+                                  perimeter touching another polygon.
+                                  [0<=x<=100]
+  --help                          Show this message and exit.
 ```
 
 Simplification factor is measured in the units of the coordinate reference system (CRS), and for Sentinel-2 this is meters, so a simplification factor of 15 or 20 is usually sufficient (and recommended, or the vector file will be as large as the raster file).

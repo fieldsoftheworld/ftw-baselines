@@ -1,9 +1,18 @@
+#!/usr/bin/env python3
+"""Runs the eval script in parallel."""
+
 import argparse
 import os
 import subprocess
+from multiprocessing import Process, Queue
 
 import pandas as pd
 import yaml
+
+# list of GPU IDs that we want to use, one job will be started for every ID in the list
+GPUS = [0, 1, 2, 3, 4, 5, 6, 7]
+DRY_RUN = False  # if False then print out the commands to be run, if True then run
+
 
 COUNTRIES = [
     "austria",
@@ -58,15 +67,37 @@ FULL_DATA_COUNTRIES = [
 ]
 
 
-def main(args):
+def do_work(work: "Queue[list[str]]", gpu_idx: int) -> bool:
+    """Process for each ID in GPUS."""
+    while not work.empty():
+        command = work.get()
+        for i in range(len(command)):
+            if command[i] == "GPU":
+                command[i] = str(gpu_idx)
+                break
+        print(command)
+        if not DRY_RUN:
+            subprocess.call(command)
+    return True
+
+
+def main(args: argparse.Namespace):
+    work: "Queue[list[str]]" = Queue()
+
     existing_checkpoints = set()
     if os.path.exists(args.output_fn):
         df = pd.read_csv(args.output_fn)
         existing_checkpoints = set(df["train_checkpoint"].values)
     print(f"Found {len(existing_checkpoints)} existing checkpoints in {args.output_fn}")
 
+    # Walk the user-specified root (defaults to 'logs/') for checkpoint folders
+    search_root = args.search_root
+    if not os.path.isdir(search_root):
+        print(
+            f"Warning: search_root '{search_root}' does not exist or is not a directory."
+        )
     checkpoints = []
-    for root, dirs, files in os.walk("logs/"):
+    for root, dirs, files in os.walk(search_root):
         for file in files:
             if file.endswith("last.ckpt"):
                 parent_dir = os.path.dirname(root)
@@ -101,34 +132,6 @@ def main(args):
     for checkpoints_data in checkpoints:
         (checkpoint, model_predicts_classes, temporal_option) = checkpoints_data
 
-        # First test on the full test set
-        command = [
-            "ftw",
-            "model",
-            "test",
-            "--gpu",
-            str(args.gpu),
-            "--dir",
-            "data/ftw",
-            "--temporal_options",
-            temporal_option,
-            "--model",
-            checkpoint,
-            "--out",
-            args.output_fn,
-        ]
-        if model_predicts_classes == 3:
-            command.append("--model_predicts_3_classes")
-        if args.swap_order:
-            command.append("--swap_order")
-        if args.split == "val":
-            command.append("--use_val_set")
-        for country in FULL_DATA_COUNTRIES:
-            command.append("--countries")
-            command.append(country)
-        subprocess.call(command)
-
-        # Then test on each country individually
         if args.country_eval:
             for country in COUNTRIES:
                 command = [
@@ -136,7 +139,7 @@ def main(args):
                     "model",
                     "test",
                     "--gpu",
-                    str(args.gpu),
+                    "GPU",
                     "--dir",
                     "data/ftw",
                     "--temporal_options",
@@ -150,16 +153,49 @@ def main(args):
                 ]
                 if model_predicts_classes == 3:
                     command.append("--model_predicts_3_classes")
-                if args.split == "val":
-                    command.append("--use_val_set")
                 if args.swap_order:
                     command.append("--swap_order")
-                subprocess.call(command)
+                if args.split == "val":
+                    command.append("--use_val_set")
+                work.put(command)
+        else:
+            command = [
+                "ftw",
+                "model",
+                "test",
+                "--gpu",
+                "GPU",
+                "--dir",
+                "data/ftw",
+                "--temporal_options",
+                temporal_option,
+                "--model",
+                checkpoint,
+                "--out",
+                args.output_fn,
+            ]
+            if model_predicts_classes == 3:
+                command.append("--model_predicts_3_classes")
+            if args.swap_order:
+                command.append("--swap_order")
+            if args.split == "val":
+                command.append("--use_val_set")
+            for country in FULL_DATA_COUNTRIES:
+                command.append("--countries")
+                command.append(country)
+            work.put(command)
+
+    processes = []
+    for gpu_idx in GPUS:
+        p = Process(target=do_work, args=(work, gpu_idx))
+        processes.append(p)
+        p.start()
+    for p in processes:
+        p.join()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run evaluation")
-    parser.add_argument("--gpu", type=int, required=True, help="GPU ID to use")
     parser.add_argument(
         "--swap_order",
         action="store_true",
@@ -178,5 +214,11 @@ if __name__ == "__main__":
         help="Which data split to use for evaluation",
     )
     parser.add_argument("--output_fn", required=True, type=str, help="Output filename")
+    parser.add_argument(
+        "--search_root",
+        type=str,
+        default="logs/",
+        help="Root directory to recursively search for checkpoint directories (default: logs/)",
+    )
     args = parser.parse_args()
     main(args)

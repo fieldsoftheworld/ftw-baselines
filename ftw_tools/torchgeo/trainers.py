@@ -20,7 +20,6 @@ from torchgeo.models import FCN, FCSiamConc, FCSiamDiff
 from torchgeo.trainers.base import BaseTask
 from torchmetrics import MetricCollection
 from torchmetrics.classification import (
-    MulticlassAccuracy,
     MulticlassJaccardIndex,
     MulticlassPrecision,
     MulticlassRecall,
@@ -28,6 +27,7 @@ from torchmetrics.classification import (
 from torchvision.models._api import WeightsEnum
 
 from ..postprocess.metrics import get_object_level_metrics
+from .losses import PixelWeightedCE
 from .models import FCSiamAvg
 
 
@@ -49,6 +49,7 @@ class CustomSemanticSegmentationTask(BaseTask):
         loss: str = "ce",
         class_weights: Optional[list] = None,
         ignore_index: Optional[int] = None,
+        pixel_weight_scale: Optional[float] = None,
         lr: float = 1e-3,
         patience: int = 10,
         patch_weights: bool = False,
@@ -129,6 +130,10 @@ class CustomSemanticSegmentationTask(BaseTask):
         class_weights = None
         if self.hparams["class_weights"] is not None:
             class_weights = torch.tensor(self.hparams["class_weights"])
+        pixel_weight_scale = 1.0
+        if self.hparams["pixel_weight_scale"] is not None:
+            pixel_weight_scale = self.hparams["pixel_weight_scale"]
+
         if loss == "ce":
             if self.hparams["class_weights"] is not None:
                 class_weights = torch.tensor(self.hparams["class_weights"])
@@ -138,6 +143,15 @@ class CustomSemanticSegmentationTask(BaseTask):
             self.criterion = nn.CrossEntropyLoss(
                 ignore_index=ignore_value, weight=class_weights
             )
+        elif loss == "pixel_weighted_ce":
+            self.criterion = PixelWeightedCE(
+                kernel_size=7,
+                sigma=3.0,
+                target_class=2,
+                scale=pixel_weight_scale,
+                class_weights=class_weights,
+                ignore_index=ignore_index,
+            )
         elif loss == "jaccard":
             self.criterion = smp.losses.JaccardLoss(
                 mode="multiclass", classes=self.hparams["num_classes"]
@@ -146,6 +160,24 @@ class CustomSemanticSegmentationTask(BaseTask):
             self.criterion = smp.losses.FocalLoss(
                 "multiclass", ignore_index=ignore_index, normalized=True
             )
+        elif loss == "ce+dice":
+            self.dice_loss = smp.losses.DiceLoss(
+                "multiclass",
+                ignore_index=ignore_index,
+            )
+
+            if self.hparams["class_weights"] is not None:
+                class_weights = torch.tensor(self.hparams["class_weights"])
+            else:
+                class_weights = None
+            ignore_value = -1000 if ignore_index is None else ignore_index
+            self.ce_loss = nn.CrossEntropyLoss(
+                ignore_index=ignore_value, weight=class_weights
+            )
+            self.criterion = lambda y_pred, y_true: self.ce_loss(
+                y_pred, y_true
+            ) + self.dice_loss(y_pred, y_true)
+
         else:
             raise ValueError(
                 f"Loss type '{loss}' is not valid. "
@@ -214,6 +246,14 @@ class CustomSemanticSegmentationTask(BaseTask):
                 classes=num_classes,
                 **model_kwargs,
             )
+        elif model == "unet_r":
+            self.model = smp.Unet(
+                encoder_name=backbone,
+                encoder_weights="imagenet" if weights is True else None,
+                decoder_channels=(16, 32, 64, 128, 256),
+                in_channels=in_channels,
+                classes=num_classes,
+            )
         elif model == "deeplabv3+":
             self.model = smp.DeepLabV3Plus(
                 encoder_name=backbone,
@@ -278,7 +318,7 @@ class CustomSemanticSegmentationTask(BaseTask):
             )
 
         if in_channels < 5 and model in ["fcsiamdiff", "fcsiamconc", "fcsiamavg"]:
-            raise ValueError(f"FCSiam models require more than one input image.")
+            raise ValueError("FCSiam models require more than one input image.")
 
         # Freeze backbone
         if self.hparams["freeze_backbone"] and model in ["unet", "deeplabv3+"]:

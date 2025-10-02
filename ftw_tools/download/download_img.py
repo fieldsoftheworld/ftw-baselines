@@ -251,7 +251,7 @@ def query_stac(
 
     # Log all found scenes with their details using uniform parsing
     if verbose and len(items) > 0:
-        print(f"  Available scenes:")
+        print("  Available scenes:")
         for item in items:
             parsed_item = _parse_stac_item(item)
             print(
