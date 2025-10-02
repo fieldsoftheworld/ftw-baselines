@@ -23,6 +23,7 @@ torchvision = ">=0.19,<0.23"
 pytorch-lightning = ">=2.0,<2.6"
 kornia = ">=0.7,<1.0"
 tensorboard = ">=2.15,<3.0"
+pytest = ">=8.4.2,<9"
 
 [pypi-dependencies]
 ftw-tools = "*"

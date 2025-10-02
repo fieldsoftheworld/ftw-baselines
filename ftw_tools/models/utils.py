@@ -1,9 +1,45 @@
 import re
+from typing import Dict, Optional
 
 import geopandas as gpd
 import numpy as np
 import shapely
+import torch
 from fiboa_cli.parquet import create_parquet
+from settings import MODEL_REGISTRY
+
+
+def load_model_checkpoint(model_name: str, cache_dir: Optional[str] = None) -> Dict:
+    """
+    Load model checkpoint using torch.hub caching mechanism.
+
+    Args:
+        model_name: Model identifier (e.g., 'ftw-v1-3class-full')
+        cache_dir: Optional custom cache directory (defaults to ~/.cache/torch)
+
+    Returns:
+        Loaded checkpoint dictionary
+    """
+    if model_name not in MODEL_REGISTRY:
+        available = ", ".join(MODEL_REGISTRY.keys())
+        raise ValueError(
+            f"Model '{model_name}' not found. Available models: {available}"
+        )
+
+    model_spec = MODEL_REGISTRY[model_name]
+
+    print(f"Loading {model_spec.description}")
+    print(f"License: {model_spec.license}")
+
+    # Use torch.hub's caching mechanism
+    checkpoint = torch.hub.load_state_dict_from_url(
+        model_spec.url,
+        model_dir=cache_dir,  # Defaults to ~/.cache/torch/hub/checkpoints/
+        progress=True,
+        check_hash=False,  # Could add hash verification later
+    )
+
+    return checkpoint
 
 
 def merge_polygons(

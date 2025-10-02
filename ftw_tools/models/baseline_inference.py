@@ -19,6 +19,7 @@ from torchgeo.samplers import GridGeoSampler
 from tqdm import tqdm
 
 from ftw_tools.models.utils import convert_to_fiboa, postprocess_instance_polygons
+from ftw_tools.settings import MODEL_REGISTRY
 from ftw_tools.torchgeo.datamodules import preprocess
 from ftw_tools.torchgeo.datasets import SingleRasterDataset
 from ftw_tools.torchgeo.trainers import CustomSemanticSegmentationTask
@@ -112,8 +113,19 @@ def run(
         input, out, gpu, patch_size, padding, overwrite, mps_mode
     )
 
-    assert os.path.exists(model), f"Model file {model} does not exist."
-    assert model.endswith(".ckpt"), "Model file must be a .ckpt file."
+    # Load model
+    if model in MODEL_REGISTRY.keys():
+        print(f"Downloading model {model} from {MODEL_REGISTRY[model]}")
+        model = MODEL_REGISTRY[model].url
+
+    else:
+        assert model.endswith(".ckpt"), "Model file must be a .ckpt file."
+
+    model = torch.hub.load_state_dict_from_url(
+        model, map_location=torch.device(device)
+    )  #'cpu'
+
+    # assert os.path.exists(model), f"Model file {model} does not exist."
 
     # Load task
     tic = time.time()

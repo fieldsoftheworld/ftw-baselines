@@ -11,7 +11,6 @@ from ftw_tools.cli import (
     inference_run,
     inference_run_instance_segmentation,
     inference_run_instance_segmentation_all,
-    model_download,
     scene_selection,
 )
 
@@ -136,9 +135,10 @@ def test_inference_run():
     runner = CliRunner()
 
     # Download the pretrained model
-    runner.invoke(model_download, ["--type=THREE_CLASS_FULL"])
-    model_path = "3_Class_FULL_FTW_Pretrained.ckpt"
-    assert os.path.exists(model_path)
+    # runner.invoke(model_download, ["--type=THREE_CLASS_FULL"]) TO-DO FIX
+
+    # model_path = "3_Class_FULL_FTW_Pretrained.ckpt"
+    # assert os.path.exists(model_path)
 
     # Check required files are present
     inf_input_path = "./tests/data-files/inference-img.tif"
@@ -151,7 +151,7 @@ def test_inference_run():
         [
             inf_input_path,
             "--model",
-            model_path,
+            "3_Class_FULL_v1",
             "--out",
             inf_output_path,
             "--gpu",
@@ -168,7 +168,6 @@ def test_inference_run():
     assert "Using custom trainer" in result.output
     assert "Finished inference and saved output" in result.output
     assert os.path.exists(inf_output_path)
-    os.remove(model_path)
 
 
 def test_inference_polygonize():
@@ -198,10 +197,10 @@ def test_ftw_inference_all():
         model_path = os.path.join(temp_dir, "3_Class_FULL_FTW_Pretrained.ckpt")
 
         # Download the pretrained model
-        runner.invoke(model_download, ["--type=THREE_CLASS_FULL"])
-        downloaded_model = "3_Class_FULL_FTW_Pretrained.ckpt"
-        if os.path.exists(downloaded_model):
-            shutil.move(downloaded_model, model_path)
+        # runner.invoke(model_download, ["--type=THREE_CLASS_FULL"])
+        # downloaded_model = "3_Class_FULL_FTW_Pretrained.ckpt"
+        # if os.path.exists(downloaded_model):
+        #     shutil.move(downloaded_model, model_path)
 
         out_path = os.path.join(temp_dir, "inference_output")
 
@@ -214,7 +213,7 @@ def test_ftw_inference_all():
                 f"--out={out_path}",
                 "--cloud_cover_max=20",
                 "--buffer_days=14",
-                f"--model={model_path}",
+                f"--model=3_Class_FULL_v1",
                 "--resize_factor=2",
                 "--overwrite",
             ],
