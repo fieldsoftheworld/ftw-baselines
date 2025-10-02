@@ -1284,7 +1284,7 @@ def inference_run_instance_segmentation_all(
     type=click.FloatRange(min=0.0),
     default=0,
     show_default=True,
-    help="Distance (in CRS units, e.g., meters) for a morphological closing (dilate then erode) applied to each polygon to seal hairline gaps, fill pinholes, and connect near-touching parts without net growth. Set 0 to disable. A good starting value is 0.5–1× the raster pixel size.",
+    help="Distance (in CRS units, e.g., meters) for a morphological closing (dilate then erode) applied to each polygon to seal hairline gaps, fill pinholes, and connect near-touching parts without net growth. Set 0 to disable. A good starting value is 0.5–1x the raster pixel size.",
 )
 def inference_polygonize(
     input,
