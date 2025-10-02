@@ -453,7 +453,7 @@ Options:
                                   predictions. Note: To use this option, you
                                   must pass a tif of scores (using
                                   `--save_scores` option from `ftw inference
-                                  run`).  [0<=x<=100]
+                                  run`).  [0<=x<=1]
   -ma, --merge_adjacent INTEGER RANGE
                                   Threshold for merging adjacent polygons.
                                   Threshold is the percent of a polygon's
