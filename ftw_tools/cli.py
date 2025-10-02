@@ -302,6 +302,13 @@ def model_fit(config, ckpt_path, cli_args):
     help="Temporal option",
 )
 @click.option(
+    "--use_val_set",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Whether to run evaluation on the val set or test set (default).",
+)
+@click.option(
     "--swap_order",
     is_flag=True,
     default=False,
@@ -318,6 +325,7 @@ def model_test(
     model_predicts_3_classes,
     test_on_3_classes,
     temporal_options,
+    use_val_set,
     swap_order,
 ):
     from ftw_tools.models.baseline_eval import test
@@ -332,6 +340,7 @@ def model_test(
         model_predicts_3_classes,
         test_on_3_classes,
         temporal_options,
+        use_val_set,
         swap_order,
     )
 
@@ -1252,6 +1261,14 @@ def inference_run_instance_segmentation_all(
     show_default=True,
     help="Threshold on softmax scores for class predictions. Note: To use this option, you must pass a tif of scores (using `--save_scores` option from `ftw inference run`).",
 )
+@click.option(
+    "--merge_adjacent",
+    "-ma",
+    type=click.FloatRange(min=0.0, max=1.0),
+    default=None,
+    show_default=True,
+    help="Threshold for merging adjacent polygons. Threshold is the percent of a polygon's perimeter touching another polygon.",
+)
 def inference_polygonize(
     input,
     out,
@@ -1262,6 +1279,7 @@ def inference_polygonize(
     close_interiors,
     stride,
     softmax_threshold,
+    merge_adjacent,
 ):
     from ftw_tools.postprocess.polygonize import polygonize
 
@@ -1275,6 +1293,7 @@ def inference_polygonize(
         close_interiors,
         stride,
         softmax_threshold,
+        merge_adjacent,
     )
 
 

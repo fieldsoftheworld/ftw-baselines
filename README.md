@@ -454,6 +454,11 @@ Options:
                                   must pass a tif of scores (using
                                   `--save_scores` option from `ftw inference
                                   run`).  [0<=x<=100]
+  -ma, --merge_adjacent INTEGER RANGE
+                                  Threshold for merging adjacent polygons.
+                                  Threshold is the percent of a polygon's
+                                  perimeter touching another polygon.
+                                  [0<=x<=100]
   --help                          Show this message and exit.
 ```
 
