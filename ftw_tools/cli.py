@@ -302,6 +302,13 @@ def model_fit(config, ckpt_path, cli_args):
     help="Temporal option",
 )
 @click.option(
+    "--use_val_set",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Whether to run evaluation on the val set or test set (default).",
+)
+@click.option(
     "--swap_order",
     is_flag=True,
     default=False,
@@ -318,6 +325,7 @@ def model_test(
     model_predicts_3_classes,
     test_on_3_classes,
     temporal_options,
+    use_val_set,
     swap_order,
 ):
     from ftw_tools.models.baseline_eval import test
@@ -332,6 +340,7 @@ def model_test(
         model_predicts_3_classes,
         test_on_3_classes,
         temporal_options,
+        use_val_set,
         swap_order,
     )
 
@@ -457,6 +466,13 @@ def inference():
     show_default=True,
     help="Run inference in MPS mode (Apple GPUs).",
 )
+@click.option(
+    "--save_scores",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Save segmentation softmax scores (rescaled to [0,255]) instead of classes (argmax of scores)",
+)
 @common_stac_host_option()
 @common_s2_collection_option()
 @common_verbose_option()
@@ -475,6 +491,7 @@ def ftw_inference_all(
     num_workers,
     padding,
     mps_mode,
+    save_scores,
     stac_host,
     s2_collection,
     verbose,
@@ -528,6 +545,7 @@ def ftw_inference_all(
         padding=padding,
         overwrite=overwrite,
         mps_mode=mps_mode,
+        save_scores=save_scores,
     )
 
     # Polygonize the output
@@ -704,6 +722,13 @@ def inference_download(
     show_default=True,
     help="Run inference in MPS mode (Apple GPUs).",
 )
+@click.option(
+    "--save_scores",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Save segmentation softmax scores (rescaled to [0,255]) instead of classes (argmax of scores)",
+)
 def inference_run(
     input,
     model,
@@ -716,6 +741,7 @@ def inference_run(
     padding,
     overwrite,
     mps_mode,
+    save_scores,
 ):
     from ftw_tools.models.baseline_inference import run
 
@@ -731,6 +757,7 @@ def inference_run(
         padding,
         overwrite,
         mps_mode,
+        save_scores,
     )
 
 
@@ -1219,12 +1246,55 @@ def inference_run_instance_segmentation_all(
     show_default=True,
     help="Remove the interiors holes in the polygons.",
 )
+@click.option(
+    "--stride",
+    "-st",
+    type=click.IntRange(min=0),
+    default=2048,
+    show_default=True,
+    help="Stride size (in pixels) for cutting tif into smaller tiles for polygonizing. Helps avoid OOM errors.",
+)
+@click.option(
+    "--softmax_threshold",
+    type=click.FloatRange(min=0, max=1),
+    default=None,
+    show_default=True,
+    help="Threshold on softmax scores for class predictions. Note: To use this option, you must pass a tif of scores (using `--save_scores` option from `ftw inference run`).",
+)
+@click.option(
+    "--merge_adjacent",
+    "-ma",
+    type=click.FloatRange(min=0.0, max=1.0),
+    default=None,
+    show_default=True,
+    help="Threshold for merging adjacent polygons. Threshold is the percent of a polygon's perimeter touching another polygon.",
+)
 def inference_polygonize(
-    input, out, simplify, min_size, max_size, overwrite, close_interiors
+    input,
+    out,
+    simplify,
+    min_size,
+    max_size,
+    overwrite,
+    close_interiors,
+    stride,
+    softmax_threshold,
+    merge_adjacent,
 ):
     from ftw_tools.postprocess.polygonize import polygonize
 
-    polygonize(input, out, simplify, min_size, max_size, overwrite, close_interiors)
+    polygonize(
+        input,
+        out,
+        simplify,
+        min_size,
+        max_size,
+        overwrite,
+        close_interiors,
+        stride,
+        softmax_threshold,
+        merge_adjacent,
+    )
 
 
 @inference.command(
