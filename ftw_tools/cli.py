@@ -1269,6 +1269,46 @@ def inference_run_instance_segmentation_all(
     show_default=True,
     help="Threshold for merging adjacent polygons. Threshold is the percent of a polygon's perimeter touching another polygon.",
 )
+@click.option(
+    "--erode_dilate",
+    "-ed",
+    type=click.FloatRange(min=0.0),
+    default=0,
+    show_default=True,
+    help="Distance (in CRS units, e.g., meters) for a morphological opening (erode then dilate) applied to each polygon to shave spurs and remove thin slivers. Set 0 to disable. A good starting value is 0.5–1x the raster pixel size.",
+)
+@click.option(
+    "--dilate_erode",
+    "-de",
+    type=click.FloatRange(min=0.0),
+    default=0,
+    show_default=True,
+    help="Distance (in CRS units, e.g., meters) for a morphological closing (dilate then erode) applied to each polygon to seal hairline gaps, fill pinholes, and connect near-touching parts without net growth. Set 0 to disable. A good starting value is 0.5–1x the raster pixel size.",
+)
+@click.option(
+    "--erode_dilate_raster",
+    "-edr",
+    type=click.IntRange(min=0),
+    default=0,
+    show_default=True,
+    help="Number of iterations for a morphological opening (erode then dilate) applied to raster mask before polygonization. Set to 0 to disable.",
+)
+@click.option(
+    "--dilate_erode_raster",
+    "-der",
+    type=click.IntRange(min=0),
+    default=0,
+    show_default=True,
+    help="Number of iterations for a morphological closing (dilate then erode) applied to raster mask before polygonization. Set to 0 to disable.",
+)
+@click.option(
+    "--thin_boundaries",
+    "-tb",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Thin boundaries before polygonization using Zhang-Suen thinning algorithm.",
+)
 def inference_polygonize(
     input,
     out,
@@ -1280,6 +1320,11 @@ def inference_polygonize(
     stride,
     softmax_threshold,
     merge_adjacent,
+    erode_dilate,
+    dilate_erode,
+    erode_dilate_raster,
+    dilate_erode_raster,
+    thin_boundaries,
 ):
     from ftw_tools.postprocess.polygonize import polygonize
 
@@ -1294,6 +1339,11 @@ def inference_polygonize(
         stride,
         softmax_threshold,
         merge_adjacent,
+        erode_dilate,
+        dilate_erode,
+        erode_dilate_raster,
+        dilate_erode_raster,
+        thin_boundaries,
     )
 
 

@@ -13,6 +13,7 @@ from affine import Affine
 from fiboa_cli.parquet import create_parquet, features_to_dataframe
 from pyproj import CRS, Transformer
 from shapely.ops import transform, unary_union
+from skimage.morphology import dilation, erosion
 from tqdm import tqdm
 
 from ftw_tools.settings import SUPPORTED_POLY_FORMATS_TXT
@@ -109,6 +110,169 @@ def merge_adjacent_polygons(features, ratio):
     return out
 
 
+def zhang_suen_thinning(img: np.ndarray, max_iters: int = 0) -> np.ndarray:
+    """Zhang-Suen thinning on a binary image.
+
+    Old school!
+    Zhang, Tongjie Y., and Ching Y. Suen. "A fast parallel algorithm for thinning digital patterns." Communications of the ACM 27, no. 3 (1984): 236-239.
+
+    Args:
+        img (np.ndarray): 2D binary image (nonzero pixels are foreground).
+        max_iters (int): If > 0, cap the number of full iterations (each has 2 sub-steps).
+            If 0 (default), run until convergence.
+
+    Returns:
+        np.ndarray: Thinned binary image of same shape and dtype as input.
+    """
+    if img.ndim != 2:
+        raise ValueError("img must be a 2D array")
+
+    # Work in uint8 {0,1} with a 1-pixel zero pad to avoid wraparound.
+    I = (img != 0).astype(np.uint8)
+    I = np.pad(I, 1, mode="constant")
+
+    def neighbors_views(A):
+        # Using the standard Zhang–Suen neighbor naming:
+        #   p9 p2 p3
+        #   p8 p1 p4
+        #   p7 p6 p5
+        P2 = A[:-2, 1:-1]
+        P3 = A[:-2, 2:]
+        P4 = A[1:-1, 2:]
+        P5 = A[2:, 2:]
+        P6 = A[2:, 1:-1]
+        P7 = A[2:, :-2]
+        P8 = A[1:-1, :-2]
+        P9 = A[:-2, :-2]
+        C = A[1:-1, 1:-1]  # center p1
+        return C, (P2, P3, P4, P5, P6, P7, P8, P9)
+
+    def B_count(Ps):
+        # B(p1) = number of non-zero neighbors
+        return sum(Ps)
+
+    def A_count(Ps):
+        # A(p1) = number of 0->1 transitions in sequence p2,p3,...,p9,p2
+        P2, P3, P4, P5, P6, P7, P8, P9 = Ps
+        terms = [
+            ((P2 == 0) & (P3 == 1)).astype(np.uint8),
+            ((P3 == 0) & (P4 == 1)).astype(np.uint8),
+            ((P4 == 0) & (P5 == 1)).astype(np.uint8),
+            ((P5 == 0) & (P6 == 1)).astype(np.uint8),
+            ((P6 == 0) & (P7 == 1)).astype(np.uint8),
+            ((P7 == 0) & (P8 == 1)).astype(np.uint8),
+            ((P8 == 0) & (P9 == 1)).astype(np.uint8),
+            ((P9 == 0) & (P2 == 1)).astype(np.uint8),
+        ]
+        out = terms[0]
+        for t in terms[1:]:
+            out = out + t
+        return out
+
+    changed = True
+    iters = 0
+    while changed and (max_iters == 0 or iters < max_iters):
+        changed = False
+
+        # ----- Sub-iteration 1 -----
+        C, Ps = neighbors_views(I)
+        B = B_count(Ps)
+        A = A_count(Ps)
+        P2, P3, P4, P5, P6, P7, P8, P9 = Ps
+
+        m1 = (
+            (C == 1)
+            & (B >= 2)
+            & (B <= 6)
+            & (A == 1)
+            & ((P2 * P4 * P6) == 0)
+            & ((P4 * P6 * P8) == 0)
+        )
+        if np.any(m1):
+            C[m1] = 0
+            changed = True
+
+        # ----- Sub-iteration 2 -----
+        C, Ps = neighbors_views(I)  # recompute after deletion
+        B = B_count(Ps)
+        A = A_count(Ps)
+        P2, P3, P4, P5, P6, P7, P8, P9 = Ps
+
+        m2 = (
+            (C == 1)
+            & (B >= 2)
+            & (B <= 6)
+            & (A == 1)
+            & ((P2 * P4 * P8) == 0)
+            & ((P2 * P6 * P8) == 0)
+        )
+        if np.any(m2):
+            C[m2] = 0
+            changed = True
+
+        iters += 1
+
+    # Remove padding, cast back to original dtype
+    out = I[1:-1, 1:-1].astype(img.dtype)
+    return out
+
+
+def thin_boundary_preserving_fields(
+    field_mask: np.ndarray, boundary_mask: np.ndarray, max_iters: int = 0
+):
+    """Thin class-2 boundary pixels (~1-pixel skeleton) while preserving connectivity.
+    Class-1 field pixels are left unchanged.
+
+    Args:
+        field_mask (array-like): 2D array (H, W) with class labels {0,1} where
+            0 = background, 1 = field.
+        boundary_mask (array-like): 2D array (H, W) with class labels {0,1} where
+            0 = background, 1 = boundary to be thinned.
+        max_iter (int | None): Maximum number of Zhang–Suen full iterations
+            (each has 2 sub-steps). If None or 0, run until convergence.
+    """
+    field_mask = np.asarray(field_mask)
+    out = field_mask.copy()
+
+    # prevent a frame line at image edges
+    boundary_mask[[0, -1], :] = 0
+    boundary_mask[:, [0, -1]] = 0
+
+    # Skeletonize/thin the boundary
+    skel = zhang_suen_thinning(boundary_mask, max_iters=max_iters)
+    skel = skel.astype(np.bool_)
+    assert skel.shape == field_mask.shape
+
+    out[boundary_mask == 1] = 1
+    out[skel] = 0
+
+    field_mask = (out == 1).astype(np.uint8)
+
+    return field_mask
+
+
+def multi_erosion(mask, iterations):
+    for _ in range(iterations):
+        kernel = [
+            [0, 1, 0],  # image morphology filter
+            [1, 1, 1],
+            [0, 1, 0],
+        ]
+        mask = erosion(mask, np.array(kernel))
+    return mask
+
+
+def multi_dilation(mask, iterations):
+    for _ in range(iterations):
+        kernel = [
+            [0, 1, 0],  # image morphology filter
+            [1, 1, 1],
+            [0, 1, 0],
+        ]
+        mask = dilation(mask, np.array(kernel))
+    return mask
+
+
 def polygonize(
     input,
     out,
@@ -120,6 +284,11 @@ def polygonize(
     polygonization_stride=2048,
     softmax_threshold=None,
     merge_adjacent=None,
+    erode_dilate=0,
+    dilate_erode=0,
+    erode_dilate_raster=0,
+    dilate_erode_raster=0,
+    thin_boundaries=False,
 ):
     """Polygonize the output from inference."""
 
@@ -159,6 +328,7 @@ def polygonize(
         tags = src.tags()
 
         input_height, input_width = src.shape
+
         if softmax_threshold:
             assert src.count == 3, (
                 "Input tif should have 3 bands (background, interior, boundary scores)."
@@ -167,9 +337,24 @@ def polygonize(
             softmax_threshold *= 255
             # 1st channel: scores for background class, 2nd: interior, 3rd: boundary
             mask = (src.read(2) >= softmax_threshold).astype(np.uint8)
+            boundary_mask = (src.read(3) >= softmax_threshold).astype(np.uint8)
         else:
             assert src.count == 1, "Input tif should be single-band (predicted class)."
             mask = (src.read(1) == 1).astype(np.uint8)
+            boundary_mask = (src.read(1) == 2).astype(np.uint8)
+
+        if thin_boundaries:
+            mask = thin_boundary_preserving_fields(mask, boundary_mask)
+
+        if erode_dilate_raster > 0:
+            # morphological opening before polygonization
+            mask = multi_erosion(mask, erode_dilate_raster)
+            mask = multi_dilation(mask, erode_dilate_raster)
+        elif dilate_erode_raster > 0:
+            # morphological closing before polygonization
+            mask = multi_dilation(mask, dilate_erode_raster)
+            mask = multi_erosion(mask, dilate_erode_raster)
+
         total_iterations = math.ceil(input_height / polygonization_stride) * math.ceil(
             input_width / polygonization_stride
         )
@@ -212,6 +397,24 @@ def polygonize(
 
                         geom = shapely.geometry.shape(geom_geojson)
 
+                        if erode_dilate > 0:
+                            # morphological opening
+                            geom = geom.buffer(
+                                -erode_dilate,
+                                join_style=shapely.geometry.JOIN_STYLE.mitre,
+                            ).buffer(
+                                +erode_dilate,
+                                join_style=shapely.geometry.JOIN_STYLE.mitre,
+                            )
+                        if dilate_erode > 0:
+                            # morphological closing
+                            geom = geom.buffer(
+                                +dilate_erode,
+                                join_style=shapely.geometry.JOIN_STYLE.mitre,
+                            ).buffer(
+                                -dilate_erode,
+                                join_style=shapely.geometry.JOIN_STYLE.mitre,
+                            )
                         if close_interiors:
                             geom = shapely.geometry.Polygon(geom.exterior)
                         if simplify > 0:
@@ -241,17 +444,34 @@ def polygonize(
                         if is_geojson:
                             geom = transform(affine, geom)
 
-                        rows.append(
-                            {
-                                "geometry": shapely.geometry.mapping(geom),
-                                "properties": {
-                                    "id": str(i),
-                                    "area": area * 0.0001,  # Add the area in hectares
-                                    "perimeter": perimeter,  # Add the perimeter in meters
-                                },
-                            }
-                        )
-                        i += 1
+                        # explode MultiPolygons if needed
+                        if isinstance(geom, shapely.geometry.MultiPolygon):
+                            for g in geom.geoms:
+                                rows.append(
+                                    {
+                                        "geometry": shapely.geometry.mapping(g),
+                                        "properties": {
+                                            "id": str(i),
+                                            "area": g.area
+                                            * 0.0001,  # Add the area in hectares
+                                            "perimeter": g.length,  # Add the perimeter in meters
+                                        },
+                                    }
+                                )
+                                i += 1
+                        else:
+                            rows.append(
+                                {
+                                    "geometry": shapely.geometry.mapping(geom),
+                                    "properties": {
+                                        "id": str(i),
+                                        "area": area
+                                        * 0.0001,  # Add the area in hectares
+                                        "perimeter": perimeter,  # Add the perimeter in meters
+                                    },
+                                }
+                            )
+                            i += 1
 
                     pbar.update(1)
 

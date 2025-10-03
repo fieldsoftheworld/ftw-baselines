@@ -448,17 +448,44 @@ Options:
   -st, --stride INTEGER RANGE     Stride size (in pixels) for cutting tif into
                                   smaller tiles for polygonizing. Helps avoid
                                   OOM errors.  [default: 2048; x>=0]
-  --softmax_threshold INTEGER RANGE
+  --softmax_threshold FLOAT RANGE
                                   Threshold on softmax scores for class
                                   predictions. Note: To use this option, you
                                   must pass a tif of scores (using
                                   `--save_scores` option from `ftw inference
                                   run`).  [0<=x<=1]
-  -ma, --merge_adjacent INTEGER RANGE
+  -ma, --merge_adjacent FLOAT RANGE
                                   Threshold for merging adjacent polygons.
                                   Threshold is the percent of a polygon's
                                   perimeter touching another polygon.
-                                  [0<=x<=100]
+                                  [0.0<=x<=1.0]
+  -ed, --erode_dilate FLOAT RANGE
+                                  Distance (in CRS units, e.g., meters) for a
+                                  morphological opening (erode then dilate)
+                                  applied to each polygon to shave spurs and
+                                  remove thin slivers. Set 0 to disable. A
+                                  good starting value is 0.5–1x the raster
+                                  pixel size.  [default: 0; x>=0.0]
+  -de, --dilate_erode FLOAT RANGE
+                                  Distance (in CRS units, e.g., meters) for a
+                                  morphological closing (dilate then erode)
+                                  applied to each polygon to seal hairline
+                                  gaps, fill pinholes, and connect near-
+                                  touching parts without net growth. Set 0 to
+                                  disable. A good starting value is 0.5–1x the
+                                  raster pixel size.  [default: 0; x>=0.0]
+  -edr, --erode_dilate_raster INTEGER RANGE
+                                  Number of iterations for a morphological
+                                  opening (erode then dilate) applied to
+                                  raster mask before polygonization. Set to 0
+                                  to disable.  [default: 0; x>=0]
+  -der, --dilate_erode_raster INTEGER RANGE
+                                  Number of iterations for a morphological
+                                  closing (dilate then erode) applied to
+                                  raster mask before polygonization. Set to 0
+                                  to disable.  [default: 0; x>=0]
+  -tb, --thin_boundaries          Thin boundaries before polygonization using
+                                  Zhang-Suen thinning algorithm.
   --help                          Show this message and exit.
 ```
 
