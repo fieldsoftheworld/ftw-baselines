@@ -253,7 +253,7 @@ def thin_boundary_preserving_fields(
 def polygonize(
     input,
     out,
-    algorithm="baseline",
+    algorithm="simple",
     simplify=True,
     min_size=500,
     max_size=None,
@@ -365,10 +365,10 @@ def polygonize(
                         if dilate_erode > 0:
                             # morphological closing
                             geom = geom.buffer(
-                                +erode_dilate,
+                                +dilate_erode,
                                 join_style=shapely.geometry.JOIN_STYLE.mitre,
                             ).buffer(
-                                -erode_dilate,
+                                -dilate_erode,
                                 join_style=shapely.geometry.JOIN_STYLE.mitre,
                             )
                         if close_interiors:
