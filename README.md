@@ -453,6 +453,12 @@ Options:
   -st, --stride INTEGER RANGE     Stride size (in pixels) for cutting tif into
                                   smaller tiles for polygonizing. Helps avoid
                                   OOM errors.  [default: 2048; x>=0]
+  --softmax_threshold FLOAT RANGE
+                                  Threshold on softmax scores for class
+                                  predictions. Note: To use this option, you
+                                  must pass a tif of scores (using
+                                  `--save_scores` option from `ftw inference
+                                  run`).  [0<=x<=1]
   -ma, --merge_adjacent FLOAT RANGE
                                   Threshold for merging adjacent polygons.
                                   Threshold is the percent of a polygon's
