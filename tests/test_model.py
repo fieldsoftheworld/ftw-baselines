@@ -140,6 +140,96 @@ def test_model_archs(arch: str):
     assert y.shape == (1, 3, 256, 256), f"Output shape mismatch for {arch}: {y.shape}"
 
 
+def test_expand_countries_with_full_data():
+    """Test that expand_countries() correctly expands 'full_data' to all FULL_DATA_COUNTRIES."""
+    from ftw_tools.models.baseline_eval import FULL_DATA_COUNTRIES, expand_countries
+
+    # Test basic expansion
+    result = expand_countries(["full_data"])
+
+    # Verify that result is now the full list
+    assert isinstance(result, list)
+    assert len(result) == len(FULL_DATA_COUNTRIES)
+    assert set(result) == set(FULL_DATA_COUNTRIES)
+
+    # Verify specific expected countries are included
+    expected_countries = ["austria", "belgium", "france", "germany", "netherlands"]
+    for country in expected_countries:
+        assert country in result, f"Expected country '{country}' not in expanded list"
+
+    # Verify no unexpected values remain
+    assert "full_data" not in result, "'full_data' should be replaced, not kept in list"
+
+
+def test_expand_countries_without_full_data():
+    """Test that expand_countries() preserves specific country names when 'full_data' is absent."""
+    from ftw_tools.models.baseline_eval import expand_countries
+
+    # Test with specific countries (no full_data)
+    input_countries = ["rwanda", "kenya", "belgium"]
+    result = expand_countries(input_countries)
+
+    # Should return the same list
+    assert result == input_countries
+    assert len(result) == 3
+    assert "rwanda" in result
+    assert "kenya" in result
+    assert "belgium" in result
+
+
+def test_expand_countries_mixed_with_full_data():
+    """Test that 'full_data' replaces the entire list when mixed with specific countries."""
+    from ftw_tools.models.baseline_eval import FULL_DATA_COUNTRIES, expand_countries
+
+    # Test when full_data is mixed with other countries
+    result = expand_countries(["rwanda", "full_data", "kenya"])
+
+    # When full_data is present, it should replace the entire list
+    assert set(result) == set(FULL_DATA_COUNTRIES)
+    assert len(result) == len(FULL_DATA_COUNTRIES)
+
+    # Original specific countries should not be preserved (full_data replaces everything)
+    # This is the current behavior documented by the function
+
+
+def test_expand_countries_does_not_modify_original():
+    """Test that expand_countries() does not modify the original input list."""
+    from ftw_tools.models.baseline_eval import expand_countries
+
+    # Test immutability
+    original = ["rwanda", "kenya"]
+    original_copy = original.copy()
+    result = expand_countries(original)
+
+    # Original should be unchanged
+    assert original == original_copy
+    assert result == original
+    assert result is not original  # Should be a different object
+
+
+def test_full_data_countries_constant():
+    """Test that FULL_DATA_COUNTRIES constant is properly defined."""
+    from ftw_tools.models.baseline_eval import FULL_DATA_COUNTRIES
+
+    # Verify it's a non-empty list
+    assert isinstance(FULL_DATA_COUNTRIES, list)
+    assert len(FULL_DATA_COUNTRIES) > 0
+
+    # Verify no duplicates
+    assert len(FULL_DATA_COUNTRIES) == len(set(FULL_DATA_COUNTRIES))
+
+    # Verify all entries are strings
+    assert all(isinstance(country, str) for country in FULL_DATA_COUNTRIES)
+
+    # Verify all entries are lowercase (consistent with FTW dataset convention)
+    assert all(country.islower() for country in FULL_DATA_COUNTRIES)
+
+    # Verify specific known countries are present
+    assert "austria" in FULL_DATA_COUNTRIES
+    assert "belgium" in FULL_DATA_COUNTRIES
+    assert "vietnam" in FULL_DATA_COUNTRIES
+
+
 def test_cuda_installation():
     """Test that CUDA is properly installed if GPU hardware is present."""
 
