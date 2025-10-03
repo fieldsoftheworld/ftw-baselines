@@ -253,7 +253,6 @@ def thin_boundary_preserving_fields(
 def polygonize(
     input,
     out,
-    algorithm="simple",
     simplify=True,
     min_size=500,
     max_size=None,
@@ -264,13 +263,11 @@ def polygonize(
     merge_adjacent=None,
     erode_dilate=0,
     dilate_erode=0,
+    thin_boundaries=False,
 ):
     """Polygonize the output from inference."""
 
     print(f"Polygonizing input file: {input}")
-    assert algorithm in ["simple", "zhangsuen"], (
-        f"Invalid polygonization algorithm ({algorithm}) specified."
-    )
 
     # TODO: Get this warning working right, based on the CRS of the input file
     # if simplify is not None and simplify > 1:
@@ -321,7 +318,7 @@ def polygonize(
             mask = (src.read(1) == 1).astype(np.uint8)
             boundary_mask = (src.read(1) == 2).astype(np.uint8)
 
-        if algorithm == "zhangsuen":
+        if thin_boundaries:
             mask = thin_boundary_preserving_fields(mask, boundary_mask)
 
         total_iterations = math.ceil(input_height / polygonization_stride) * math.ceil(

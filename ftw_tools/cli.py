@@ -1208,14 +1208,6 @@ def inference_run_instance_segmentation_all(
     + SUPPORTED_POLY_FORMATS_TXT,
 )
 @click.option(
-    "--algorithm",
-    "-a",
-    type=click.Choice(["simple", "zhangsuen"]),
-    default="simple",
-    show_default=True,
-    help="Polygonization algorithm. 'simple' uses connected components, 'zhangsuen' thins boundary pixels while preserving connectivity.",
-)
-@click.option(
     "--simplify",
     "-s",
     type=click.FloatRange(min=0.0),
@@ -1293,10 +1285,17 @@ def inference_run_instance_segmentation_all(
     show_default=True,
     help="Distance (in CRS units, e.g., meters) for a morphological closing (dilate then erode) applied to each polygon to seal hairline gaps, fill pinholes, and connect near-touching parts without net growth. Set 0 to disable. A good starting value is 0.5–1x the raster pixel size.",
 )
+@click.option(
+    "--thin_boundaries",
+    "-tb",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Thin boundaries before polygonization using Zhang-Suen thinning algorithm.",
+)
 def inference_polygonize(
     input,
     out,
-    algorithm,
     simplify,
     min_size,
     max_size,
@@ -1307,13 +1306,13 @@ def inference_polygonize(
     merge_adjacent,
     erode_dilate,
     dilate_erode,
+    thin_boundaries,
 ):
     from ftw_tools.postprocess.polygonize import polygonize
 
     polygonize(
         input,
         out,
-        algorithm,
         simplify,
         min_size,
         max_size,
@@ -1324,6 +1323,7 @@ def inference_polygonize(
         merge_adjacent,
         erode_dilate,
         dilate_erode,
+        thin_boundaries,
     )
 
 
