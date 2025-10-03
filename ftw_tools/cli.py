@@ -1286,6 +1286,22 @@ def inference_run_instance_segmentation_all(
     help="Distance (in CRS units, e.g., meters) for a morphological closing (dilate then erode) applied to each polygon to seal hairline gaps, fill pinholes, and connect near-touching parts without net growth. Set 0 to disable. A good starting value is 0.5–1x the raster pixel size.",
 )
 @click.option(
+    "--erode_dilate_raster",
+    "-edr",
+    type=click.IntRange(min=0),
+    default=0,
+    show_default=True,
+    help="Number of iterations for a morphological opening (erode then dilate) applied to raster mask before polygonization. Set to 0 to disable.",
+)
+@click.option(
+    "--dilate_erode_raster",
+    "-der",
+    type=click.IntRange(min=0),
+    default=0,
+    show_default=True,
+    help="Number of iterations for a morphological closing (dilate then erode) applied to raster mask before polygonization. Set to 0 to disable.",
+)
+@click.option(
     "--thin_boundaries",
     "-tb",
     is_flag=True,
@@ -1306,6 +1322,8 @@ def inference_polygonize(
     merge_adjacent,
     erode_dilate,
     dilate_erode,
+    erode_dilate_raster,
+    dilate_erode_raster,
     thin_boundaries,
 ):
     from ftw_tools.postprocess.polygonize import polygonize
@@ -1323,6 +1341,8 @@ def inference_polygonize(
         merge_adjacent,
         erode_dilate,
         dilate_erode,
+        erode_dilate_raster,
+        dilate_erode_raster,
         thin_boundaries,
     )
 

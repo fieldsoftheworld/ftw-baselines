@@ -13,6 +13,7 @@ from affine import Affine
 from fiboa_cli.parquet import create_parquet, features_to_dataframe
 from pyproj import CRS, Transformer
 from shapely.ops import transform, unary_union
+from skimage.morphology import dilation, erosion
 from tqdm import tqdm
 
 from ftw_tools.settings import SUPPORTED_POLY_FORMATS_TXT
@@ -250,6 +251,28 @@ def thin_boundary_preserving_fields(
     return field_mask
 
 
+def multi_erosion(mask, iterations):
+    for _ in range(iterations):
+        kernel = [
+            [0, 1, 0],  # image morphology filter
+            [1, 1, 1],
+            [0, 1, 0],
+        ]
+        mask = erosion(mask, np.array(kernel))
+    return mask
+
+
+def multi_dilation(mask, iterations):
+    for _ in range(iterations):
+        kernel = [
+            [0, 1, 0],  # image morphology filter
+            [1, 1, 1],
+            [0, 1, 0],
+        ]
+        mask = dilation(mask, np.array(kernel))
+    return mask
+
+
 def polygonize(
     input,
     out,
@@ -263,6 +286,8 @@ def polygonize(
     merge_adjacent=None,
     erode_dilate=0,
     dilate_erode=0,
+    erode_dilate_raster=0,
+    dilate_erode_raster=0,
     thin_boundaries=False,
 ):
     """Polygonize the output from inference."""
@@ -320,6 +345,15 @@ def polygonize(
 
         if thin_boundaries:
             mask = thin_boundary_preserving_fields(mask, boundary_mask)
+
+        if erode_dilate_raster > 0:
+            # morphological opening before polygonization
+            mask = multi_erosion(mask, erode_dilate_raster)
+            mask = multi_dilation(mask, erode_dilate_raster)
+        elif dilate_erode_raster > 0:
+            # morphological closing before polygonization
+            mask = multi_dilation(mask, dilate_erode_raster)
+            mask = multi_erosion(mask, dilate_erode_raster)
 
         total_iterations = math.ceil(input_height / polygonization_stride) * math.ceil(
             input_width / polygonization_stride

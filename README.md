@@ -474,6 +474,16 @@ Options:
                                   touching parts without net growth. Set 0 to
                                   disable. A good starting value is 0.5–1x the
                                   raster pixel size.  [default: 0; x>=0.0]
+  -edr, --erode_dilate_raster INTEGER RANGE
+                                  Number of iterations for a morphological
+                                  opening (erode then dilate) applied to
+                                  raster mask before polygonization. Set to 0
+                                  to disable.  [default: 0; x>=0]
+  -der, --dilate_erode_raster INTEGER RANGE
+                                  Number of iterations for a morphological
+                                  closing (dilate then erode) applied to
+                                  raster mask before polygonization. Set to 0
+                                  to disable.  [default: 0; x>=0]
   -tb, --thin_boundaries          Thin boundaries before polygonization using
                                   Zhang-Suen thinning algorithm.
   --help                          Show this message and exit.
