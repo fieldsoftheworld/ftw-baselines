@@ -11,10 +11,10 @@ import wget
 # torchvision.ops.nms is not supported on MPS yet
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
+from ftw_tools.models.model_registry import MODEL_REGISTRY
 from ftw_tools.settings import (
     ALL_COUNTRIES,
     LULC_COLLECTIONS,
-    MODEL_REGISTRY,
     S2_COLLECTIONS,
     SUPPORTED_POLY_FORMATS_TXT,
     TEMPORAL_OPTIONS,
@@ -617,7 +617,7 @@ def inference_download(
     "-m",
     type=click.Choice(list(MODEL_REGISTRY.keys())),
     required=True,
-    help="Path to the model checkpoint.",
+    help="Short model name corresponding to a released model",
 )
 @click.option(
     "--out",

@@ -23,8 +23,8 @@ from torchgeo.datasets import stack_samples
 from torchgeo.samplers import GridGeoSampler
 from tqdm import tqdm
 
+from ftw_tools.models.model_registry import MODEL_REGISTRY
 from ftw_tools.models.utils import convert_to_fiboa, postprocess_instance_polygons
-from ftw_tools.settings import MODEL_REGISTRY
 from ftw_tools.torchgeo.datamodules import preprocess
 from ftw_tools.torchgeo.datasets import SingleRasterDataset
 from ftw_tools.torchgeo.trainers import CustomSemanticSegmentationTask
