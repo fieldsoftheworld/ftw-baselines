@@ -36,9 +36,6 @@ class ModelSpec(BaseModel):
             raise ValueError("Description cannot be empty")
         return v
 
-    class Config:
-        frozen = True  # Make immutable
-
 
 MODEL_REGISTRY = {
     "2_Class_CCBY_v1": ModelSpec(
