@@ -1,11 +1,8 @@
 import re
-from pathlib import Path
-from typing import Dict, Optional
 
 import geopandas as gpd
 import numpy as np
 import shapely
-import torch
 from fiboa_cli.parquet import create_parquet
 
 

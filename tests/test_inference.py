@@ -1,7 +1,6 @@
 import os
 import shutil
 import tempfile
-from pathlib import Path
 
 from click.testing import CliRunner
 
