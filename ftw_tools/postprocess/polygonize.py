@@ -118,6 +118,7 @@ def polygonize(
     overwrite=False,
     close_interiors=False,
     polygonization_stride=2048,
+    softmax_threshold=None,
     merge_adjacent=None,
 ):
     """Polygonize the output from inference."""
@@ -158,7 +159,17 @@ def polygonize(
         tags = src.tags()
 
         input_height, input_width = src.shape
-        mask = (src.read(1) == 1).astype(np.uint8)
+        if softmax_threshold:
+            assert src.count == 3, (
+                "Input tif should have 3 bands (background, interior, boundary scores)."
+            )
+            # softmax scores were quantized to [0,255], so convert threshold similarly
+            softmax_threshold *= 255
+            # 1st channel: scores for background class, 2nd: interior, 3rd: boundary
+            mask = (src.read(2) >= softmax_threshold).astype(np.uint8)
+        else:
+            assert src.count == 1, "Input tif should be single-band (predicted class)."
+            mask = (src.read(1) == 1).astype(np.uint8)
         total_iterations = math.ceil(input_height / polygonization_stride) * math.ceil(
             input_width / polygonization_stride
         )
