@@ -1,3 +1,5 @@
+from urllib.parse import urljoin
+
 import pytest
 from pydantic import ValidationError
 
@@ -6,14 +8,14 @@ from ftw_tools.models.model_registry import MODEL_REGISTRY, RELEASE_URL, ModelSp
 
 def test_valid_model_spec_instance():
     model = ModelSpec(
-        url=RELEASE_URL + "v1/" + "2_Class_CCBY_FTW_Pretrained.ckpt",
+        url=f"{RELEASE_URL}v1/2_Class_CCBY_FTW_Pretrained.ckpt",
         description="A valid model description.",
         license="CC BY 4.0",
         version="v1",
         requires_window=True,
         requires_polygonize=True,
     )
-    assert str(model.url) == RELEASE_URL + "v1/" + "2_Class_CCBY_FTW_Pretrained.ckpt"
+    assert model.url == RELEASE_URL + "v1/" + "2_Class_CCBY_FTW_Pretrained.ckpt"
     assert model.description == "A valid model description."
     assert model.license == "CC BY 4.0"
     assert model.version == "v1"

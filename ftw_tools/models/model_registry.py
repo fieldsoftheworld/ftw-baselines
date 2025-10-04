@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, HttpUrl, field_validator
+from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
 
 RELEASE_URL = "https://github.com/fieldsoftheworld/ftw-baselines/releases/download/"
 
@@ -15,7 +15,7 @@ THREE_CLASS_FULL = "3_Class_FULL_FTW_Pretrained.ckpt"
 class ModelSpec(BaseModel):
     """Pydantic model with automatic validation."""
 
-    url: HttpUrl  # Validates URL format automatically
+    url: str
     description: str = Field(min_length=1)
     license: Literal["CC BY 4.0", "proprietary"]
     version: str = Field(description="Model version (e.g., v1, v2, v3)")
@@ -25,7 +25,7 @@ class ModelSpec(BaseModel):
     @field_validator("url")
     @classmethod
     def url_must_be_ckpt(cls, v):
-        if not str(v).endswith(".ckpt"):
+        if not v.endswith(".ckpt"):
             raise ValueError("URL must end with .ckpt")
         return v
 
@@ -42,37 +42,37 @@ class ModelSpec(BaseModel):
 
 MODEL_REGISTRY = {
     "2_Class_CCBY_v1": ModelSpec(
-        url=RELEASE_URL + "v1/" + TWO_CLASS_CCBY,
+        url=f"{RELEASE_URL}v1/{TWO_CLASS_CCBY}",
         description="2-Class CCBY FTW Pretrained Model",
         license="CC BY 4.0",
         version="v1",
     ),
     "2_Class_FULL_v1": ModelSpec(
-        url=RELEASE_URL + "v1/" + TWO_CLASS_FULL,
+        url=f"{RELEASE_URL}v1/{TWO_CLASS_FULL}",
         description="2-Class FULL FTW Pretrained Model",
         license="CC BY 4.0",
         version="v1",
     ),
     "3_Class_CCBY_v1": ModelSpec(
-        url=RELEASE_URL + "v1/" + THREE_CLASS_CCBY,
+        url=f"{RELEASE_URL}v1/{THREE_CLASS_CCBY}",
         description="3-Class CCBY FTW Pretrained Model",
         license="CC BY 4.0",
         version="v1",
     ),
     "3_Class_FULL_v1": ModelSpec(
-        url=RELEASE_URL + "v1/" + THREE_CLASS_FULL,
+        url=f"{RELEASE_URL}v1/{THREE_CLASS_FULL}",
         description="3-Class FULL FTW Pretrained Model",
         license="proprietary",
         version="v1",
     ),
     "3_Class_FULL_singleWindow_v2": ModelSpec(
-        url=RELEASE_URL + "v2/3_Class_FULL_FTW_Pretrained_singleWindow_v2.ckpt",
+        url=f"{RELEASE_URL}v2/3_Class_FULL_FTW_Pretrained_singleWindow_v2.ckpt",
         description="3-Class FULL FTW Pretrained Model (Single Window)",
         license="CC BY 4.0",
         version="v2",
     ),
     "3_Class_FULL_multiWindow_v2": ModelSpec(
-        url=RELEASE_URL + "v2/3_Class_FULL_FTW_Pretrained_v2.ckpt",
+        url=f"{RELEASE_URL}v2/3_Class_FULL_FTW_Pretrained_v2.ckpt",
         description="3-Class FULL FTW Pretrained Model (Multi Window)",
         license="CC BY 4.0",
         version="v2",

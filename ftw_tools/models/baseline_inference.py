@@ -129,6 +129,7 @@ def run(
 
         # Ensure cache directory exists
         cache_dir = Path(torch.hub.get_dir()) / "checkpoints"
+        cache_dir.mkdir(parents=True, exist_ok=True)
         model_ckpt_path = str(cache_dir / f"{model}.ckpt")
 
         # Only download if not already cached
