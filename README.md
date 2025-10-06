@@ -23,7 +23,7 @@ This repository provides the codebase for working with the [FTW dataset](https:/
     - [Verify Installation](#verify-installation-1)
 - [Predicting field boundaries](#predicting-field-boundaries)
   - [FTW Semantic Segmentation Baseline Model](#ftw-semantic-segmentation-baseline-model)
-    - [1. Download the model](#1-download-the-model)
+    - [1. Decide which model you want to use](#1-decide-which-model-you-want-to-use)
     - [2. FTW Inference all (using `ftw inference all`)](#2-ftw-inference-all-using-ftw-inference-all)
     - [3. Download S2 image scene (using `ftw inference download`)](#3-download-s2-image-scene-using-ftw-inference-download)
     - [4. Run inference (using `ftw inference run`)](#4-run-inference-using-ftw-inference-run)
@@ -180,22 +180,18 @@ The following commands show the steps for using the FTW CLI to obtain the FTW mo
 
 ### FTW Semantic Segmentation Baseline Model
 
-#### 1. Download the model
+#### 1. Decide which model you want to use
 
-In order to use `ftw inference`, you need a trained model. You can either download a pre-trained model (FTW pre-trained models can be found in the [Releases](https://github.com/fieldsoftheworld/ftw-baselines/releases) list) or you can train your own model as explained in the [Training](./EXPERIMENTS.md#training) section. This example will use an FTW pre-trained model (with options for either 3 Class or 2 Class).
+In order to use `ftw inference` cli command you need to select one of the existing pre-trained models.
+The pre-trained models with descriptions are in the releases portion of the repo, see [here](https://github.com/fieldsoftheworld/ftw-baselines/releases) for more details.
 
-- Download pretrained checkpoint from [v1](https://github.com/fieldsoftheworld/ftw-baselines/releases/tag/v1).
-  - 3 Class
-
-    ```bash
-    ftw model download --type THREE_CLASS_FULL
-    ```
-
-  - 2 Class
-
-    ```bash
-    ftw model download --type TWO_CLASS_FULL
-    ```
+The string representations of the models released are defined in `models/model_registry.py` and are:
+* 2_Class_CCBY_v1
+* 2_Class_FULL_v1
+* 3_Class_CCBY_v1
+* 3_Class_FULL_v1
+* 3_Class_FULL_singleWindow_v2
+* 3_Class_FULL_multiWindow_v2
 
 **Note**: If you want more control ie provide specific Sentinel2 scenes to work with follow steps 3-6 to run each part of the inference pipeline sequentially. There is the option to run step 2 `all` which links together the distinct inference steps. If you decide to run step 2 you will get extracted field boundaries as polygons and don't need to proceed with steps 3-6.
 
@@ -214,7 +210,7 @@ Usage: ftw inference all [OPTIONS]
 Options:
   -o, --out PATH                  Directory to save downloaded inference
                                   imagery, and inference output to  [required]
-  -m, --model PATH                String representation of released model name.  [required]
+  -m, --model str                String representation of released model name.  [required]
   --year INTEGER RANGE            Year to run model inference over
                                   [2015<=x<=2025; required]
   --bbox TEXT                     Bounding box to use for the download in the
