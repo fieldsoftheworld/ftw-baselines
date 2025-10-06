@@ -124,7 +124,7 @@ def run(
 
     # Load model
     if model in MODEL_REGISTRY.keys():
-        print(f"Downloading model {model} from {MODEL_REGISTRY[model]}")
+        print(f"Downloading model {model} from {MODEL_REGISTRY[model].url}")
         model_path = MODEL_REGISTRY[model].url
 
         # Ensure cache directory exists
