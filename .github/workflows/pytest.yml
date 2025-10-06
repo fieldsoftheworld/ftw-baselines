@@ -8,8 +8,6 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
-    env:
-      CONDA_OVERRIDE_CUDA: 12.0
     steps:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
@@ -22,15 +20,19 @@ jobs:
           docker-images: true
           swap-storage: true
       - uses: actions/checkout@v4
-      - uses: prefix-dev/setup-pixi@v0.8.10
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          pixi-version: v0.49.0
-          cache: true
-          cache-key: ${{ runner.os }}-pixi-${{ hashFiles('pixi.lock') }}
-      - name: Install Python dev dependencies
-        run: pixi run install-dev
+          python-version: '3.12'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+      - name: Install package in dev mode
+        run: pip install -e .
       - name: Run pre-commit
-        run: pixi run -e dev pre-commit run --all-files
+        run: pre-commit run --all-files
 
   build:
     name: Run build
@@ -46,8 +48,6 @@ jobs:
           - "3.11"
           - "3.12"
       fail-fast: true
-    env:
-      CONDA_OVERRIDE_CUDA: 12.0
     steps:
       - name: Free Disk Space (Ubuntu)
         if: runner.os == 'Linux'
@@ -61,20 +61,24 @@ jobs:
           docker-images: true
           swap-storage: true
       - uses: actions/checkout@v4
-      - uses: prefix-dev/setup-pixi@v0.8.10
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
-          pixi-version: v0.49.0
-          cache: true
-          cache-key: ${{ runner.os }}-pixi-${{ hashFiles('pixi.lock') }}
-      - name: Install Python dev dependencies
-        run: pixi run -e dev install-dev
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Install package in dev mode
+        run: pip install -e .
       - name: Test imports
         run: |
-          pixi run -e dev python -c "from ftw_tools import cli"
-          pixi run -e dev python -c "from ftw_tools.download import download_ftw, download_img"
-          pixi run -e dev python -c "from ftw_tools.models import baseline_inference, baseline_eval, delineate_anything"
-          pixi run -e dev python -c "from ftw_tools.torchgeo import datamodules, trainers"
-          pixi run -e dev python -c "from ftw_tools.postprocess import polygonize, metrics"
+          python -c "from ftw_tools import cli"
+          python -c "from ftw_tools.download import download_ftw, download_img"
+          python -c "from ftw_tools.models import baseline_inference, baseline_eval, delineate_anything"
+          python -c "from ftw_tools.torchgeo import datamodules, trainers"
+          python -c "from ftw_tools.postprocess import polygonize, metrics"
 
   tests:
     name: Run tests
@@ -88,8 +92,6 @@ jobs:
           - "3.11"
           - "3.12"
       fail-fast: true
-    env:
-      CONDA_OVERRIDE_CUDA: 12.0
     steps:
       - name: Free Disk Space (Ubuntu)
         if: runner.os == 'Linux'
@@ -103,12 +105,16 @@ jobs:
           docker-images: true
           swap-storage: true
       - uses: actions/checkout@v4
-      - uses: prefix-dev/setup-pixi@v0.8.10
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
-          pixi-version: v0.49.0
-          cache: true
-          cache-key: ${{ runner.os }}-pixi-${{ hashFiles('pixi.lock') }}
-      - name: Install Python dev dependencies
-        run: pixi run install-dev
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+      - name: Install package in dev mode
+        run: pip install -e .
       - name: Execute tests
-        run: pixi run -e dev test
+        run: pytest tests/
