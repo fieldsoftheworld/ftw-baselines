@@ -36,6 +36,7 @@ pyyaml = ">=6.0,<7.0"
 wget = "*"
 numpy = ">=1.24,<3.0"
 scipy = ">=1.11,<2.0"
+scikit-image = ">=0.25.2,<2.0"
 matplotlib = ">=3.7,<4.0"
 tenacity = ">=9.1.2,<10.0"
 pyarrow = "==16.1.0"  # CRITICAL: filesystem registration error with newer versions, see https://github.com/apache/arrow/issues/44696
