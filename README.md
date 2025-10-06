@@ -161,7 +161,7 @@ Commands:
 
 The following commands show the steps for using the FTW CLI to obtain the FTW model and data, and then run an inference using that model on that data, and finally polygonizing that output. This example uses a pair of Sentinel-2 (S2) scenes over Austria.
 
-> **Note**: If using pixi, you can either use `pixi run` for individual commands (e.g., `pixi run ftw inference download ...`) or activate the environment first with `pixi shell` and then use commands directly. All examples below show the direct commands.
+> **Note**: Make sure you have activated your Python virtual environment before running these commands (e.g., `source venv/bin/activate`).
 
 ### FTW Semantic Segmentation Baseline Model
 
