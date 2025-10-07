@@ -25,6 +25,8 @@ jobs:
         with:
           python-version: '3.12'
           cache: 'pip'
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-glx
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -41,7 +43,6 @@ jobs:
           - ubuntu-latest
           - windows-latest
           - macos-latest  # latest = Apple Silicon
-          - macos-13   # 13 = Intel
         python-version:
           - "3.11"
           - "3.12"
@@ -64,6 +65,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
+      - name: Install system dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-glx
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -106,6 +110,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
+      - name: Install system dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-glx
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
