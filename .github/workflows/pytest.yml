@@ -9,16 +9,6 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
       - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -32,49 +22,6 @@ jobs:
       - name: Run pre-commit
         run: pre-commit run --all-files
 
-  build:
-    name: Run build
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
-          - macos-latest  # latest = Apple Silicon
-        python-version:
-          - "3.11"
-          - "3.12"
-      fail-fast: true
-    steps:
-      - name: Free Disk Space (Ubuntu)
-        if: runner.os == 'Linux'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-      - uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install '.[all]'
-      - name: Test imports
-        run: |
-          python -c "from ftw_tools import cli"
-          python -c "from ftw_tools.download import download_ftw, download_img"
-          python -c "from ftw_tools.models import baseline_inference, baseline_eval, delineate_anything"
-          python -c "from ftw_tools.torchgeo import datamodules, trainers"
-          python -c "from ftw_tools.postprocess import polygonize, metrics"
-
   tests:
     name: Run tests
     runs-on: ${{ matrix.os }}
@@ -83,22 +30,12 @@ jobs:
         os:
           - ubuntu-latest
           - windows-latest
+          - macos-latest
         python-version:
           - "3.11"
           - "3.12"
       fail-fast: true
     steps:
-      - name: Free Disk Space (Ubuntu)
-        if: runner.os == 'Linux'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
