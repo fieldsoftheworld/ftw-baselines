@@ -29,7 +29,7 @@ from torchvision.models._api import WeightsEnum
 from ..postprocess.metrics import get_object_level_metrics
 from .losses import PixelWeightedCE
 from .models import FCSiamAvg
-
+from .losses import Dice, DiceCE
 
 class CustomSemanticSegmentationTask(BaseTask):
     """Semantic Segmentation.
@@ -77,7 +77,7 @@ class CustomSemanticSegmentationTask(BaseTask):
             num_classes: Number of prediction classes.
             num_filters: Number of filters. Only applicable when model='fcn'.
             loss: Name of the loss function, currently supports
-                'ce', 'jaccard' or 'focal' loss.
+                'ce', 'jaccard' or 'focal' or 'dice' or 'diceCE' loss.
             class_weights: Optional rescaling weight given to each
                 class and used with 'ce' loss.
             ignore_index: Optional integer class index to ignore in the loss and
@@ -127,6 +127,7 @@ class CustomSemanticSegmentationTask(BaseTask):
         """
         loss: str = self.hparams["loss"]
         ignore_index = self.hparams["ignore_index"]
+        model_kwargs: dict[Any, Any] = self.hparams["model_kwargs"]
         class_weights = None
         if self.hparams["class_weights"] is not None:
             class_weights = torch.tensor(self.hparams["class_weights"])
@@ -160,6 +161,18 @@ class CustomSemanticSegmentationTask(BaseTask):
             self.criterion = smp.losses.FocalLoss(
                 "multiclass", ignore_index=ignore_index, normalized=True
             )
+        elif loss == "dice":
+            self.criterion = Dice(mode="multiclass", 
+                ignore_index=ignore_index, class_weights=class_weights
+            )
+        elif loss == "diceCE":
+            weight_ce = model_kwargs.get("weight_ce", 0.5)
+            weight_dice = model_kwargs.get("weight_dice", 0.5)
+
+            self.criterion = DiceCE(
+                mode="multiclass", weight_ce=weight_ce, weight_dice=weight_dice, ignore_index=ignore_index,class_weights=class_weights
+            )
+        
         elif loss == "ce+dice":
             self.dice_loss = smp.losses.DiceLoss(
                 "multiclass",
@@ -181,7 +194,7 @@ class CustomSemanticSegmentationTask(BaseTask):
         else:
             raise ValueError(
                 f"Loss type '{loss}' is not valid. "
-                "Currently, supports 'ce', 'jaccard' or 'focal' loss."
+                "Currently, supports 'ce', 'jaccard' or 'focal' or 'dice' or 'diceCE' loss."
             )
 
     def configure_metrics(self) -> None:
