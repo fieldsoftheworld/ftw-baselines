@@ -615,9 +615,9 @@ def inference_download(
 @click.option(
     "--model",
     "-m",
-    type=click.Choice(list(MODEL_REGISTRY.keys())),
+    type=str,
     required=True,
-    help="Short model name corresponding to a released model",
+    help="Short model name corresponding to a released model. Can be a string or one of: " + ", ".join(MODEL_REGISTRY.keys()),
 )
 @click.option(
     "--out",
@@ -694,18 +694,18 @@ def inference_download(
     help="Save segmentation softmax scores (rescaled to [0,255]) instead of classes (argmax of scores)",
 )
 def inference_run(
-    input,
-    model,
-    out,
-    resize_factor,
-    gpu,
-    patch_size,
-    batch_size,
-    num_workers,
-    padding,
-    overwrite,
-    mps_mode,
-    save_scores,
+    input: str,
+    model: str,
+    out: Optional[str],
+    resize_factor: int,
+    gpu: int,
+    patch_size: Optional[int],
+    batch_size: int,
+    num_workers: int,
+    padding: Optional[int],
+    overwrite: bool,
+    mps_mode: bool,
+    save_scores: bool,
 ):
     from ftw_tools.models.baseline_inference import run
 
