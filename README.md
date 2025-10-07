@@ -70,9 +70,6 @@ pip install --upgrade pip
 
 # Install ftw-tools with all dependencies
 pip install -e .
-
-# Or install from requirements.txt
-pip install -r requirements.txt
 ```
 
 #### Usage
@@ -95,10 +92,7 @@ ftw model fit -c configs/example_config.yaml
 For development work with testing and linting tools:
 
 ```bash
-# Install development dependencies
-pip install -r requirements-dev.txt
-
-# Or install using optional dependencies
+# Install with development dependencies
 pip install -e .[dev]
 
 # Format and lint
@@ -117,8 +111,12 @@ To install the optional delineate-anything feature:
 
 ```bash
 pip install -e .[delineate-anything]
-# Or
-pip install -r requirements-delineate.txt
+```
+
+To install everything (all optional dependencies):
+
+```bash
+pip install -e .[all]
 ```
 
 #### Verify Installation

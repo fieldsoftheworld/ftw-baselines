@@ -1,4 +1,0 @@
-# Optional dependencies for delineate-anything feature
-# Generated from pixi.toml
-
-ultralytics>=8.3.187,<9
