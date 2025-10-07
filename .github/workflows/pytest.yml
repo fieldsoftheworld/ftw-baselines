@@ -54,3 +54,7 @@ jobs:
           pip install opencv-python-headless
       - name: Execute tests
         run: pytest tests/
+        env:
+          VECLIB_MAXIMUM_THREADS: ${{ runner.os == 'macOS' && '1' || '' }}
+          OPENBLAS_NUM_THREADS: ${{ runner.os == 'macOS' && '1' || '' }}
+          OMP_NUM_THREADS: ${{ runner.os == 'macOS' && '1' || '' }}
