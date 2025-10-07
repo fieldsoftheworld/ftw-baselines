@@ -11,6 +11,7 @@ import wget
 # torchvision.ops.nms is not supported on MPS yet
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
+from ftw_tools.models.model_registry import MODEL_REGISTRY
 from ftw_tools.settings import (
     ALL_COUNTRIES,
     LULC_COLLECTIONS,
@@ -26,16 +27,6 @@ from ftw_tools.utils import parse_bbox
 
 COUNTRIES_CHOICE = ALL_COUNTRIES.copy()
 COUNTRIES_CHOICE.append("all")
-
-
-class ModelVersions(enum.StrEnum):
-    """Mapping from short_name to .ckpt file in github."""
-
-    TWO_CLASS_CCBY = "2_Class_CCBY_FTW_Pretrained.ckpt"
-    TWO_CLASS_FULL = "2_Class_FULL_FTW_Pretrained.ckpt"
-    THREE_CLASS_CCBY = "3_Class_CCBY_FTW_Pretrained.ckpt"
-    THREE_CLASS_FULL = "3_Class_FULL_FTW_Pretrained.ckpt"
-
 
 # All commands are meant to use dashes as separator for words.
 # All parameters are meant to use underscores as separator for words.
@@ -345,33 +336,6 @@ def model_test(
     )
 
 
-@model.command("download", help="Download model checkpoints")
-@click.option(
-    "--type",
-    type=click.Choice(ModelVersions),
-    required=True,
-    help="Short model name corresponding to a .ckpt file in github.",
-)
-@click.option(
-    "--out",
-    "-o",
-    type=click.Path(exists=False),
-    default=None,
-    show_default=True,
-    help="File where the file will be stored to. Defaults to the original filename of the selected model.",
-)
-def model_download(type: ModelVersions, out: Optional[str] = None):
-    github_url = f"https://github.com/fieldsoftheworld/ftw-baselines/releases/download/v1/{type.value}"
-    target = Path(out or type.value)
-    if target.exists():
-        print(f"File {target} already exists, skipping download.")
-        return
-
-    print(f"Downloading {github_url} to {target}")
-    target.parent.mkdir(parents=True, exist_ok=True)
-    wget.download(github_url, str(target.resolve()))
-
-
 ### Inference group
 
 WIN_HELP = "URL to a Sentinel-2 L2A STAC item for the window {x} image. Alternatively, an ID of a STAC Item on Microsoft Planetary Computer."
@@ -398,9 +362,9 @@ def inference():
 @click.option(
     "--model",
     "-m",
-    type=click.Path(exists=True),
+    type=click.Choice(MODEL_REGISTRY.keys()),
     required=True,
-    help="Path to the model checkpoint.",
+    help="Short model name corresponding to a .ckpt file in github.",
 )
 @common_year_option()
 @common_bbox_option()
@@ -651,9 +615,9 @@ def inference_download(
 @click.option(
     "--model",
     "-m",
-    type=click.Path(exists=True),
+    type=click.Choice(list(MODEL_REGISTRY.keys())),
     required=True,
-    help="Path to the model checkpoint.",
+    help="Short model name corresponding to a released model",
 )
 @click.option(
     "--out",

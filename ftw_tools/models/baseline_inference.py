@@ -1,6 +1,7 @@
 import math
 import os
 import time
+from pathlib import Path
 from typing import Literal
 
 import geopandas as gpd
@@ -22,6 +23,7 @@ from torchgeo.datasets import stack_samples
 from torchgeo.samplers import GridGeoSampler
 from tqdm import tqdm
 
+from ftw_tools.models.model_registry import MODEL_REGISTRY
 from ftw_tools.models.utils import convert_to_fiboa, postprocess_instance_polygons
 from ftw_tools.torchgeo.datamodules import preprocess
 from ftw_tools.torchgeo.datasets import SingleRasterDataset
@@ -120,13 +122,29 @@ def run(
         input, out, gpu, patch_size, padding, overwrite, mps_mode
     )
 
-    assert os.path.exists(model), f"Model file {model} does not exist."
-    assert model.endswith(".ckpt"), "Model file must be a .ckpt file."
+    # Load model
+    if model in MODEL_REGISTRY.keys():
+        print(f"Downloading model {model} from {MODEL_REGISTRY[model].url}")
+        model_path = MODEL_REGISTRY[model].url
+
+        # Ensure cache directory exists
+        cache_dir = Path(torch.hub.get_dir()) / "checkpoints"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        model_ckpt_path = str(cache_dir / f"{model}.ckpt")
+
+        # Only download if not already cached
+        if not Path(model_ckpt_path).exists():
+            torch.hub.download_url_to_file(model_path, model_ckpt_path, progress=True)
+
+    else:
+        assert model.endswith(".ckpt"), "Model file must be a .ckpt file."
+        assert os.path.exists(model), f"Model file {model} does not exist."
+        model_ckpt_path = model
 
     # Load task
     tic = time.time()
     task = CustomSemanticSegmentationTask.load_from_checkpoint(
-        model, map_location="cpu"
+        model_ckpt_path, map_location="cpu"
     )
     task.freeze()
     model = task.model.eval().to(device)
