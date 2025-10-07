@@ -72,9 +72,7 @@ class DelineateAnything:
 
     @staticmethod
     def polygonize(
-        result: Results,
-        transform: rasterio.Affine,
-        crs=rasterio.CRS,
+        result: Results, transform: rasterio.Affine, crs=rasterio.CRS
     ) -> gpd.GeoDataFrame | None:
         """Convert the model predictions to a GeoDataFrame of georeferenced polygons.
 

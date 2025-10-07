@@ -87,7 +87,7 @@ def test(
     temporal_options,
     use_val_set,
     swap_order,
-    num_workers=0,
+    num_workers,
 ):
     """Command to test the model."""
     target_split = "val" if use_val_set else "test"

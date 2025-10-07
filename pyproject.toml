@@ -55,12 +55,8 @@ dependencies = [
   "tqdm>=4.65,<5",
   "wget",
 ]
-optional-dependencies.all = [
-  "ftw-tools[delineate-anything,dev]",
-]
-optional-dependencies.delineate-anything = [
-  "ultralytics>=8.3.187,<9",
-]
+optional-dependencies.all = [ "ftw-tools[delineate-anything,dev]" ]
+optional-dependencies.delineate-anything = [ "ultralytics>=8.3.187,<9" ]
 optional-dependencies.dev = [
   "build",
   "hatchling",
@@ -76,6 +72,20 @@ scripts.ftw = "ftw_tools.cli:ftw"
 
 [tool.ruff]
 extend-exclude = [ "*.ipynb" ]
+fix = true
+
+format.quote-style = "double"
+format.skip-magic-trailing-comma = true
+lint.isort.split-on-trailing-comma = false
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = [ "E203" ]
+exclude = [ "data/", ".git/" ]
 
 [tool.pytest.ini_options]
+norecursedirs = [ ".ipynb_checkpoints", "data", "__pycache__" ]
 pythonpath = [ "." ]
+testpaths = [ "tests" ]
+tmp_path_retention_count = 1
+tmp_path_retention_policy = "failed"

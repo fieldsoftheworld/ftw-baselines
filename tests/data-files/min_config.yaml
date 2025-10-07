@@ -1,10 +1,14 @@
 trainer:
   max_epochs: 1
+  limit_train_batches: 2
+  limit_val_batches: 2
+  limit_test_batches: 2
   log_every_n_steps: 2
-  accelerator: cpu
-  default_root_dir: logs/FTW-CI
+  num_sanity_val_steps: 0
+  accelerator: gpu
   devices: 1
-  strategy: ddp_find_unused_parameters_true
+  enable_progress_bar: false
+  default_root_dir: tests/logs/FTW-CI
   callbacks:
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
@@ -16,12 +20,12 @@ trainer:
 model:
   class_path: ftw_tools.torchgeo.trainers.CustomSemanticSegmentationTask
   init_args:
-    class_weights: [0.31,0.68]
+    class_weights: [0.31, 0.68]
     loss: "ce"
     model: "unet"
     backbone: "efficientnet-b3"
     weights: true
-    patch_weights : false
+    patch_weights: false
     in_channels: 8
     num_classes: 2
     num_filters: 64
@@ -31,7 +35,7 @@ model:
 data:
   class_path: ftw_tools.torchgeo.datamodules.FTWDataModule
   init_args:
-    batch_size: 32
+    batch_size: 4
     num_workers: 3
     train_countries:
       - rwanda

@@ -34,15 +34,7 @@ TORCHGEO_08 = Version("0.8.0.dev0")
 TORCHGEO_CURRENT = parse(torchgeo.__version__)
 
 
-def setup_inference(
-    input,
-    out,
-    gpu,
-    patch_size,
-    padding,
-    overwrite,
-    mps_mode,
-):
+def setup_inference(input, out, gpu, patch_size, padding, overwrite, mps_mode):
     if not out:
         out = os.path.join(
             os.path.dirname(input), "inference." + os.path.basename(input)
@@ -152,10 +144,7 @@ def run(
 
     if mps_mode:
         up_sample = K.Resize(
-            (
-                patch_size * resize_factor,
-                patch_size * resize_factor,
-            )
+            (patch_size * resize_factor, patch_size * resize_factor)
         ).to("cpu")
         down_sample = (
             K.Resize((patch_size, patch_size), resample=Resample.NEAREST.name)
@@ -164,10 +153,7 @@ def run(
         )
     else:
         up_sample = K.Resize(
-            (
-                patch_size * resize_factor,
-                patch_size * resize_factor,
-            )
+            (patch_size * resize_factor, patch_size * resize_factor)
         ).to(device)
         down_sample = K.Resize(
             (patch_size, patch_size), resample=Resample.NEAREST.name
@@ -383,10 +369,9 @@ def run_instance_segmentation(
     """
     from .delineate_anything import DelineateAnything
 
-    assert model in [
-        "DelineateAnything",
-        "DelineateAnything-S",
-    ], "Model must be either DelineateAnything or DelineateAnything-S."
+    assert model in ["DelineateAnything", "DelineateAnything-S"], (
+        "Model must be either DelineateAnything or DelineateAnything-S."
+    )
 
     padding = padding if padding is not None else patch_size // 4
     device, _, _, patch_size, stride, _ = setup_inference(
@@ -418,10 +403,7 @@ def run_instance_segmentation(
 
     # Run inference
     polygons = []
-    for batch in tqdm(
-        dataloader,
-        total=len(dataloader),
-    ):
+    for batch in tqdm(dataloader, total=len(dataloader)):
         images = batch["image"].to(device)
         predictions = model(images)
 

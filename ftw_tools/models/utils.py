@@ -158,9 +158,7 @@ def postprocess_instance_polygons(
 
 
 def convert_to_fiboa(
-    polygons: gpd.GeoDataFrame,
-    output: str,
-    timestamp: str | None,
+    polygons: gpd.GeoDataFrame, output: str, timestamp: str | None
 ) -> gpd.GeoDataFrame:
     """Convert polygons to fiboa parquet format.
 

@@ -308,11 +308,10 @@ def model_fit(config, ckpt_path, cli_args):
 )
 @click.option(
     "--num_workers",
-    "-nw",
-    type=int,
-    default=0,
+    type=click.IntRange(min=1),
+    default=4,
     show_default=True,
-    help="Number of workers for data loading. Set to 0 to use the main process only.",
+    help="Number of workers to use for inference.",
 )
 def model_test(
     model,
@@ -524,9 +523,7 @@ def ftw_inference_all(
 
     # Polygonize the output
     polygonize(
-        input=inf_output_path,
-        out=f"{out}/polygons.parquet",
-        overwrite=overwrite,
+        input=inf_output_path, out=f"{out}/polygons.parquet", overwrite=overwrite
     )
 
 
@@ -564,10 +561,7 @@ def scene_selection(
     )
     if out:
         # persist results to json
-        result = {
-            "window_a": win_a,
-            "window_b": win_b,
-        }
+        result = {"window_a": win_a, "window_b": win_b}
         with open(out, "w") as f:
             json.dump(result, f, indent=2)
         print(f"Results saved to {out}")
@@ -1322,8 +1316,7 @@ def inference_polygonize(
 
 
 @inference.command(
-    "filter-by-lulc",
-    help="Filter the output raster in GeoTIFF format by LULC mask.",
+    "filter-by-lulc", help="Filter the output raster in GeoTIFF format by LULC mask."
 )
 @click.argument("input", type=click.Path(exists=True), required=True)
 @click.option(
