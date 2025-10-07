@@ -46,8 +46,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install '.[all]'
-      - name: Uninstall opencv-python (Ubuntu only)
+      - name: Fix OpenCV for headless environment (Ubuntu only)
         if: runner.os == 'Linux'
-        run: pip uninstall -y opencv-python || true
+        run: |
+          pip uninstall -y opencv-python || true
+          pip install opencv-python-headless
       - name: Execute tests
         run: pytest tests/
