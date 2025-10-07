@@ -53,7 +53,11 @@ dependencies = [
   "torchgeo>=0.7,<1",
   "torchvision>=0.19,<0.23",
   "tqdm>=4.65,<5",
-  "wget",
+  # Note: The following dependencies may not be directly imported but are needed:
+  # - notebook: For Jupyter notebook support
+  # - tensorboard: For PyTorch Lightning logging
+  # - pyarrow: For efficient data processing with Parquet files
+  # - pyyaml: For YAML config file parsing (imported as 'yaml')
 ]
 optional-dependencies.all = [
   "ftw-tools[delineate-anything,dev]",

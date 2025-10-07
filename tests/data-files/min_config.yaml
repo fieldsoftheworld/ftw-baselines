@@ -32,7 +32,7 @@ data:
   class_path: ftw_tools.torchgeo.datamodules.FTWDataModule
   init_args:
     batch_size: 32
-    num_workers: 4
+    num_workers: 3
     train_countries:
       - rwanda
     val_countries:
