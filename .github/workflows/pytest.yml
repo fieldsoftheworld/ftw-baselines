@@ -53,5 +53,9 @@ jobs:
         run: |
           pip uninstall -y opencv-python || true
           pip install opencv-python-headless
+      - name: install numpy <2 for macos-13 only
+        if: matrix.os == 'macos-13'
+        run: |
+          pip install numpy<2
       - name: Execute tests
         run: pytest
