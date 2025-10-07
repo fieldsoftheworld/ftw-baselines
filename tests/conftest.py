@@ -1,5 +1,4 @@
 import os
-import platform
 import sys
 
 import matplotlib
@@ -14,7 +13,6 @@ def pytest_sessionfinish(session, exitstatus):
     """Attempt to clean up background workers that may keep pytest alive. Only applies to macosx silicon with python 3.12."""
     if (
         sys.platform == "darwin"
-        and platform.processor() == "arm"
         and sys.version_info.major == 3
         and sys.version_info.minor == 12
     ):
