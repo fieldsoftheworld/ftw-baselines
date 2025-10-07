@@ -87,6 +87,7 @@ def test(
     temporal_options,
     use_val_set,
     swap_order,
+    num_workers=0,
 ):
     """Command to test the model."""
     target_split = "val" if use_val_set else "test"
@@ -121,7 +122,7 @@ def test(
         temporal_options=temporal_options,
         swap_order=swap_order,
     )
-    dl = DataLoader(ds, batch_size=64, shuffle=False, num_workers=12)
+    dl = DataLoader(ds, batch_size=64, shuffle=False, num_workers=num_workers)
     print(f"Created dataloader with {len(ds)} samples in {time.time() - tic:.2f}s")
 
     if test_on_3_classes:

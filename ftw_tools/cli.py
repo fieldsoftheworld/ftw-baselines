@@ -306,6 +306,14 @@ def model_fit(config, ckpt_path, cli_args):
     show_default=True,
     help="Whether to run inference on (window_a, window_b) instead of the default (window_b, window_a).",
 )
+@click.option(
+    "--num_workers",
+    "-nw",
+    type=int,
+    default=0,
+    show_default=True,
+    help="Number of workers for data loading. Set to 0 to use the main process only.",
+)
 def model_test(
     model,
     countries,
@@ -318,6 +326,7 @@ def model_test(
     temporal_options,
     use_val_set,
     swap_order,
+    num_workers,
 ):
     from ftw_tools.models.baseline_eval import test
 
@@ -333,6 +342,7 @@ def model_test(
         temporal_options,
         use_val_set,
         swap_order,
+        num_workers,
     )
 
 
