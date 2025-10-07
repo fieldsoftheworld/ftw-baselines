@@ -16,9 +16,8 @@ CONFIG_FILE = "tests/data-files/min_config.yaml"
 
 def test_model_fit(caplog):
     versioned_folder = CKPT_FILE.parent.parent
-    assert not versioned_folder.exists(), (
-        f"{versioned_folder} should not exist before running the test"
-    )
+    if versioned_folder.exists():
+        shutil.rmtree(versioned_folder)
 
     runner = CliRunner()
 

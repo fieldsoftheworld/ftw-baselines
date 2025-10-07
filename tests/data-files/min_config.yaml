@@ -5,7 +5,7 @@ trainer:
   limit_test_batches: 2
   log_every_n_steps: 2
   num_sanity_val_steps: 0
-  accelerator: gpu
+  accelerator: cpu
   devices: 1
   enable_progress_bar: false
   default_root_dir: tests/logs/FTW-CI
