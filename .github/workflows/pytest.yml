@@ -48,13 +48,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install '.[all]'
+          pip install pytest-timeout
       - name: Fix OpenCV for headless environment (Ubuntu only)
         if: runner.os == 'Linux'
         run: |
           pip uninstall -y opencv-python || true
           pip install opencv-python-headless
       - name: Execute tests
-        run: pytest tests/
+        run: pytest -q --faulthandler-timeout=60 --timeout=300 --timeout-method=thread tests/
         env:
           VECLIB_MAXIMUM_THREADS: ${{ runner.os == 'macOS' && '1' || '' }}
           OPENBLAS_NUM_THREADS: ${{ runner.os == 'macOS' && '1' || '' }}
