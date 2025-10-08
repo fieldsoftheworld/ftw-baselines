@@ -1,12 +1,8 @@
 import datetime
-import enum
 import json
 import os
-from pathlib import Path
-from typing import Optional
 
 import click
-import wget
 
 # torchvision.ops.nms is not supported on MPS yet
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
