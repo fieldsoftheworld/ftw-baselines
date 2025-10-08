@@ -50,19 +50,9 @@ ALL_COUNTRIES = [
     "vietnam",
 ]
 
-TEMPORAL_OPTIONS = [
-    "stacked",
-    "windowA",
-    "windowB",
-    "median",
-    "rgb",
-    "random_window",
-]
+TEMPORAL_OPTIONS = ["stacked", "windowA", "windowB", "median", "rgb", "random_window"]
 
-LULC_COLLECTIONS = [
-    "io-lulc-annual-v02",
-    "esa-worldcover",
-]
+LULC_COLLECTIONS = ["io-lulc-annual-v02", "esa-worldcover"]
 
 # Crop Calendar Configuration
 CROP_CALENDAR_BASE_URL = (

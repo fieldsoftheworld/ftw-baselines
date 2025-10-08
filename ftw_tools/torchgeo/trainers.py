@@ -162,8 +162,7 @@ class CustomSemanticSegmentationTask(BaseTask):
             )
         elif loss == "ce+dice":
             self.dice_loss = smp.losses.DiceLoss(
-                "multiclass",
-                ignore_index=ignore_index,
+                "multiclass", ignore_index=ignore_index
             )
 
             if self.hparams["class_weights"] is not None:

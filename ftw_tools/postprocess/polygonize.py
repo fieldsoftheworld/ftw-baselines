@@ -311,11 +311,7 @@ def polygonize(
     rows = []
     schema = {
         "geometry": "Polygon",
-        "properties": {
-            "id": "str",
-            "area": "float",
-            "perimeter": "float",
-        },
+        "properties": {"id": "str", "area": "float", "perimeter": "float"},
     }
     i = 1
     # read the input file as a mask

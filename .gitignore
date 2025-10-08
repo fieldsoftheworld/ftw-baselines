@@ -1,3 +1,4 @@
+tests/logs/
 data/
 __pycache__
 logs/
@@ -21,3 +22,12 @@ ftw_tools.egg-info/
 /.ruff_cache/
 /.pixi/
 .DS_Store
+
+# Python virtual environments
+venv/
+.venv/
+env/
+ENV/
+*.pyc
+*.pyo
+*.egg-info/
