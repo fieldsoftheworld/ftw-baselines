@@ -67,10 +67,12 @@ uv venv
 ```
 
 ```bash
-# Install ftw-tools with all dependencies
-uv sync --all-extras
+# Activate your virtual environment
+source .venv/bin/activate
+```
 
-# Or if you plan to make development changes install in development mode:
+```bash
+# Install ftw-tools in development mode:
 uv sync --all-extras --dev
 ```
 
