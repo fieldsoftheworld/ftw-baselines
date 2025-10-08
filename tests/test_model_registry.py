@@ -30,10 +30,10 @@ def test_all_urls_are_valid_https():
         )
 
 
-def test_all_urls_end_with_ckpt():
+def test_all_urls_end_with_ckpt_or_pt():
     for model_name, spec in MODEL_REGISTRY.items():
-        assert str(spec.url).endswith(".ckpt"), (
-            f"{model_name} URL must end with .ckpt: {spec.url}"
+        assert str(spec.url).endswith((".ckpt", ".pt")), (
+            f"{model_name} URL must end with .ckpt or .pt: {spec.url}"
         )
 
 
