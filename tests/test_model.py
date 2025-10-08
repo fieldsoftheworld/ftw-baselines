@@ -8,8 +8,6 @@ from click.testing import CliRunner
 
 from ftw_tools.cli import data_download, model_fit, model_test
 
-# todo: if you are not running tests in a clean environment, there might already be a version_0
-# and your results may reside in version_1 or version_2 or so, which make the tests fail.
 CKPT_FILE = Path("tests/logs/FTW-CI/lightning_logs/version_0/checkpoints/last.ckpt")
 CONFIG_FILE = "tests/data-files/min_config.yaml"
 
