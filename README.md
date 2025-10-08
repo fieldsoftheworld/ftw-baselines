@@ -11,7 +11,7 @@ This repository provides the codebase for working with the [FTW dataset](https:/
 ## Table of Contents <!-- omit in toc -->
 
 - [System setup](#system-setup)
-  - [Using pip and virtual environment (Recommended)](#using-pip-and-virtual-environment-recommended)
+  - [Using uv (Recommended)](#using-uv-recommended)
     - [Installation](#installation)
     - [Environment Setup](#environment-setup)
     - [Usage](#usage)
@@ -41,45 +41,45 @@ This repository provides the codebase for working with the [FTW dataset](https:/
 
 To ensure consistent behavior and compatibility, use a dedicated Python virtual environment to isolate the dependencies for the FTW CLI (ftw-tools).
 
-### Using pip and virtual environment (Recommended)
+### Using uv (Recommended)
 
-The FTW CLI can be installed using standard Python tools (pip and venv). All dependencies, including geospatial libraries like rasterio and geopandas, are available as Python wheels and include the necessary GDAL and PROJ support.
 
 #### Installation
 
-Ensure you have Python 3.11 or 3.12 installed:
+First, install `uv` if you haven't already:
 
 ```bash
-python3 --version  # Should show 3.11.x or 3.12.x
+# On macOS and Linux:
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# On Windows:
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Or via pip:
+pip install uv
 ```
 
 #### Environment Setup
 
 ```bash
 # Create a virtual environment
-python3 -m venv venv
+uv venv
+```
 
-# Activate the environment
-# On Linux/macOS:
-source venv/bin/activate
-# On Windows:
-# venv\Scripts\activate
-
-# Upgrade pip to the latest version
-pip install --upgrade pip
-
+```bash
 # Install ftw-tools with all dependencies
-pip install -e .
+uv sync --all-extras
+
+# Or if you plan to make development changes install in development mode:
+uv sync --all-extras --dev
 ```
 
 #### Usage
 
-```bash
-# Activate the environment (if not already activated)
-source venv/bin/activate  # Linux/macOS
-# venv\Scripts\activate  # Windows
+Using the FTW CLI:
 
-# Use the FTW CLI
+```bash
+# Use the FTW CLI directly (no prefix needed)
 ftw --help
 
 # Run any ftw command
@@ -92,31 +92,27 @@ ftw model fit -c configs/example_config.yaml
 For development work with testing and linting tools:
 
 ```bash
-# Install with development dependencies
-pip install -e .[dev]
-
-# Format and lint
-ruff format ftw_tools/
-ruff check ftw_tools/ --fix
 
 # Run tests
-pytest tests/
+uv run pytest tests/
 
-# Set up pre-commit hooks (optional)
-pre-commit install
-pre-commit run --all-files
+# Set up pre-commit hooks (only run this once)
+uv run pre-commit install
+
+# Run pre-commit hooks
+uv run pre-commit run --all-files
 ```
 
 To install the optional delineate-anything feature:
 
 ```bash
-pip install -e .[delineate-anything]
+uv sync --extra delineate-anything
 ```
 
 To install everything (all optional dependencies):
 
 ```bash
-pip install -e .[all]
+uv sync --all-extras
 ```
 
 #### Verify Installation
@@ -128,13 +124,13 @@ To confirm the FTW CLI is properly installed:
 ftw --help
 
 # Check PyTorch
-python -c "import torch; print('PyTorch:', torch.__version__); print('CUDA available:', torch.cuda.is_available())"
+uv run python -c "import torch; print('PyTorch:', torch.__version__); print('CUDA available:', torch.cuda.is_available())"
 
 # Check geospatial stack
-python -c "import rasterio, geopandas; print('Geospatial stack working')"
+uv run python -c "import rasterio, geopandas; print('Geospatial stack working')"
 
 # Check FTW CLI import
-python -c "from ftw_tools.cli import ftw; print('FTW CLI ready')"
+uv run python -c "from ftw_tools.cli import ftw; print('FTW CLI ready')"
 ```
 
 You should see:
