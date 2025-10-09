@@ -18,22 +18,6 @@ from ftw_tools.settings import ALL_COUNTRIES, TEMPORAL_OPTIONS
 from ftw_tools.utils import validate_checksums
 
 
-class SingleRasterDataset(RasterDataset):
-    """A torchgeo dataset that loads a single raster file."""
-
-    def __init__(self, fn: str, transforms: Optional[Callable] = None):
-        """Initialize the SingleRasterDataset class.
-
-        Args:
-            fn (str): The path to the raster file.
-            transforms (Optional[Callable], optional): The transforms to apply to the
-                raster file. Defaults to None.
-        """
-        path = os.path.abspath(fn)
-        self.filename_regex = os.path.basename(path)
-        super().__init__(paths=os.path.dirname(path), transforms=transforms)
-
-
 class FTW(NonGeoDataset):
     valid_splits = ["train", "val", "test"]
 

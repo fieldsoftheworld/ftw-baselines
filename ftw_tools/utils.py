@@ -4,7 +4,6 @@ import os
 
 import click
 import pandas as pd
-import scipy
 import scipy.stats
 import xarray as xr
 

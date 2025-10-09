@@ -14,14 +14,14 @@ trainer:
         save_last: true
         filename: "{epoch}-{val_loss:.2f}"
 model:
-  class_path: ftw_tools.torchgeo.trainers.CustomSemanticSegmentationTask
+  class_path: ftw_tools.training.trainers.CustomSemanticSegmentationTask
   init_args:
-    class_weights: [0.04,0.08,0.88]
+    class_weights: [0.04, 0.08, 0.88]
     loss: "ce"
     model: "unet"
     backbone: "efficientnet-b3"
     weights: true
-    patch_weights : false
+    patch_weights: false
     in_channels: 8
     num_classes: 3
     num_filters: 64
@@ -29,7 +29,7 @@ model:
     lr: 1e-3
     patience: 100
 data:
-  class_path: ftw_tools.torchgeo.datamodules.FTWDataModule
+  class_path: ftw_tools.training.datamodules.FTWDataModule
   init_args:
     batch_size: 32
     num_workers: 12

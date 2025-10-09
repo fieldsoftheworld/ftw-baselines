@@ -2,7 +2,7 @@ import math
 import os
 import time
 from pathlib import Path
-from typing import Literal
+from typing import Callable, Literal, Optional
 
 import geopandas as gpd
 import kornia.augmentation as K
@@ -19,19 +19,38 @@ from packaging.version import Version, parse
 from rasterio.enums import ColorInterp
 from rasterio.transform import from_bounds
 from torch.utils.data import DataLoader
-from torchgeo.datasets import stack_samples
+from torchgeo.datasets import RasterDataset, stack_samples
 from torchgeo.samplers import GridGeoSampler
 from tqdm import tqdm
 
-from ftw_tools.models.model_registry import MODEL_REGISTRY
-from ftw_tools.models.utils import convert_to_fiboa, postprocess_instance_polygons
-from ftw_tools.torchgeo.datamodules import preprocess
-from ftw_tools.torchgeo.datasets import SingleRasterDataset
-from ftw_tools.torchgeo.trainers import CustomSemanticSegmentationTask
+from ftw_tools.inference.model_registry import MODEL_REGISTRY
+from ftw_tools.inference.models import load_model_from_checkpoint
+from ftw_tools.inference.utils import convert_to_fiboa, postprocess_instance_polygons
 
 TORCHGEO_06 = Version("0.6.0")
 TORCHGEO_08 = Version("0.8.0.dev0")
 TORCHGEO_CURRENT = parse(torchgeo.__version__)
+
+
+def default_preprocess(sample):
+    sample["image"] = sample["image"] / 3000
+    return sample
+
+
+class SingleRasterDataset(RasterDataset):
+    """A torchgeo dataset that loads a single raster file."""
+
+    def __init__(self, fn: str, transforms: Optional[Callable] = None):
+        """Initialize the SingleRasterDataset class.
+
+        Args:
+            fn (str): The path to the raster file.
+            transforms (Optional[Callable], optional): The transforms to apply to the
+                raster file. Defaults to None.
+        """
+        path = os.path.abspath(fn)
+        self.filename_regex = os.path.basename(path)
+        super().__init__(paths=os.path.dirname(path), transforms=transforms)
 
 
 def setup_inference(input, out, gpu, patch_size, padding, overwrite, mps_mode):
@@ -109,6 +128,7 @@ def run(
     overwrite,
     mps_mode,
     save_scores,
+    preprocess_fn: Callable = default_preprocess,
 ):
     device, transform, input_shape, patch_size, stride, padding = setup_inference(
         input, out, gpu, patch_size, padding, overwrite, mps_mode
@@ -135,12 +155,8 @@ def run(
 
     # Load task
     tic = time.time()
-    task = CustomSemanticSegmentationTask.load_from_checkpoint(
-        model_ckpt_path, map_location="cpu"
-    )
-    task.freeze()
-    model = task.model.eval().to(device)
-    model_type = task.hparams["model"]
+    model, model_type = load_model_from_checkpoint(model_ckpt_path)
+    model = model.eval().to(device)
 
     if mps_mode:
         up_sample = K.Resize(
@@ -159,7 +175,7 @@ def run(
             (patch_size, patch_size), resample=Resample.NEAREST.name
         ).to(device)
 
-    dataset = SingleRasterDataset(input, transforms=preprocess)
+    dataset = SingleRasterDataset(input, transforms=preprocess_fn)
     sampler = GridGeoSampler(dataset, size=patch_size, stride=stride)
     dataloader = DataLoader(
         dataset,
@@ -367,7 +383,7 @@ def run_instance_segmentation(
     Returns:
         None
     """
-    from .delineate_anything import DelineateAnything
+    from ftw_tools.inference.models import DelineateAnything
 
     assert model in ["DelineateAnything", "DelineateAnything-S"], (
         "Model must be either DelineateAnything or DelineateAnything-S."

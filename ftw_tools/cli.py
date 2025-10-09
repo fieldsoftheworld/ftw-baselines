@@ -7,7 +7,7 @@ import click
 # torchvision.ops.nms is not supported on MPS yet
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
-from ftw_tools.models.model_registry import MODEL_REGISTRY
+from ftw_tools.inference.model_registry import MODEL_REGISTRY
 from ftw_tools.settings import (
     ALL_COUNTRIES,
     LULC_COLLECTIONS,
@@ -213,7 +213,7 @@ def model():
     "cli_args", nargs=-1, type=click.UNPROCESSED
 )  # Capture all remaining arguments
 def model_fit(config, ckpt_path, cli_args):
-    from ftw_tools.models.baseline_eval import fit
+    from ftw_tools.training.eval import fit
 
     fit(config, ckpt_path, cli_args)
 
@@ -323,7 +323,7 @@ def model_test(
     swap_order,
     num_workers,
 ):
-    from ftw_tools.models.baseline_eval import test
+    from ftw_tools.training.eval import test
 
     test(
         model,
@@ -467,7 +467,7 @@ def ftw_inference_all(
 ):
     """Run all inference commands from crop calendar scene selection, then download, inference and polygonize."""
     from ftw_tools.download.download_img import create_input, scene_selection
-    from ftw_tools.models.baseline_inference import run
+    from ftw_tools.inference.inference import run
     from ftw_tools.postprocess.polygonize import polygonize
 
     # Ensure output directory exists
@@ -707,7 +707,7 @@ def inference_run(
     mps_mode,
     save_scores,
 ):
-    from ftw_tools.models.baseline_inference import run
+    from ftw_tools.inference.inference import run
 
     run(
         input,
@@ -897,7 +897,7 @@ def inference_run_instance_segmentation(
     overlap_iou_threshold,
     overlap_contain_threshold,
 ):
-    from ftw_tools.models.baseline_inference import run_instance_segmentation
+    from ftw_tools.inference.inference import run_instance_segmentation
 
     run_instance_segmentation(
         input=input,
@@ -1113,7 +1113,7 @@ def inference_run_instance_segmentation_all(
 ):
     """Run all inference instance segmentation commands from download and inference."""
     from ftw_tools.download.download_img import create_input
-    from ftw_tools.models.baseline_inference import run_instance_segmentation
+    from ftw_tools.inference.inference import run_instance_segmentation
 
     # Ensure output directory exists
     if not os.path.exists(out_dir):

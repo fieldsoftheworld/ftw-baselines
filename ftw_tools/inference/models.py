@@ -3,16 +3,87 @@ from typing import Literal
 
 import geopandas as gpd
 import rasterio
+import segmentation_models_pytorch as smp
 import shapely.geometry
 import shapely.ops
 import torch
 import torch.nn as nn
 import torchvision.transforms.v2 as T
 import ultralytics
+from torch import Tensor
+from torchgeo.models import FCSiamConc, FCSiamDiff
 from ultralytics.engine.results import Results
 
 # torchvision.ops.nms is not supported on MPS yet
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+
+
+def load_model_from_checkpoint(path: str) -> tuple[nn.Module, str]:
+    """Load a model from a checkpoint file."""
+    ckpt = torch.load(path, map_location="cpu", weights_only=False)
+    hparams = ckpt["hyper_parameters"]
+    model_type = hparams["model"]
+    state_dict = {k.replace("model.", ""): v for k, v in ckpt["state_dict"].items()}
+
+    if "criterion.weight" in state_dict:
+        del state_dict["criterion.weight"]
+
+    if model_type == "unet":
+        model = smp.Unet(
+            encoder_name=hparams["backbone"],
+            encoder_weights=None,
+            in_channels=hparams["in_channels"],
+            classes=hparams["num_classes"],
+        )
+    elif model_type == "deeplabv3+":
+        model = smp.DeepLabV3Plus(
+            encoder_name=hparams["backbone"],
+            encoder_weights=None,
+            in_channels=hparams["in_channels"],
+            classes=hparams["num_classes"],
+        )
+    elif model_type == "fcsiamdiff":
+        model = FCSiamDiff(
+            encoder_name=hparams["backbone"],
+            encoder_weights=None,
+            in_channels=hparams["in_channels"] // 2,
+            classes=hparams["num_classes"],
+        )
+    elif model_type == "fcsiamconc":
+        model = FCSiamConc(
+            encoder_name=hparams["backbone"],
+            encoder_weights=None,
+            in_channels=hparams["in_channels"] // 2,
+            classes=hparams["num_classes"],
+        )
+    elif model_type == "fcsiamavg":
+        model = FCSiamAvg(
+            encoder_name=hparams["backbone"],
+            encoder_weights=None,
+            in_channels=hparams["in_channels"] // 2,
+            classes=hparams["num_classes"],
+        )
+    model.load_state_dict(state_dict, strict=True)
+    return model, model_type
+
+
+class FCSiamAvg(FCSiamDiff):
+    def forward(self, x: Tensor) -> Tensor:
+        """Forward pass of the model.
+
+        Args:
+            x: input images of shape (b, t, c, h, w)
+
+        Returns:
+            predicted change masks of size (b, classes, h, w)
+        """
+        x1, x2 = x[:, 0], x[:, 1]
+        features1, features2 = self.encoder(x1), self.encoder(x2)
+        features = [(features2[i] + features1[i]) / 2 for i in range(1, len(features1))]
+        features.insert(0, features2[0])
+        decoder_output = self.decoder(features)
+        masks: Tensor = self.segmentation_head(decoder_output)
+        return masks
 
 
 class DelineateAnything:
