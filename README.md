@@ -61,18 +61,22 @@ pip install uv
 
 #### Environment Setup
 
+Create a virtual environment:
 ```bash
-# Create a virtual environment
 uv venv
 ```
 
+Activate your virtual environment:
 ```bash
-# Activate your virtual environment
+# On macOS and Linux:
 source .venv/bin/activate
+
+# On Windows:
+.venv\Scripts\activate
 ```
 
+Install ftw-tools in development mode:
 ```bash
-# Install ftw-tools in development mode:
 uv sync --all-extras --dev
 ```
 
@@ -253,7 +257,7 @@ ftw inference all \
     --out=/path/to/output \
     --cloud_cover_max=20 \
     --buffer_days=14 \
-    --model=3_Class_FULL_singleWindow_v2 \
+    --model=3_Class_FULL_multiWindow_v2 \
     --resize_factor=2 \
     --overwrite
 ```
