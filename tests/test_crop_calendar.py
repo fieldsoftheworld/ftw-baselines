@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from ftw_tools.download.crop_calendar import (
+from ftw_tools.data.crop_calendar import (
     CROP_CALENDAR_FILES,
     download_crop_calendar_files,
     ensure_crop_calendar_exists,
@@ -57,7 +57,7 @@ def test_ensure_crop_calendar_exists_uses_cached_files(temp_cache_dir):
         (cache_dir / filename).touch()
 
     with patch(
-        "ftw_tools.download.crop_calendar.download_crop_calendar_files"
+        "ftw_tools.data.crop_calendar.download_crop_calendar_files"
     ) as mock_download:
         result = ensure_crop_calendar_exists()
 
@@ -108,7 +108,7 @@ def test_custom_cache_directory():
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-@patch("ftw_tools.download.crop_calendar.wget.download")
+@patch("ftw_tools.data.crop_calendar.wget.download")
 def test_download_crop_calendar_files_failure(mock_wget, temp_cache_dir):
     """Test handling of download failure."""
     mock_wget.side_effect = Exception("Network error")

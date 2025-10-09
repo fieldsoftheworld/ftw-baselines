@@ -1,8 +1,4 @@
-from urllib.parse import urljoin
-
-import pytest
-from ftw_tools.models.model_registry import MODEL_REGISTRY, RELEASE_URL, ModelSpec
-from pydantic import ValidationError
+from ftw_tools.inference.model_registry import MODEL_REGISTRY, RELEASE_URL, ModelSpec
 
 
 def test_valid_model_spec_instance():

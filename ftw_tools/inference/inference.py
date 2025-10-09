@@ -24,6 +24,7 @@ from torchgeo.samplers import GridGeoSampler
 from tqdm import tqdm
 
 from ftw_tools.inference.model_registry import MODEL_REGISTRY
+from ftw_tools.inference.models import load_model_from_checkpoint
 from ftw_tools.inference.utils import convert_to_fiboa, postprocess_instance_polygons
 
 TORCHGEO_06 = Version("0.6.0")
@@ -154,12 +155,8 @@ def run(
 
     # Load task
     tic = time.time()
-    task = CustomSemanticSegmentationTask.load_from_checkpoint(
-        model_ckpt_path, map_location="cpu"
-    )
-    task.freeze()
-    model = task.model.eval().to(device)
-    model_type = task.hparams["model"]
+    model, model_type = load_model_from_checkpoint(model_ckpt_path)
+    model = model.eval().to(device)
 
     if mps_mode:
         up_sample = K.Resize(

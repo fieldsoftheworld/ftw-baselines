@@ -160,8 +160,8 @@ def data():
     help="If set, the script will NOT unpack the downloaded files.",
 )
 def data_download(out, clean_download, countries, no_unpack):
-    from ftw_tools.download.download_ftw import download
-    from ftw_tools.download.unpack import unpack
+    from ftw_tools.data.download_ftw import download
+    from ftw_tools.data.unpack import unpack
 
     download(out, clean_download, countries)
     if not no_unpack:
@@ -179,7 +179,7 @@ def data_download(out, clean_download, countries, no_unpack):
     required=False,
 )
 def data_unpack(input):
-    from ftw_tools.download.unpack import unpack
+    from ftw_tools.data.unpack import unpack
 
     unpack(input)
 
@@ -213,7 +213,7 @@ def model():
     "cli_args", nargs=-1, type=click.UNPROCESSED
 )  # Capture all remaining arguments
 def model_fit(config, ckpt_path, cli_args):
-    from ftw_tools.models.baseline_eval import fit
+    from ftw_tools.training.eval import fit
 
     fit(config, ckpt_path, cli_args)
 
@@ -323,7 +323,7 @@ def model_test(
     swap_order,
     num_workers,
 ):
-    from ftw_tools.models.baseline_eval import test
+    from ftw_tools.training.eval import test
 
     test(
         model,
@@ -466,8 +466,8 @@ def ftw_inference_all(
     verbose,
 ):
     """Run all inference commands from crop calendar scene selection, then download, inference and polygonize."""
-    from ftw_tools.download.download_img import create_input, scene_selection
-    from ftw_tools.models.baseline_inference import run
+    from ftw_tools.data.download_img import create_input, scene_selection
+    from ftw_tools.inference.inference import run
     from ftw_tools.postprocess.polygonize import polygonize
 
     # Ensure output directory exists
@@ -544,7 +544,7 @@ def scene_selection(
     year, bbox, cloud_cover_max, buffer_days, out, stac_host, s2_collection, verbose
 ):
     """Download Sentinel-2 scenes for inference."""
-    from ftw_tools.download.download_img import scene_selection
+    from ftw_tools.data.download_img import scene_selection
 
     win_a, win_b = scene_selection(
         bbox=bbox,
@@ -593,7 +593,7 @@ def scene_selection(
 def inference_download(
     win_a, win_b, out, overwrite, bbox, stac_host, s2_collection, verbose
 ):
-    from ftw_tools.download.download_img import create_input
+    from ftw_tools.data.download_img import create_input
 
     create_input(
         win_a=win_a,
@@ -707,7 +707,7 @@ def inference_run(
     mps_mode,
     save_scores,
 ):
-    from ftw_tools.models.baseline_inference import run
+    from ftw_tools.inference.inference import run
 
     run(
         input,
@@ -897,7 +897,7 @@ def inference_run_instance_segmentation(
     overlap_iou_threshold,
     overlap_contain_threshold,
 ):
-    from ftw_tools.models.baseline_inference import run_instance_segmentation
+    from ftw_tools.inference.inference import run_instance_segmentation
 
     run_instance_segmentation(
         input=input,
@@ -1112,8 +1112,8 @@ def inference_run_instance_segmentation_all(
     overlap_contain_threshold,
 ):
     """Run all inference instance segmentation commands from download and inference."""
-    from ftw_tools.download.download_img import create_input
-    from ftw_tools.models.baseline_inference import run_instance_segmentation
+    from ftw_tools.data.download_img import create_input
+    from ftw_tools.inference.inference import run_instance_segmentation
 
     # Ensure output directory exists
     if not os.path.exists(out_dir):
