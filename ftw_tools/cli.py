@@ -7,7 +7,7 @@ import click
 # torchvision.ops.nms is not supported on MPS yet
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
-from ftw_tools.models.model_registry import MODEL_REGISTRY
+from ftw_tools.inference.model_registry import MODEL_REGISTRY
 from ftw_tools.settings import (
     ALL_COUNTRIES,
     LULC_COLLECTIONS,

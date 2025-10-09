@@ -11,7 +11,7 @@ from matplotlib.figure import Figure
 from torch import Tensor
 from torch.utils.data import DataLoader, Subset
 
-from ftw_tools.torchgeo.datasets import FTW
+from ftw_tools.training.datasets import FTW
 
 
 def preprocess(sample):

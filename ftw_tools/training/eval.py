@@ -10,10 +10,10 @@ from torchgeo.trainers import BaseTask
 from torchmetrics import JaccardIndex, MetricCollection, Precision, Recall
 from tqdm import tqdm
 
-from ftw_tools.postprocess.metrics import get_object_level_metrics
-from ftw_tools.torchgeo.datamodules import preprocess
-from ftw_tools.torchgeo.datasets import FTW
-from ftw_tools.torchgeo.trainers import CustomSemanticSegmentationTask
+from ftw_tools.training.datamodules import preprocess
+from ftw_tools.training.datasets import FTW
+from ftw_tools.training.metrics import get_object_level_metrics
+from ftw_tools.training.trainers import CustomSemanticSegmentationTask
 
 FULL_DATA_COUNTRIES = [
     "austria",

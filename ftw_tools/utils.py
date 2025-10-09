@@ -4,11 +4,10 @@ import os
 
 import click
 import pandas as pd
-import scipy
 import scipy.stats
 import xarray as xr
 
-from ftw_tools.download.crop_calendar import ensure_crop_calendar_exists
+from ftw_tools.data.crop_calendar import ensure_crop_calendar_exists
 from ftw_tools.settings import CROP_CAL_SUMMER_END, CROP_CAL_SUMMER_START
 
 logger = logging.getLogger()
