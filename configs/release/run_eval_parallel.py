@@ -9,62 +9,11 @@ from multiprocessing import Process, Queue
 import pandas as pd
 import yaml
 
+from ftw_tools.settings import ALL_COUNTRIES, FULL_DATA_COUNTRIES
+
 # list of GPU IDs that we want to use, one job will be started for every ID in the list
 GPUS = [0, 1, 2, 3, 4, 5, 6, 7]
 DRY_RUN = False  # if False then print out the commands to be run, if True then run
-
-
-COUNTRIES = [
-    "austria",
-    "belgium",
-    "brazil",
-    "cambodia",
-    "corsica",
-    "croatia",
-    "denmark",
-    "estonia",
-    "finland",
-    "france",
-    "germany",
-    "india",
-    "kenya",
-    "latvia",
-    "lithuania",
-    "luxembourg",
-    "netherlands",
-    "portugal",
-    "rwanda",
-    "slovakia",
-    "slovenia",
-    "south_africa",
-    "spain",
-    "sweden",
-    "vietnam",
-]
-
-# This removes the countries with presence only data, and Portugal
-FULL_DATA_COUNTRIES = [
-    "austria",
-    "belgium",
-    "cambodia",
-    "corsica",
-    "croatia",
-    "denmark",
-    "estonia",
-    "finland",
-    "france",
-    "germany",
-    "latvia",
-    "lithuania",
-    "luxembourg",
-    "netherlands",
-    "slovakia",
-    "slovenia",
-    "south_africa",
-    "spain",
-    "sweden",
-    "vietnam",
-]
 
 
 def do_work(work: "Queue[list[str]]", gpu_idx: int) -> bool:
@@ -133,7 +82,7 @@ def main(args: argparse.Namespace):
         (checkpoint, model_predicts_classes, temporal_option) = checkpoints_data
 
         if args.country_eval:
-            for country in COUNTRIES:
+            for country in ALL_COUNTRIES:
                 command = [
                     "ftw",
                     "model",
