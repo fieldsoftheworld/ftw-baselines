@@ -2,7 +2,7 @@ import pandas as pd
 import pystac
 import pytest
 
-from ftw_tools.data.download_img import get_item, query_stac
+from ftw_tools.download.download_img import get_item, query_stac
 
 
 def test_get_item_from_s3_url():

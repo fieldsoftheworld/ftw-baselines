@@ -383,7 +383,7 @@ def run_instance_segmentation(
     Returns:
         None
     """
-    from .delineate_anything import DelineateAnything
+    from ftw_tools.inference.models import DelineateAnything
 
     assert model in ["DelineateAnything", "DelineateAnything-S"], (
         "Model must be either DelineateAnything or DelineateAnything-S."

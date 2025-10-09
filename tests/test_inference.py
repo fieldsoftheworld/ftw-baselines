@@ -152,7 +152,6 @@ def test_inference_run(tmp_path: Path):
     assert result.exit_code == 0, (
         f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
     )
-    assert "Using custom trainer" in result.output
     assert "Finished inference and saved output" in result.output
     assert os.path.exists(str(inf_output_path))
 

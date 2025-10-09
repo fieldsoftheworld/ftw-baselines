@@ -18,7 +18,7 @@ trainer:
         save_last: true
         filename: "{epoch}-{val_loss:.2f}"
 model:
-  class_path: ftw_tools.torchgeo.trainers.CustomSemanticSegmentationTask
+  class_path: ftw_tools.training.trainers.CustomSemanticSegmentationTask
   init_args:
     class_weights: [0.31, 0.68]
     loss: "ce"
@@ -33,7 +33,7 @@ model:
     lr: 1e-3
     patience: 100
 data:
-  class_path: ftw_tools.torchgeo.datamodules.FTWDataModule
+  class_path: ftw_tools.training.datamodules.FTWDataModule
   init_args:
     batch_size: 4
     num_workers: 3
