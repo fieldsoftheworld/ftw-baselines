@@ -19,27 +19,27 @@ authors = [
   { name = "Snehal Chaudhari", email = "sschaud5@asu.edu" },
 ]
 
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.11,<3.14"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
   "click>=8.2.1,<9",
   "dask[distributed]>=2025.5.1",
   "fiboa-cli==0.7",
   "fiona>=1.9,<2",
-  "geopandas>=0.14,<2",
+  "geopandas[all]>=0.14,<2",
   "kornia>=0.7,<1",
   "lightning>=2,<2.6",
   "matplotlib>=3.7,<4",
   "notebook>=7,<8",
   "numpy>=1.24,<3",
   "odc-stac>=0.4,<1",            # see https://github.com/fieldsoftheworld/ftw-baselines/issues/77
-  "planetary-computer>=1,<2",
-  "pyarrow==16.1",               # CRITICAL: filesystem registration error with newer versions, see https://github.com/apache/arrow/issues/44696
+  "planetary-computer>=1,<2",    # NOTE: v21+ resolves filesystem registration conflicts with pip-installed GDAL, see https://github.com/apache/arrow/issues/44696
   "pyproj>=3.6,<4",
   "pystac>=1.8,<2",
   "pyyaml>=6,<7",
