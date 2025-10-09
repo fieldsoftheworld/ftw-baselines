@@ -61,18 +61,22 @@ pip install uv
 
 #### Environment Setup
 
+Create a virtual environment:
 ```bash
-# Create a virtual environment
 uv venv
 ```
 
+Activate your virtual environment:
 ```bash
-# Activate your virtual environment
+# On macOS and Linux:
 source .venv/bin/activate
+
+# On Windows:
+.venv\Scripts\activate
 ```
 
+Install ftw-tools in development mode:
 ```bash
-# Install ftw-tools in development mode:
 uv sync --all-extras --dev
 ```
 

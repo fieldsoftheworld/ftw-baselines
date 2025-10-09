@@ -5,7 +5,7 @@ requires = [ "hatchling" ]
 
 [project]
 name = "ftw-tools"
-version = "2.0.0"
+version = "2.0.0b2"
 description = "Fields of The World (FTW) Command Line Interface (CLI) for data management, ML processing, and more."
 readme = "README.md"
 license = "MIT"
@@ -63,6 +63,7 @@ optional-dependencies.dev = [
   "pre-commit>=4,<=5",
   "pytest>=7.4,<9",
   "ruff>=0.1,<1",
+  "twine",
 ]
 urls.Changelog = "https://github.com/fieldsoftheworld/ftw-baselines/blob/main/CHANGELOG.md"
 urls.Homepage = "https://fieldsofthe.world/"
