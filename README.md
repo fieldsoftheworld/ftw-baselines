@@ -257,7 +257,7 @@ ftw inference all \
     --out=/path/to/output \
     --cloud_cover_max=20 \
     --buffer_days=14 \
-    --model=3_Class_FULL_singleWindow_v2 \
+    --model=3_Class_FULL_multiWindow_v2 \
     --resize_factor=2 \
     --overwrite
 ```
