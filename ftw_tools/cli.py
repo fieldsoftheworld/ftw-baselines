@@ -32,6 +32,52 @@ COUNTRIES_CHOICE.append("all")
 # All parameters are meant to use underscores as separator for words.
 
 
+class ModelOrCheckpointParamType(click.ParamType):
+    """
+    A custom Click parameter type that accepts either:
+    1. A model name from MODEL_REGISTRY, or
+    2. A path to a .ckpt checkpoint file
+    """
+
+    name = "model_or_checkpoint"
+
+    def convert(self, value, param, ctx):
+        """
+        Convert and validate the parameter value.
+
+        Args:
+            value: The raw parameter value from CLI
+            param: The parameter object
+            ctx: The click context
+
+        Returns:
+            The validated value (unchanged)
+
+        Raises:
+            click.BadParameter if validation fails
+        """
+        # Check if it's a model name from the registry
+        if value in MODEL_REGISTRY.keys():
+            return value
+
+        # Check if it's a checkpoint path
+        if value.endswith(".ckpt"):
+            if os.path.exists(value):
+                return value
+            else:
+                self.fail(f"Checkpoint file '{value}' does not exist.", param, ctx)
+
+        # If neither, provide helpful error message
+        available_models = ", ".join(MODEL_REGISTRY.keys())
+        self.fail(
+            f"'{value}' is not a valid model name or checkpoint path. "
+            f"Valid model names are: {available_models}. "
+            f"Or provide a path to a .ckpt file.",
+            param,
+            ctx,
+        )
+
+
 # Common parameter definitions for shared CLI options
 def common_bbox_option():
     """Common bbox option for inference commands."""
@@ -362,9 +408,9 @@ def inference():
 @click.option(
     "--model",
     "-m",
-    type=click.Choice(MODEL_REGISTRY.keys()),
+    type=ModelOrCheckpointParamType(),
     required=True,
-    help="Short model name corresponding to a .ckpt file in github.",
+    help="Short model name from the registry OR path to a checkpoint file (.ckpt).",
 )
 @common_year_option()
 @common_bbox_option()
@@ -615,9 +661,11 @@ def inference_download(
 @click.option(
     "--model",
     "-m",
-    type=str,
+    type=ModelOrCheckpointParamType(),
     required=True,
-    help="Short model name corresponding to a released model. Can be a string or one of: " + ", ".join(MODEL_REGISTRY.keys()),
+    help="Short model name from the registry (one of: "
+    + ", ".join(MODEL_REGISTRY.keys())
+    + ") OR path to a checkpoint file (.ckpt).",
 )
 @click.option(
     "--out",
