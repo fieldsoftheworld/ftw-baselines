@@ -13,7 +13,7 @@ import torch
 import torch.nn.functional as F
 from matplotlib.figure import Figure
 from torch import Tensor
-from torchgeo.datasets import NonGeoDataset, RasterDataset
+from torchgeo.datasets import NonGeoDataset
 
 from ftw_tools.settings import ALL_COUNTRIES, TEMPORAL_OPTIONS
 from ftw_tools.utils import validate_checksums
