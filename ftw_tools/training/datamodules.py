@@ -85,6 +85,9 @@ class FTWDataModule(LightningDataModule):
         ):  # for the rgb temporal option we are just selecting these 3 channls from both window_a and window_b images
             self.mean = torch.tensor([0, 0, 0, 0, 0, 0])
             self.std = torch.tensor([3000, 3000, 3000, 3000, 3000, 3000])
+        elif self.temporal_options == "aef":
+            self.mean = torch.tensor([0] * 64)
+            self.std = torch.tensor([125] * 64)
 
         print("Loaded datamodule with:")
         print(f"Train countries: {self.train_countries}")
