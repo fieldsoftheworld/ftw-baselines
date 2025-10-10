@@ -265,6 +265,14 @@ class CustomSemanticSegmentationTask(BaseTask):
             self.model = FCN(
                 in_channels=in_channels, classes=num_classes, num_filters=num_filters
             )
+        elif model == "actually_just_a_conv":
+            self.model = nn.Conv2d(
+                in_channels=in_channels,
+                out_channels=num_classes,
+                kernel_size=1,
+                stride=1,
+                padding=0,
+            )
         elif model == "upernet":
             self.model = smp.UPerNet(
                 encoder_name=backbone,

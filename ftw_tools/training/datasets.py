@@ -10,9 +10,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import rasterio
 import torch
+import torch.nn.functional as F
 from matplotlib.figure import Figure
 from torch import Tensor
-import torch.nn.functional as F
 from torchgeo.datasets import NonGeoDataset, RasterDataset
 
 from ftw_tools.settings import ALL_COUNTRIES, TEMPORAL_OPTIONS
@@ -61,7 +61,9 @@ class FTW(NonGeoDataset):
             raise ValueError("Please specify the countries to load the dataset from")
         if temporal_options not in TEMPORAL_OPTIONS:
             if temporal_options == "aef":
-                print("WARNING: AEF data is distributed differently than other FTW data.")
+                print(
+                    "WARNING: AEF data is distributed differently than other FTW data."
+                )
             else:
                 raise ValueError(f"Invalid temporal option {temporal_options}")
 
@@ -164,7 +166,9 @@ class FTW(NonGeoDataset):
                     {
                         "window_b": str(window_b_fn),
                         "window_a": str(window_a_fn),
-                        "aef": os.path.join(self.root, "aef", country, "2024", f"{idx}.npy"),
+                        "aef": os.path.join(
+                            self.root, "aef", country, "2024", f"{idx}.npy"
+                        ),
                         "mask": str(mask_fn),
                     }
                 )
@@ -273,8 +277,14 @@ class FTW(NonGeoDataset):
 
         if self.temporal_options == "aef":
             image = np.load(filenames["aef"])
+            image = np.flip(image, axis=0).copy()
             image = torch.from_numpy(image).float().permute(2, 0, 1)
-            image = F.interpolate(image.unsqueeze(0), size=(256, 256), mode='bilinear', align_corners=False).squeeze(0)
+            image = F.interpolate(
+                image.unsqueeze(0),
+                size=(256, 256),
+                mode="bilinear",
+                align_corners=False,
+            ).squeeze(0)
         else:
             if self.temporal_options in ("stacked", "median", "windowB", "rgb"):
                 with rasterio.open(filenames["window_b"]) as f:
