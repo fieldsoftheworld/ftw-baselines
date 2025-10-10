@@ -33,6 +33,7 @@ class FTW(NonGeoDataset):
         swap_order: bool = False,
         num_samples: int = -1,
         ignore_sample_fn: Optional[str] = None,
+        verbose: bool = True,
     ) -> None:
         """Initialize a new FTW dataset instance.
 
@@ -73,22 +74,24 @@ class FTW(NonGeoDataset):
         self.load_boundaries = load_boundaries
         self.temporal_options = temporal_options
         self.num_samples = num_samples
-        self.swap_order = swap_order
 
-        if self.load_boundaries:
-            print("Loading 3 Class Masks, with Boundaries")
-        else:
-            print("Loading 2 Class Masks, without Boundaries")
-
-        print("Temporal option: ", temporal_options)
         if swap_order:
             if temporal_options not in ("stacked", "rgb"):
                 raise ValueError(
                     "Can only use swap_order with temporal_options stacked or rgb"
                 )
-            print("Using window A first, then window B")
-        else:
-            print("Using window B first, then window A")
+        self.swap_order = swap_order
+
+        if verbose:
+            if self.load_boundaries:
+                print("Loading 3 Class Masks, with Boundaries")
+            else:
+                print("Loading 2 Class Masks, without Boundaries")
+            print("Temporal option: ", temporal_options)
+            if swap_order:
+                print("Using window A first, then window B")
+            else:
+                print("Using window B first, then window A")
 
         if not self._check_integrity():
             raise RuntimeError(
@@ -108,7 +111,8 @@ class FTW(NonGeoDataset):
                 for line in lines:
                     country, sample_idx = line.split(",")
                     bad_samples.add((country, sample_idx.strip()))
-            print(f"Ignoring samples: {len(bad_samples)}")
+            if verbose:
+                print(f"Ignoring samples: {len(bad_samples)}")
 
         for country in self.countries:
             country_root: str = os.path.join(self.root, country)
@@ -176,7 +180,8 @@ class FTW(NonGeoDataset):
                 all_filenames, min(self.num_samples, len(all_filenames))
             )
 
-        print("Selecting : ", len(self.filenames), " samples")
+        if verbose:
+            print(f"Selecting: {len(self.filenames)} samples")
 
     def _checksum(self) -> bool:
         """Check the checksum of the dataset.
