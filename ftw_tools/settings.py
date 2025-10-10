@@ -50,6 +50,31 @@ ALL_COUNTRIES = [
     "vietnam",
 ]
 
+# Countries with presence and absence data for training and evaluation
+FULL_DATA_COUNTRIES = [
+    "austria",
+    "belgium",
+    "cambodia",
+    "corsica",
+    "croatia",
+    "denmark",
+    "estonia",
+    "finland",
+    "france",
+    "germany",
+    "latvia",
+    "lithuania",
+    "luxembourg",
+    "netherlands",
+    "portugal",
+    "slovakia",
+    "slovenia",
+    "south_africa",
+    "spain",
+    "sweden",
+    "vietnam",
+]
+
 TEMPORAL_OPTIONS = ["stacked", "windowA", "windowB", "median", "rgb", "random_window"]
 
 LULC_COLLECTIONS = ["io-lulc-annual-v02", "esa-worldcover"]

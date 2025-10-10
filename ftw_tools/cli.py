@@ -24,6 +24,7 @@ from ftw_tools.utils import parse_bbox
 
 COUNTRIES_CHOICE = ALL_COUNTRIES.copy()
 COUNTRIES_CHOICE.append("all")
+COUNTRIES_CHOICE.append("full_data")
 
 # All commands are meant to use dashes as separator for words.
 # All parameters are meant to use underscores as separator for words.
@@ -279,7 +280,7 @@ def model_fit(config, ckpt_path, cli_args):
     type=click.Choice(COUNTRIES_CHOICE, case_sensitive=False),
     multiple=True,
     required=True,
-    help="Countries to evaluate on",
+    help="Countries to evaluate on ('full_data' uses all countries except the presence only ones)",
 )
 @click.option(
     "--dir",
