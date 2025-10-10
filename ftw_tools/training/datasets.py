@@ -82,7 +82,6 @@ class FTW(NonGeoDataset):
                 )
         self.swap_order = swap_order
 
-
         if verbose:
             if self.load_boundaries:
                 print("Loading 3 Class Masks, with Boundaries")
