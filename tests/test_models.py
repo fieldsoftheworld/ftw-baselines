@@ -10,7 +10,7 @@ pytest.importorskip("ultralytics")
 def test_delineate_anything():
     from ultralytics.engine.results import Results
 
-    from ftw_tools.models.delineate_anything import DelineateAnything
+    from ftw_tools.inference.models import DelineateAnything
 
     device = "cpu"
     model = DelineateAnything(

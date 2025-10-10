@@ -8,107 +8,40 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
-    env:
-      CONDA_OVERRIDE_CUDA: 12.0
     steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
+      - uses: actions/checkout@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
         with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-      - uses: actions/checkout@v4
-      - uses: prefix-dev/setup-pixi@v0.8.10
-        with:
-          pixi-version: v0.49.0
-          cache: true
-          cache-key: ${{ runner.os }}-pixi-${{ hashFiles('pixi.lock') }}
-      - name: Install Python dev dependencies
-        run: pixi run install-dev
-      - name: Run pre-commit
-        run: pixi run -e dev pre-commit run --all-files
-
-  build:
-    name: Run build
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
-          - macos-latest  # latest = Apple Silicon
-          - macos-13   # 13 = Intel
-        python-version:
-          - "3.11"
-          - "3.12"
-      fail-fast: true
-    env:
-      CONDA_OVERRIDE_CUDA: 12.0
-    steps:
-      - name: Free Disk Space (Ubuntu)
-        if: runner.os == 'Linux'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-      - uses: actions/checkout@v4
-      - uses: prefix-dev/setup-pixi@v0.8.10
-        with:
-          pixi-version: v0.49.0
-          cache: true
-          cache-key: ${{ runner.os }}-pixi-${{ hashFiles('pixi.lock') }}
-      - name: Install Python dev dependencies
-        run: pixi run -e dev install-dev
-      - name: Test imports
-        run: |
-          pixi run -e dev python -c "from ftw_tools import cli"
-          pixi run -e dev python -c "from ftw_tools.download import download_ftw, download_img"
-          pixi run -e dev python -c "from ftw_tools.models import baseline_inference, baseline_eval, delineate_anything"
-          pixi run -e dev python -c "from ftw_tools.torchgeo import datamodules, trainers"
-          pixi run -e dev python -c "from ftw_tools.postprocess import polygonize, metrics"
+          python-version: '3.12'
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --locked --all-extras --dev
+      - name: Pre-commit
+        run: uv run pre-commit run --all-files -v
 
   tests:
     name: Run tests
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
     strategy:
       matrix:
         os:
           - ubuntu-latest
           - windows-latest
+          - macos-latest
         python-version:
           - "3.11"
           - "3.12"
       fail-fast: true
-    env:
-      CONDA_OVERRIDE_CUDA: 12.0
     steps:
-      - name: Free Disk Space (Ubuntu)
-        if: runner.os == 'Linux'
-        uses: jlumbroso/free-disk-space@main
+      - uses: actions/checkout@v5
+      - name: Set up uv ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@v6
         with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-      - uses: actions/checkout@v4
-      - uses: prefix-dev/setup-pixi@v0.8.10
-        with:
-          pixi-version: v0.49.0
-          cache: true
-          cache-key: ${{ runner.os }}-pixi-${{ hashFiles('pixi.lock') }}
-      - name: Install Python dev dependencies
-        run: pixi run install-dev
-      - name: Execute tests
-        run: pixi run -e dev test
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --locked --all-extras --dev
+      - name: Run tests
+        run: uv run pytest -vvv

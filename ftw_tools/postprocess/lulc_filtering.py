@@ -88,11 +88,7 @@ class RasterLULCFilter:
         return clipped_ds
 
     def filter_raster_by_lulc(
-        self,
-        input_path: str,
-        lulc: xr.Dataset,
-        output_path: str,
-        save_lulc_tif: bool,
+        self, input_path: str, lulc: xr.Dataset, output_path: str, save_lulc_tif: bool
     ) -> str:
         """
         Filters raster by LULC class

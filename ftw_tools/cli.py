@@ -1,17 +1,13 @@
 import datetime
-import enum
 import json
 import os
-from pathlib import Path
-from typing import Optional
 
 import click
-import wget
 
 # torchvision.ops.nms is not supported on MPS yet
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
-from ftw_tools.models.model_registry import MODEL_REGISTRY
+from ftw_tools.inference.model_registry import MODEL_REGISTRY
 from ftw_tools.settings import (
     ALL_COUNTRIES,
     LULC_COLLECTIONS,
@@ -263,7 +259,7 @@ def model():
     "cli_args", nargs=-1, type=click.UNPROCESSED
 )  # Capture all remaining arguments
 def model_fit(config, ckpt_path, cli_args):
-    from ftw_tools.models.baseline_eval import fit
+    from ftw_tools.training.eval import fit
 
     fit(config, ckpt_path, cli_args)
 
@@ -352,6 +348,13 @@ def model_fit(config, ckpt_path, cli_args):
     show_default=True,
     help="Whether to run inference on (window_a, window_b) instead of the default (window_b, window_a).",
 )
+@click.option(
+    "--num_workers",
+    type=click.IntRange(min=1),
+    default=4,
+    show_default=True,
+    help="Number of workers to use for inference.",
+)
 def model_test(
     model,
     countries,
@@ -364,8 +367,9 @@ def model_test(
     temporal_options,
     use_val_set,
     swap_order,
+    num_workers,
 ):
-    from ftw_tools.models.baseline_eval import test
+    from ftw_tools.training.eval import test
 
     test(
         model,
@@ -379,6 +383,7 @@ def model_test(
         temporal_options,
         use_val_set,
         swap_order,
+        num_workers,
     )
 
 
@@ -508,7 +513,7 @@ def ftw_inference_all(
 ):
     """Run all inference commands from crop calendar scene selection, then download, inference and polygonize."""
     from ftw_tools.download.download_img import create_input, scene_selection
-    from ftw_tools.models.baseline_inference import run
+    from ftw_tools.inference.inference import run
     from ftw_tools.postprocess.polygonize import polygonize
 
     # Ensure output directory exists
@@ -560,9 +565,7 @@ def ftw_inference_all(
 
     # Polygonize the output
     polygonize(
-        input=inf_output_path,
-        out=f"{out}/polygons.parquet",
-        overwrite=overwrite,
+        input=inf_output_path, out=f"{out}/polygons.parquet", overwrite=overwrite
     )
 
 
@@ -600,10 +603,7 @@ def scene_selection(
     )
     if out:
         # persist results to json
-        result = {
-            "window_a": win_a,
-            "window_b": win_b,
-        }
+        result = {"window_a": win_a, "window_b": win_b}
         with open(out, "w") as f:
             json.dump(result, f, indent=2)
         print(f"Results saved to {out}")
@@ -755,7 +755,7 @@ def inference_run(
     mps_mode: bool,
     save_scores: bool,
 ):
-    from ftw_tools.models.baseline_inference import run
+    from ftw_tools.inference.inference import run
 
     run(
         input,
@@ -945,7 +945,7 @@ def inference_run_instance_segmentation(
     overlap_iou_threshold,
     overlap_contain_threshold,
 ):
-    from ftw_tools.models.baseline_inference import run_instance_segmentation
+    from ftw_tools.inference.inference import run_instance_segmentation
 
     run_instance_segmentation(
         input=input,
@@ -1161,7 +1161,7 @@ def inference_run_instance_segmentation_all(
 ):
     """Run all inference instance segmentation commands from download and inference."""
     from ftw_tools.download.download_img import create_input
-    from ftw_tools.models.baseline_inference import run_instance_segmentation
+    from ftw_tools.inference.inference import run_instance_segmentation
 
     # Ensure output directory exists
     if not os.path.exists(out_dir):
@@ -1360,8 +1360,7 @@ def inference_polygonize(
 
 
 @inference.command(
-    "filter-by-lulc",
-    help="Filter the output raster in GeoTIFF format by LULC mask.",
+    "filter-by-lulc", help="Filter the output raster in GeoTIFF format by LULC mask."
 )
 @click.argument("input", type=click.Path(exists=True), required=True)
 @click.option(

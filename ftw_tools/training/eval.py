@@ -10,10 +10,10 @@ from torchgeo.trainers import BaseTask
 from torchmetrics import JaccardIndex, MetricCollection, Precision, Recall
 from tqdm import tqdm
 
-from ftw_tools.postprocess.metrics import get_object_level_metrics
-from ftw_tools.torchgeo.datamodules import preprocess
-from ftw_tools.torchgeo.datasets import FTW
-from ftw_tools.torchgeo.trainers import CustomSemanticSegmentationTask
+from ftw_tools.training.datamodules import preprocess
+from ftw_tools.training.datasets import FTW
+from ftw_tools.training.metrics import get_object_level_metrics
+from ftw_tools.training.trainers import CustomSemanticSegmentationTask
 
 FULL_DATA_COUNTRIES = [
     "austria",
@@ -87,6 +87,7 @@ def test(
     temporal_options,
     use_val_set,
     swap_order,
+    num_workers,
 ):
     """Command to test the model."""
     target_split = "val" if use_val_set else "test"
@@ -121,7 +122,7 @@ def test(
         temporal_options=temporal_options,
         swap_order=swap_order,
     )
-    dl = DataLoader(ds, batch_size=64, shuffle=False, num_workers=12)
+    dl = DataLoader(ds, batch_size=64, shuffle=False, num_workers=num_workers)
     print(f"Created dataloader with {len(ds)} samples in {time.time() - tic:.2f}s")
 
     if test_on_3_classes:

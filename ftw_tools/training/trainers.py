@@ -26,9 +26,9 @@ from torchmetrics.classification import (
 )
 from torchvision.models._api import WeightsEnum
 
-from ..postprocess.metrics import get_object_level_metrics
-from .losses import PixelWeightedCE
-from .models import FCSiamAvg
+from ftw_tools.inference.models import FCSiamAvg
+from ftw_tools.training.losses import PixelWeightedCE
+from ftw_tools.training.metrics import get_object_level_metrics
 
 
 class CustomSemanticSegmentationTask(BaseTask):
@@ -162,8 +162,7 @@ class CustomSemanticSegmentationTask(BaseTask):
             )
         elif loss == "ce+dice":
             self.dice_loss = smp.losses.DiceLoss(
-                "multiclass",
-                ignore_index=ignore_index,
+                "multiclass", ignore_index=ignore_index
             )
 
             if self.hparams["class_weights"] is not None:

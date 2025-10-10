@@ -11,16 +11,12 @@ This repository provides the codebase for working with the [FTW dataset](https:/
 ## Table of Contents <!-- omit in toc -->
 
 - [System setup](#system-setup)
-  - [Pixi (Recommended)](#pixi-recommended)
+  - [Using uv (Recommended)](#using-uv-recommended)
     - [Installation](#installation)
     - [Environment Setup](#environment-setup)
     - [Usage](#usage)
-    - [Available Environments](#available-environments)
+    - [Development Setup](#development-setup)
     - [Verify Installation](#verify-installation)
-  - [Conda/Mamba (Alternative)](#condamamba-alternative)
-    - [Development with Conda](#development-with-conda)
-    - [Common Issues with Conda](#common-issues-with-conda)
-    - [Verify Installation](#verify-installation-1)
 - [Predicting field boundaries](#predicting-field-boundaries)
   - [FTW Semantic Segmentation Baseline Model](#ftw-semantic-segmentation-baseline-model)
     - [1. Decide which model you want to use](#1-decide-which-model-you-want-to-use)
@@ -43,118 +39,107 @@ This repository provides the codebase for working with the [FTW dataset](https:/
 
 ## System setup
 
-To ensure consistent behavior and compatibility, use a dedicated environment to isolate the system requirements to run the FTW CLI (ftw-tools). **We strongly recommend using Pixi for the most reliable experience**, as it provides exact dependency versions and cross-platform reproducibility.
+To ensure consistent behavior and compatibility, use a dedicated Python virtual environment to isolate the dependencies for the FTW CLI (ftw-tools).
 
-**Important:** Users who choose conda/mamba may encounter dependency version conflicts and compatibility issues that are automatically resolved with Pixi.
+### Using uv (Recommended)
 
-### Pixi (Recommended)
-
-[Pixi](https://pixi.sh) is a modern, fast package manager that provides consistent, locked environments across platforms. It automatically manages both system dependencies (GDAL, CUDA) and Python packages with exact versions.
 
 #### Installation
 
-Install Pixi following the [official installation instructions](https://pixi.sh/latest/#installation).
+First, install `uv` if you haven't already:
+
+```bash
+# On macOS and Linux:
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# On Windows:
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Or via pip:
+pip install uv
+```
 
 #### Environment Setup
 
+Create a virtual environment:
 ```bash
-# Install all dependencies and create the environment
-pixi install
+uv venv
+```
 
-# Activate the environment (optional - pixi commands work without activation)
-pixi shell
+Activate your virtual environment:
+```bash
+# On macOS and Linux:
+source .venv/bin/activate
+
+# On Windows:
+.venv\Scripts\activate
+```
+
+Install ftw-tools in development mode:
+```bash
+uv sync --all-extras --dev
 ```
 
 #### Usage
 
-```bash
-# Use pixi run for individual commands
-pixi run install-dev
-pixi run ftw --help
-pixi run -e dev test
+Using the FTW CLI:
 
-# Or activate environment first, then use commands directly
-pixi shell
+```bash
+# Use the FTW CLI directly (no prefix needed)
 ftw --help
 
-# For development work
-pixi shell -e dev
-pytest src/tests/
-
-pre-commit install # run automatically on each commit
-pre-commit run --all-files # run manually
-
+# Run any ftw command
+ftw data download --countries=Rwanda
+ftw model fit -c configs/example_config.yaml
 ```
 
-#### Available Environments
+#### Development Setup
 
-- **default**: Core runtime environment with all scientific packages
-- **dev**: Development environment with ruff and pytest
-
-#### Verify Installation
+For development work with testing and linting tools:
 
 ```bash
-# Check PyTorch and CUDA
-pixi run python -c "import torch; print('PyTorch:', torch.__version__); print('CUDA available:', torch.cuda.is_available())"
-
-# Check geospatial stack
-pixi run python -c "from osgeo import gdal; import rasterio, geopandas; print('Geospatial stack working')"
-
-# Check FTW CLI import
-pixi run python -c "from ftw_tools.cli import ftw; print('FTW CLI ready')"
-```
-
-### Conda/Mamba (Alternative)
-
-**Warning:** Using conda/mamba may result in dependency version conflicts, CUDA compatibility issues, and platform-specific problems. We recommend using Pixi for the most reliable experience.
-
-If you choose to use conda/mamba, you'll need to manually ensure compatibility:
-
-```bash
-# Create environment from env.yml
-conda env create -f env.yml
-conda activate ftw
-
-# Install FTW CLI in development mode
-pip install -e .[dev]
-
-# Verify CUDA availability (if using GPU)
-python -c "import torch; print('CUDA available:', torch.cuda.is_available())"
-```
-
-#### Development with Conda
-
-For development work:
-
-```bash
-# Format and lint (requires manual tool installation)
-ruff format src/
-ruff check src/
 
 # Run tests
-pytest src/tests/
+uv run pytest tests/
+
+# Set up pre-commit hooks (only run this once)
+uv run pre-commit install
+
+# Run pre-commit hooks
+uv run pre-commit run --all-files
 ```
 
-#### Common Issues with Conda
+To install the optional delineate-anything feature:
 
-- GDAL version conflicts with geospatial packages
-- PyTorch CUDA compatibility issues
-- Platform-specific dependency resolution problems
-- Inconsistent package versions across environments
+```bash
+uv sync --extra delineate-anything
+```
 
-These issues are automatically resolved with Pixi's locked environment approach.
+To install everything (all optional dependencies):
+
+```bash
+uv sync --all-extras
+```
 
 #### Verify Installation
 
 To confirm the FTW CLI is properly installed:
 
 ```bash
-# With Pixi
-pixi run ftw --help
-
-# With conda (after activation)
+# Check FTW CLI
 ftw --help
+
+# Check PyTorch
+uv run python -c "import torch; print('PyTorch:', torch.__version__); print('CUDA available:', torch.cuda.is_available())"
+
+# Check geospatial stack
+uv run python -c "import rasterio, geopandas; print('Geospatial stack working')"
+
+# Check FTW CLI import
+uv run python -c "from ftw_tools.cli import ftw; print('FTW CLI ready')"
 ```
+
+You should see:
 
 You should see:
 
@@ -176,7 +161,7 @@ Commands:
 
 The following commands show the steps for using the FTW CLI to obtain the FTW model and data, and then run an inference using that model on that data, and finally polygonizing that output. This example uses a pair of Sentinel-2 (S2) scenes over Austria.
 
-> **Note**: If using pixi, you can either use `pixi run` for individual commands (e.g., `pixi run ftw inference download ...`) or activate the environment first with `pixi shell` and then use commands directly. All examples below show the direct commands.
+> **Note**: Make sure you have activated your Python virtual environment before running these commands (e.g., `source venv/bin/activate`).
 
 ### FTW Semantic Segmentation Baseline Model
 
@@ -272,7 +257,7 @@ ftw inference all \
     --out=/path/to/output \
     --cloud_cover_max=20 \
     --buffer_days=14 \
-    --model=3_Class_FULL_singleWindow_v2 \
+    --model=3_Class_FULL_multiWindow_v2 \
     --resize_factor=2 \
     --overwrite
 ```
