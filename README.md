@@ -476,7 +476,7 @@ Simplification factor is measured in the units of the coordinate reference syste
   ftw inference polygonize austria_example_output_full.tif --simplify 20
   ```
 
-This results in a fiboa-compliant file named `austria_example_output_full.parquet`. You can then view this file in QGIS to see something similar to the following image of the sample prediction output. The polygons in red are the predicted fields.
+This results in a fiboa 0.3 compliant file named `austria_example_output_full.parquet`. You can then view this file in QGIS to see something similar to the following image of the sample prediction output. The polygons in red are the predicted fields.
 
 ![Sample Prediction Output](/assets/austria_prediction.png)
 

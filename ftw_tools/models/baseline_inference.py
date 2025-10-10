@@ -441,16 +441,16 @@ def run_instance_segmentation(
     )
 
     # Save polygons
-    ext = os.path.splitext(out)[1]
-    if ext == ".parquet":
+    p = Path(out).resolve()
+    if p.suffix == ".parquet":
         with rasterio.open(input) as src:
             timestamp = src.tags().get("TIFFTAG_DATETIME", None)
-        convert_to_fiboa(polygons, out, timestamp)
-    elif ext == ".gpkg":
-        polygons.to_file(out, driver="GPKG")
-    elif ext == ".geojson":
-        polygons.to_file(out, driver="GeoJSON")
+        convert_to_fiboa(polygons, p, timestamp)
+    elif p.suffix == ".gpkg":
+        polygons.to_file(p, driver="GPKG")
+    elif p.suffix == ".geojson":
+        polygons.to_file(p, driver="GeoJSON")
     else:
-        raise ValueError(f"Unsupported file extension: {ext}")
+        raise ValueError(f"Unsupported file extension: {p.suffix}")
 
-    print(f"Finished inference and saved output to {out} in {time.time() - tic:.2f}s")
+    print(f"Finished inference and saved output to {p} in {time.time() - tic:.2f}s")

@@ -15,7 +15,7 @@ EARTHSEARCH_URL = "https://earth-search.aws.element84.com/v1"
 # Supported file formats for the inference polygon command
 SUPPORTED_POLY_FORMATS_TXT = (
     "Available file extensions: "
-    ".parquet (GeoParquet, fiboa-compliant), "
+    ".parquet (GeoParquet, compliant to fiboa 0.3), "
     ".fgb (FlatGeoBuf), "
     ".gpkg (GeoPackage), "
     ".geojson / .json / .ndjson (GeoJSON)"

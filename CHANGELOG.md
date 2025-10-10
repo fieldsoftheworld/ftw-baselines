@@ -29,7 +29,7 @@
 
 ### 1.1.1
 
-- Fixed `fiboa inference run` to not show `GDAL signalled an error: Cannot modify tag "PhotometricInterpretation" while writing` any longer
+- Fixed `ftw inference run` to not show `GDAL signalled an error: Cannot modify tag "PhotometricInterpretation" while writing` any longer
 
 ### 1.1.0
 

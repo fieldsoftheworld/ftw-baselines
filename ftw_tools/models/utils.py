@@ -3,7 +3,9 @@ import re
 import geopandas as gpd
 import numpy as np
 import shapely
-from fiboa_cli.parquet import create_parquet
+from pathlib import Path
+from vecorel_cli.encoding.geoparquet import GeoParquet
+from vecorel_cli.
 
 
 def merge_polygons(
@@ -158,7 +160,7 @@ def postprocess_instance_polygons(
 
 
 def convert_to_fiboa(
-    polygons: gpd.GeoDataFrame, output: str, timestamp: str | None
+    polygons: gpd.GeoDataFrame, output: Path, timestamp: str | None
 ) -> gpd.GeoDataFrame:
     """Convert polygons to fiboa parquet format.
 
@@ -170,20 +172,23 @@ def convert_to_fiboa(
     Returns:
         The converted polygons.
     """
-    polygons["determination_method"] = "auto-imagery"
-
-    config = collection = {"fiboa_version": "0.2.0"}
-    columns = ["id", "area", "perimeter", "determination_method", "geometry"]
-
+    collection = {
+        "determination:method": "auto-imagery",
+    }
     if timestamp is not None:
         pattern = re.compile(
             r"^(\d{4})[:-](\d{2})[:-](\d{2})[T\s](\d{2}):(\d{2}):(\d{2}).*$"
         )
         if pattern.match(timestamp):
             timestamp = re.sub(pattern, r"\1-\2-\3T\4:\5:\6Z", timestamp)
-            polygons["determination_datetime"] = timestamp
-            columns.append("determination_datetime")
+            collection["determination:datetime"] = timestamp
         else:
             print("WARNING: Unable to parse timestamp from TIFFTAG_DATETIME tag.")
 
-    create_parquet(polygons, columns, collection, output, config, compression="brotli")
+    columns = ["id", "geometry", "metrics:area", "metrics:perimeter", "determination:method"]
+
+    collection = Collection.create_default(output.stem)
+
+    gp = GeoParquet(output)
+    gp.create_collection(output.stem, properties=collection)
+    gp.write(polygons, properties = columns, collection=collection)

@@ -29,7 +29,7 @@ classifiers = [
 dependencies = [
   "click>=8.2.1,<9",
   "dask[distributed]>=2025.5.1",
-  "fiboa-cli==0.7",
+  "fiboa-cli==0.20.3",
   "fiona>=1.9,<2",
   "geopandas>=0.14,<2",
   "kornia>=0.7,<1",
