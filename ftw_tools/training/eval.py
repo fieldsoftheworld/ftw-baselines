@@ -31,7 +31,6 @@ def expand_countries(countries: list[str]) -> list[str]:
             ['rwanda', 'kenya']
             >>> expand_countries(['rwanda', 'full_data', 'kenya'])
             ['austria', 'belgium', ...]  # full_data replaces entire list
-    calebrob6 marked this conversation as resolved.
     """
     if "full_data" in countries:
         return FULL_DATA_COUNTRIES.copy()
