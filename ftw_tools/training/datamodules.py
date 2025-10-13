@@ -77,6 +77,7 @@ class FTWDataModule(LightningDataModule):
         self.temporal_options = temporal_options
         self.num_samples = num_samples
         self.ignore_sample_fn = kwargs.pop("ignore_sample_fn", None)
+        self.kwargs = kwargs
 
         # for the temporal option windowA, windowB and median we will have 4 channel input
         if self.temporal_options in ("windowA", "windowB", "median", "random_window"):
@@ -108,9 +109,11 @@ class FTWDataModule(LightningDataModule):
         if brightness_aug:
             augs.append(K.RandomBrightness(p=0.5, brightness=(0.8, 1.5)))
         if resize_aug:
-            augs.append(K.RandomResizedCrop(
-                (256, 256), scale=(0.3, 0.9), ratio=(0.75, 1.33), p=0.5
-            ))
+            augs.append(
+                K.RandomResizedCrop(
+                    (256, 256), scale=(0.3, 0.9), ratio=(0.75, 1.33), p=0.5
+                )
+            )
 
         if random_shuffle:
             print("Using random channel shuffle augmentation")
@@ -147,6 +150,7 @@ class FTWDataModule(LightningDataModule):
                 temporal_options=self.temporal_options,
                 num_samples=self.num_samples,
                 ignore_sample_fn=self.ignore_sample_fn,
+                **self.kwargs,
             )
         if stage in ["fit", "validate"]:
             self.val_dataset = FTW(

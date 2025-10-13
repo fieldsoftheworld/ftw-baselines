@@ -55,6 +55,7 @@ class CustomSemanticSegmentationTask(BaseTask):
         patch_weights: bool = False,
         freeze_backbone: bool = False,
         freeze_decoder: bool = False,
+        edge_agreement_loss: bool = False,
         model_kwargs: dict[Any, Any] = dict(),
     ) -> None:
         """Inititalize a new SemanticSegmentationTask instance.
@@ -88,6 +89,8 @@ class CustomSemanticSegmentationTask(BaseTask):
                 decoder and segmentation head.
             freeze_decoder: Freeze the decoder network to linear probe
                 the segmentation head.
+            edge_agreement_loss: If True, ignore non-edge pixels by remapping them to
+                the reserved "unknown" class index before loss computation.
             model_kwargs: Additional keyword arguments to pass to the model
 
         Warns:
@@ -116,6 +119,7 @@ class CustomSemanticSegmentationTask(BaseTask):
             )
         self.class_names = ["background", "field", "boundary", "unknown"]
         self.weights = weights
+        self.edge_agreement_loss = edge_agreement_loss
         super().__init__()
         print(self.hparams)
 
@@ -159,6 +163,14 @@ class CustomSemanticSegmentationTask(BaseTask):
         elif loss == "focal":
             self.criterion = smp.losses.FocalLoss(
                 "multiclass", ignore_index=ignore_index, normalized=True
+            )
+        elif loss == "dice":
+            self.criterion = smp.losses.DiceLoss(
+                "multiclass", ignore_index=ignore_index
+            )
+        elif loss == "tversky":
+            self.criterion = smp.losses.TverskyLoss(
+                "multiclass", ignore_index=ignore_index
             )
         elif loss == "ce+dice":
             self.dice_loss = smp.losses.DiceLoss(
@@ -371,6 +383,12 @@ class CustomSemanticSegmentationTask(BaseTask):
         """
         x = batch["image"]
         y = batch["mask"].squeeze(1)
+
+        if self.edge_agreement_loss:
+            y = y.clone()
+            edges = batch["edge"].squeeze(1)
+            edge_mask = edges > 0
+            y = y.masked_fill(~edge_mask, 3)
 
         if self.hparams["model"] in ["fcsiamdiff", "fcsiamconc", "fcsiamavg"]:
             y_hat = self(rearrange(x, "b (t c) h w -> b t c h w", t=2))
