@@ -170,7 +170,7 @@ class CustomSemanticSegmentationTask(BaseTask):
             weight_dice = model_kwargs.get("weight_dice", 0.5)
 
             self.criterion = DiceCE(
-                mode="multiclass", weight_ce=weight_ce, weight_dice=weight_dice, ignore_index=ignore_index,class_weights=class_weights
+                mode="multiclass", weight_ce=weight_ce, weight_dice=weight_dice, ignore_index=ignore_index, class_weights=class_weights
             )
         
         elif loss == "ce+dice":
