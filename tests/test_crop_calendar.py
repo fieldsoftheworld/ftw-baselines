@@ -14,7 +14,6 @@ from ftw_tools.download.crop_calendar import (
 )
 
 
-# Using flat fixture instead of class to match existing test pattern
 @pytest.fixture
 def temp_cache_dir():
     """Create a temporary cache directory for testing."""
@@ -31,7 +30,8 @@ def temp_cache_dir():
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-def test_crop_calendar_download(temp_cache_dir):
+@pytest.mark.integration
+def test_crop_calendar_download(temp_cache_dir, mock_crop_calendar_downloads):
     """Test download of crop calendar files from GitHub."""
     cache_dir = get_crop_calendar_cache_dir()
 
@@ -48,6 +48,7 @@ def test_crop_calendar_download(temp_cache_dir):
         assert file_path.stat().st_size > 0
 
 
+@pytest.mark.integration
 def test_ensure_crop_calendar_exists_uses_cached_files(temp_cache_dir):
     """Test that existing files are not re-downloaded."""
     cache_dir = get_crop_calendar_cache_dir()
@@ -65,7 +66,8 @@ def test_ensure_crop_calendar_exists_uses_cached_files(temp_cache_dir):
         assert result == cache_dir
 
 
-def test_force_redownload_integration(temp_cache_dir):
+@pytest.mark.integration
+def test_force_redownload_integration(temp_cache_dir, mock_crop_calendar_downloads):
     """Test that force=True actually re-downloads files."""
     cache_dir = get_crop_calendar_cache_dir()
     cache_dir.mkdir(parents=True, exist_ok=True)
@@ -86,6 +88,7 @@ def test_force_redownload_integration(temp_cache_dir):
         assert new_size > original_sizes[filename]
 
 
+@pytest.mark.integration
 def test_get_crop_calendar_cache_dir(temp_cache_dir):
     """Test cache directory path generation."""
     cache_dir = get_crop_calendar_cache_dir()
@@ -93,6 +96,7 @@ def test_get_crop_calendar_cache_dir(temp_cache_dir):
     assert "crop_calendar" in str(cache_dir)
 
 
+@pytest.mark.integration
 def test_custom_cache_directory():
     """Test using a custom cache directory."""
     temp_dir = tempfile.mkdtemp()
@@ -109,6 +113,7 @@ def test_custom_cache_directory():
 
 
 @patch("ftw_tools.download.crop_calendar.wget.download")
+@pytest.mark.integration
 def test_download_crop_calendar_files_failure(mock_wget, temp_cache_dir):
     """Test handling of download failure."""
     mock_wget.side_effect = Exception("Network error")

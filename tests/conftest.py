@@ -1,12 +1,29 @@
 import os
 import sys
+from pathlib import Path
+from unittest.mock import patch
 
 import matplotlib
+import pytest
 
 # Force matplotlib to use a non-interactive backend and disable showing plots
 os.environ.setdefault("MPLBACKEND", "Agg")
 matplotlib.use("Agg", force=True)
 matplotlib.interactive(False)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def mock_crop_calendar_downloads(request):
+    # don't mock for integration tests
+    if request.node.get_closest_marker("integration"):
+        yield
+        return
+
+    with patch(
+        "ftw_tools.download.crop_calendar.get_crop_calendar_cache_dir",
+        return_value=Path(__file__).parent / "data-files" / "crop-calendar",
+    ):
+        yield
 
 
 def pytest_sessionfinish(session, exitstatus):
