@@ -3,7 +3,6 @@ import sys
 
 import matplotlib
 
-# Force matplotlib to use a non-interactive backend and disable showing plots
 os.environ.setdefault("MPLBACKEND", "Agg")
 matplotlib.use("Agg", force=True)
 matplotlib.interactive(False)

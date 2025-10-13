@@ -1,0 +1,21 @@
+name: integration-tests
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  integration-tests:
+    name: Run All Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: uv sync --locked --all-extras --dev
+      - name: Run all tests
+        run: uv run pytest -vvv -m "integration or not integration"

@@ -1,4 +1,4 @@
-name: pytest
+name: tests
 
 on:
   pull_request:
@@ -7,13 +7,14 @@ on:
 
 jobs:
   lint:
+    name: Run linting checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
-          python-version: '3.12'
+          python-version: "3.12"
           enable-cache: true
       - name: Install dependencies
         run: uv sync --locked --all-extras --dev
