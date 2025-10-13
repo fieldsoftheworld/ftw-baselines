@@ -357,6 +357,13 @@ def model_fit(config, ckpt_path, cli_args):
     show_default=True,
     help="Number of workers to use for inference.",
 )
+@click.option(
+    "--bootstrap",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Whether to compute 95% confidence intervals using bootstrap sampling.",
+)
 def model_test(
     model,
     countries,
@@ -370,6 +377,7 @@ def model_test(
     use_val_set,
     swap_order,
     num_workers,
+    bootstrap,
 ):
     from ftw_tools.training.eval import test
 
@@ -386,6 +394,7 @@ def model_test(
         use_val_set,
         swap_order,
         num_workers,
+        bootstrap,
     )
 
 

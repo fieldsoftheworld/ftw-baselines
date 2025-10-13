@@ -12,7 +12,7 @@ import yaml
 from ftw_tools.settings import ALL_COUNTRIES, FULL_DATA_COUNTRIES
 
 # list of GPU IDs that we want to use, one job will be started for every ID in the list
-GPUS = [0, 1, 2, 3, 4, 5, 6, 7]
+GPUS = [1, 4, 6, 7]
 DRY_RUN = False  # if False then print out the commands to be run, if True then run
 
 
@@ -106,6 +106,8 @@ def main(args: argparse.Namespace):
                     command.append("--swap_order")
                 if args.split == "val":
                     command.append("--use_val_set")
+                if args.bootstrap:
+                    command.append("--bootstrap")
                 work.put(command)
         else:
             command = [
@@ -129,6 +131,8 @@ def main(args: argparse.Namespace):
                 command.append("--swap_order")
             if args.split == "val":
                 command.append("--use_val_set")
+            if args.bootstrap:
+                command.append("--bootstrap")
             for country in FULL_DATA_COUNTRIES:
                 command.append("--countries")
                 command.append(country)
@@ -168,6 +172,11 @@ if __name__ == "__main__":
         type=str,
         default="logs/",
         help="Root directory to recursively search for checkpoint directories (default: logs/)",
+    )
+    parser.add_argument(
+        "--bootstrap",
+        action="store_true",
+        help="Whether to compute 95% confidence intervals using bootstrap sampling",
     )
     args = parser.parse_args()
     main(args)

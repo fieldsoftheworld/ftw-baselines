@@ -27,6 +27,8 @@ def load_model_from_checkpoint(path: str) -> tuple[nn.Module, str]:
 
     if "criterion.weight" in state_dict:
         del state_dict["criterion.weight"]
+    if "ce_loss.weight" in state_dict:
+        del state_dict["ce_loss.weight"]
 
     if model_type == "unet":
         model = smp.Unet(
