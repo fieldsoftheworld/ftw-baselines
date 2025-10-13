@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import rasterio
 import torch
+import torch.nn.functional as F
 from matplotlib.figure import Figure
 from torch import Tensor
 from torchgeo.datasets import NonGeoDataset, RasterDataset
@@ -46,7 +47,7 @@ class FTW(NonGeoDataset):
                 entry and returns a transformed version
             checksum: if True, check the MD5 of the downloaded files (may be slow)
             load_boundaries: if True, load the 3 class masks with boundaries
-            temporal_options : for abalation study, valid option are (stacked, windowA, windowB, median, rgb, random_window)
+            temporal_options : for abalation study, valid option are (stacked, windowA, windowB, median, rgb, random_window, aef)
             swap_order: if True, swap the order of temporal data (i.e. use window A first)
             ignore_sample_fn: path to a filename with a list of samples to ignore
         Raises:
@@ -59,7 +60,12 @@ class FTW(NonGeoDataset):
         if countries is None:
             raise ValueError("Please specify the countries to load the dataset from")
         if temporal_options not in TEMPORAL_OPTIONS:
-            raise ValueError(f"Invalid temporal option {temporal_options}")
+            if temporal_options == "aef":
+                print(
+                    "WARNING: AEF data is distributed differently than other FTW data."
+                )
+            else:
+                raise ValueError(f"Invalid temporal option {temporal_options}")
 
         if isinstance(countries, str):
             countries = [countries]
@@ -152,26 +158,20 @@ class FTW(NonGeoDataset):
                     continue
 
                 if self.load_boundaries:
-                    mask_fn = os.path.join(
-                        country_root, "label_masks/semantic_3class", f"{idx}.tif"
-                    )
+                    mask_fn = masks_3c_fn
                 else:
-                    mask_fn = os.path.join(
-                        country_root, "label_masks/semantic_2class", f"{idx}.tif"
-                    )
+                    mask_fn = masks_2c_fn
 
-                if os.path.exists(mask_fn):
-                    all_filenames.append(
-                        {
-                            "window_b": os.path.join(
-                                country_root, "s2_images/window_b", f"{idx}.tif"
-                            ),
-                            "window_a": os.path.join(
-                                country_root, "s2_images/window_a", f"{idx}.tif"
-                            ),
-                            "mask": mask_fn,
-                        }
-                    )
+                all_filenames.append(
+                    {
+                        "window_b": str(window_b_fn),
+                        "window_a": str(window_a_fn),
+                        "aef": os.path.join(
+                            self.root, "aef", country, "2024", f"{idx}.npy"
+                        ),
+                        "mask": str(mask_fn),
+                    }
+                )
 
         if self.num_samples == -1:  # select all samples
             self.filenames = all_filenames
@@ -275,40 +275,51 @@ class FTW(NonGeoDataset):
 
         images = []
 
-        if self.temporal_options in ("stacked", "median", "windowB", "rgb"):
-            with rasterio.open(filenames["window_b"]) as f:
-                window_b_img = f.read()
-                if self.temporal_options == "rgb":  # select 3 channels only
-                    window_b_img = window_b_img[:3]
-                images.append(window_b_img)
-
-        if self.temporal_options in ("stacked", "median", "windowA", "rgb"):
-            with rasterio.open(filenames["window_a"]) as f:
-                window_a_img = f.read()
-                if self.temporal_options == "rgb":  # select 3 channels only
-                    window_a_img = window_a_img[:3]
-                images.append(window_a_img)
-
-        if self.temporal_options == "random_window":
-            if random.random() < 0.5:
-                with rasterio.open(filenames["window_a"]) as f:
-                    window_a_img = f.read()
-                images.append(window_a_img)
-            else:
+        if self.temporal_options == "aef":
+            image = np.load(filenames["aef"])
+            image = np.flip(image, axis=0).copy()
+            image = torch.from_numpy(image).float().permute(2, 0, 1)
+            image = F.interpolate(
+                image.unsqueeze(0),
+                size=(256, 256),
+                mode="bilinear",
+                align_corners=False,
+            ).squeeze(0)
+        else:
+            if self.temporal_options in ("stacked", "median", "windowB", "rgb"):
                 with rasterio.open(filenames["window_b"]) as f:
                     window_b_img = f.read()
-                images.append(window_b_img)
+                    if self.temporal_options == "rgb":  # select 3 channels only
+                        window_b_img = window_b_img[:3]
+                    images.append(window_b_img)
 
-        if self.swap_order and len(images) == 2:
-            images = [images[1], images[0]]
+            if self.temporal_options in ("stacked", "median", "windowA", "rgb"):
+                with rasterio.open(filenames["window_a"]) as f:
+                    window_a_img = f.read()
+                    if self.temporal_options == "rgb":  # select 3 channels only
+                        window_a_img = window_a_img[:3]
+                    images.append(window_a_img)
 
-        if self.temporal_options == "median":
-            images = np.array(images).astype(np.int32)
-            image = np.median(images, axis=0).astype(np.int32)
-        else:
-            image = np.concatenate(images, axis=0).astype(np.int32)
+            if self.temporal_options == "random_window":
+                if random.random() < 0.5:
+                    with rasterio.open(filenames["window_a"]) as f:
+                        window_a_img = f.read()
+                    images.append(window_a_img)
+                else:
+                    with rasterio.open(filenames["window_b"]) as f:
+                        window_b_img = f.read()
+                    images.append(window_b_img)
 
-        image = torch.from_numpy(image).float()
+            if self.swap_order and len(images) == 2:
+                images = [images[1], images[0]]
+
+            if self.temporal_options == "median":
+                images = np.array(images).astype(np.int32)
+                image = np.median(images, axis=0).astype(np.int32)
+            else:
+                image = np.concatenate(images, axis=0).astype(np.int32)
+
+            image = torch.from_numpy(image).float()
 
         with rasterio.open(filenames["mask"]) as f:
             mask = f.read(1)
