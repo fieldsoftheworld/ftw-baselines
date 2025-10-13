@@ -31,7 +31,7 @@ def temp_cache_dir():
 
 
 @pytest.mark.integration
-def test_crop_calendar_download(temp_cache_dir, mock_crop_calendar_downloads):
+def test_crop_calendar_download(temp_cache_dir):
     """Test download of crop calendar files from GitHub."""
     cache_dir = get_crop_calendar_cache_dir()
 
@@ -67,7 +67,7 @@ def test_ensure_crop_calendar_exists_uses_cached_files(temp_cache_dir):
 
 
 @pytest.mark.integration
-def test_force_redownload_integration(temp_cache_dir, mock_crop_calendar_downloads):
+def test_force_redownload_integration(temp_cache_dir):
     """Test that force=True actually re-downloads files."""
     cache_dir = get_crop_calendar_cache_dir()
     cache_dir.mkdir(parents=True, exist_ok=True)

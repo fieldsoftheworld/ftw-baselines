@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
+from unittest.mock import patch
 
+import pytest
 from click.testing import CliRunner
 
 from ftw_tools.cli import (
@@ -12,6 +14,15 @@ from ftw_tools.cli import (
     inference_run_instance_segmentation_all,
     scene_selection,
 )
+
+
+@pytest.fixture(scope="session")
+def mock_crop_calendar_downloads():
+    with patch(
+        "ftw_tools.download.crop_calendar.get_crop_calendar_cache_dir",
+        return_value=Path(__file__).parent / "data-files" / "crop-calendar",
+    ):
+        yield
 
 
 def test_scene_selection_earthsearch():
@@ -174,7 +185,7 @@ def test_inference_polygonize(tmp_path: Path):
     assert os.path.exists(str(out_path))
 
 
-def test_ftw_inference_all(tmp_path: Path):
+def test_ftw_inference_all(tmp_path: Path, mock_crop_calendar_downloads):
     runner = CliRunner()
     out_path = tmp_path / "inference_output"
     args = [
