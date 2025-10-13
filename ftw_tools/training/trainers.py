@@ -69,7 +69,7 @@ class CustomSemanticSegmentationTask(BaseTask):
         edge_agreement_loss: bool = False,
         model_kwargs: dict[Any, Any] = dict(),
     ) -> None:
-        """Inititalize a new SemanticSegmentationTask instance.
+        """Initialize a new SemanticSegmentationTask instance.
 
         Args:
             model: Name of the
