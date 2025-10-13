@@ -140,6 +140,8 @@ def test_model_test(shared_data_dir, trained_model_checkpoint, caplog):
         [
             "--gpu",
             "0",
+            "--dir",
+            str(shared_data_dir / "data" / "ftw"),
             "--model",
             str(trained_model_checkpoint),
             "--countries",
