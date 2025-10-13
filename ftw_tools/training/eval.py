@@ -1,7 +1,6 @@
 import os
 import time
-from typing import Sequence, Dict, Tuple
-
+from typing import Dict, Tuple, Sequence
 
 import numpy as np
 import torch
@@ -40,22 +39,49 @@ def expand_countries(countries: Sequence[str]) -> list[str]:
     return countries
 
 
-def compute_metrics_from_samples(
-    pixel_ious: list[float],
-    pixel_precisions: list[float],
-    pixel_recalls: list[float],
-    object_tps: list[int],
-    object_fps: list[int],
-    object_fns: list[int],
+def compute_metrics_from_aggregated_data(
+    all_outputs: torch.Tensor,
+    all_masks: torch.Tensor,
+    all_object_tps: list[int],
+    all_object_fps: list[int], 
+    all_object_fns: list[int],
+    test_on_3_classes: bool = False,
+    device: torch.device | None = None
 ) -> dict[str, float]:
-    """Compute metrics from lists of per-sample values."""
-    pixel_iou = np.mean(pixel_ious)
-    pixel_precision = np.mean(pixel_precisions)
-    pixel_recall = np.mean(pixel_recalls)
-
-    total_tps = sum(object_tps)
-    total_fps = sum(object_fps)
-    total_fns = sum(object_fns)
+    """Compute metrics from aggregated predictions and targets."""
+    if device is None:
+        device = all_outputs.device
+    
+    # Ensure tensors are on the correct device
+    all_outputs = all_outputs.to(device)
+    all_masks = all_masks.to(device)
+    
+    # Create metrics collection
+    if test_on_3_classes:
+        metrics = MetricCollection([
+            JaccardIndex(task="multiclass", average="none", num_classes=3, ignore_index=3),
+            Precision(task="multiclass", average="none", num_classes=3, ignore_index=3),
+            Recall(task="multiclass", average="none", num_classes=3, ignore_index=3),
+        ]).to(device)
+    else:
+        metrics = MetricCollection([
+            JaccardIndex(task="multiclass", average="none", num_classes=2, ignore_index=3),
+            Precision(task="multiclass", average="none", num_classes=2, ignore_index=3),
+            Recall(task="multiclass", average="none", num_classes=2, ignore_index=3),
+        ]).to(device)
+    
+    # Compute pixel-level metrics on GPU
+    metrics.update(all_outputs, all_masks)
+    results = metrics.compute()
+    
+    pixel_iou = results["MulticlassJaccardIndex"][1].item()
+    pixel_precision = results["MulticlassPrecision"][1].item()
+    pixel_recall = results["MulticlassRecall"][1].item()
+    
+    # Compute object-level metrics
+    total_tps = sum(all_object_tps)
+    total_fps = sum(all_object_fps)
+    total_fns = sum(all_object_fns)
 
     if total_tps + total_fps > 0:
         object_precision = total_tps / (total_tps + total_fps)
@@ -87,50 +113,53 @@ def compute_metrics_from_samples(
 
 
 def bootstrap_confidence_intervals(
-    pixel_ious: list[float],
-    pixel_precisions: list[float],
-    pixel_recalls: list[float],
-    object_tps: list[int],
-    object_fps: list[int],
-    object_fns: list[int],
+    all_outputs_list: list[torch.Tensor],
+    all_masks_list: list[torch.Tensor], 
+    all_object_tps: list[int],
+    all_object_fps: list[int],
+    all_object_fns: list[int],
+    test_on_3_classes: bool = False,
+    device: torch.device | None = None,
     n_bootstrap: int = 1000,
     confidence_level: float = 0.95,
 ) -> tuple[dict[str, float], dict[str, tuple[float, float]]]:
     """
-    Compute bootstrap confidence intervals for metrics.
+    Compute bootstrap confidence intervals for metrics using global aggregation.
 
     Returns:
         metrics: Point estimates of metrics
         confidence_intervals: Dict mapping metric names to (lower, upper) bounds
     """
     np.random.seed(42)  # For reproducibility
-    n_samples = len(pixel_ious)
+    n_samples = len(all_outputs_list)
 
-    # Compute point estimates
-    metrics = compute_metrics_from_samples(
-        pixel_ious, pixel_precisions, pixel_recalls, object_tps, object_fps, object_fns
+    # Compute point estimates using all data
+    all_outputs = torch.cat(all_outputs_list, dim=0)
+    all_masks = torch.cat(all_masks_list, dim=0)
+    metrics = compute_metrics_from_aggregated_data(
+        all_outputs, all_masks, all_object_tps, all_object_fps, all_object_fns, test_on_3_classes, device
     )
 
     # Bootstrap sampling
     bootstrap_metrics = []
-    for _ in range(n_bootstrap):
-        # Sample with replacement
+    print(f"Running bootstrapping")
+    for _ in tqdm(range(n_bootstrap)):
+        # Sample with replacement at the sample level
         indices = np.random.choice(n_samples, size=n_samples, replace=True)
 
-        boot_pixel_ious = [pixel_ious[i] for i in indices]
-        boot_pixel_precisions = [pixel_precisions[i] for i in indices]
-        boot_pixel_recalls = [pixel_recalls[i] for i in indices]
-        boot_object_tps = [object_tps[i] for i in indices]
-        boot_object_fps = [object_fps[i] for i in indices]
-        boot_object_fns = [object_fns[i] for i in indices]
+        # Aggregate bootstrap sample data
+        boot_outputs_list = [all_outputs_list[i] for i in indices]
+        boot_masks_list = [all_masks_list[i] for i in indices]
+        boot_object_tps = [all_object_tps[i] for i in indices]
+        boot_object_fps = [all_object_fps[i] for i in indices]
+        boot_object_fns = [all_object_fns[i] for i in indices]
+        
+        # Concatenate bootstrap sample
+        boot_outputs = torch.cat(boot_outputs_list, dim=0)
+        boot_masks = torch.cat(boot_masks_list, dim=0)
 
-        boot_metrics = compute_metrics_from_samples(
-            boot_pixel_ious,
-            boot_pixel_precisions,
-            boot_pixel_recalls,
-            boot_object_tps,
-            boot_object_fps,
-            boot_object_fns,
+        boot_metrics = compute_metrics_from_aggregated_data(
+            boot_outputs, boot_masks, boot_object_tps, boot_object_fps, boot_object_fns, test_on_3_classes, device
         )
         bootstrap_metrics.append(boot_metrics)
 
@@ -192,19 +221,19 @@ def fit(config, ckpt_path, cli_args):
 
 
 def test(
-    model_path,
-    dir,
-    gpu,
+    model_path: str,
+    dir: str,
+    gpu: int,
     countries: Sequence[str],
-    iou_threshold,
-    out,
-    model_predicts_3_classes,
-    test_on_3_classes,
-    temporal_options,
-    use_val_set,
-    swap_order,
-    num_workers,
-    bootstrap=False,
+    iou_threshold: float,
+    out: str,
+    model_predicts_3_classes: bool,
+    test_on_3_classes: bool,
+    temporal_options: str,
+    use_val_set: bool,
+    swap_order: bool,
+    num_workers: int,
+    bootstrap: bool = False,
 ):
     """Command to test the model."""
     target_split = "val" if use_val_set else "test"
@@ -273,10 +302,9 @@ def test(
             ]
         ).to(device)
 
-    # For bootstrap: collect per-sample metrics
-    pixel_ious = []
-    pixel_precisions = []
-    pixel_recalls = []
+    # For bootstrap: collect per-sample data
+    all_outputs_list = []
+    all_masks_list = []
     object_tps = []
     object_fps = []
     object_fns = []
@@ -315,74 +343,21 @@ def test(
         outputs_np = outputs.cpu().numpy().astype(np.uint8)
         masks_np = masks.cpu().numpy().astype(np.uint8)
 
-        # Compute per-sample metrics for bootstrap
+        # Store data for bootstrap if requested
         for i in range(len(outputs)):
-            output = outputs_np[i]
-            mask = masks_np[i]
+            output_np = outputs_np[i]
+            mask_np = masks_np[i]
 
-            # Pixel-level metrics per sample
             if bootstrap:
-                # Create temporary metrics for this sample
-                if test_on_3_classes:
-                    sample_metrics = MetricCollection(
-                        [
-                            JaccardIndex(
-                                task="multiclass",
-                                average="none",
-                                num_classes=3,
-                                ignore_index=3,
-                            ),
-                            Precision(
-                                task="multiclass",
-                                average="none",
-                                num_classes=3,
-                                ignore_index=3,
-                            ),
-                            Recall(
-                                task="multiclass",
-                                average="none",
-                                num_classes=3,
-                                ignore_index=3,
-                            ),
-                        ]
-                    ).to(device)
-                else:
-                    sample_metrics = MetricCollection(
-                        [
-                            JaccardIndex(
-                                task="multiclass",
-                                average="none",
-                                num_classes=2,
-                                ignore_index=3,
-                            ),
-                            Precision(
-                                task="multiclass",
-                                average="none",
-                                num_classes=2,
-                                ignore_index=3,
-                            ),
-                            Recall(
-                                task="multiclass",
-                                average="none",
-                                num_classes=2,
-                                ignore_index=3,
-                            ),
-                        ]
-                    ).to(device)
+                # Store per-sample tensors for bootstrap (keep on GPU)
+                all_outputs_list.append(outputs[i])
+                all_masks_list.append(masks[i])
 
-                sample_outputs = torch.from_numpy(output).unsqueeze(0).to(device)
-                sample_masks = torch.from_numpy(mask).unsqueeze(0).to(device)
-                sample_metrics.update(sample_outputs, sample_masks)
-                sample_results = sample_metrics.compute()
-
-                pixel_ious.append(sample_results["MulticlassJaccardIndex"][1].item())
-                pixel_precisions.append(sample_results["MulticlassPrecision"][1].item())
-                pixel_recalls.append(sample_results["MulticlassRecall"][1].item())
-
-            # Object-level metrics per sample
+            # Object-level metrics per sample (computed on CPU arrays)
             tps, fps, fns = get_object_level_metrics(
-                mask, output, iou_threshold=iou_threshold
+                mask_np, output_np, iou_threshold=iou_threshold
             )
+            
             if bootstrap:
                 object_tps.append(tps)
                 object_fps.append(fps)
@@ -422,31 +397,32 @@ def test(
     confidence_intervals = None
     if bootstrap:
         bootstrap_metrics, confidence_intervals = bootstrap_confidence_intervals(
-            pixel_ious,
-            pixel_precisions,
-            pixel_recalls,
+            all_outputs_list,
+            all_masks_list,
             object_tps,
             object_fps,
             object_fns,
+            test_on_3_classes,
+            device,
         )
 
         print(
-            f"Pixel level IoU: {pixel_level_iou:.4f} [{confidence_intervals['pixel_iou'][0]:.4f}, {confidence_intervals['pixel_iou'][1]:.4f}]"
+            f"Pixel level IoU: {pixel_level_iou:.4f}\t{bootstrap_metrics['pixel_iou']} [{confidence_intervals['pixel_iou'][0]:.4f}, {confidence_intervals['pixel_iou'][1]:.4f}]"
         )
         print(
-            f"Pixel level precision: {pixel_level_precision:.4f} [{confidence_intervals['pixel_precision'][0]:.4f}, {confidence_intervals['pixel_precision'][1]:.4f}]"
+            f"Pixel level precision: {pixel_level_precision:.4f}\t{bootstrap_metrics['pixel_precision']} [{confidence_intervals['pixel_precision'][0]:.4f}, {confidence_intervals['pixel_precision'][1]:.4f}]"
         )
         print(
-            f"Pixel level recall: {pixel_level_recall:.4f} [{confidence_intervals['pixel_recall'][0]:.4f}, {confidence_intervals['pixel_recall'][1]:.4f}]"
+            f"Pixel level recall: {pixel_level_recall:.4f}\t{bootstrap_metrics['pixel_recall']} [{confidence_intervals['pixel_recall'][0]:.4f}, {confidence_intervals['pixel_recall'][1]:.4f}]"
         )
         print(
-            f"Object level precision: {object_precision:.4f} [{confidence_intervals['object_precision'][0]:.4f}, {confidence_intervals['object_precision'][1]:.4f}]"
+            f"Object level precision: {object_precision:.4f}\t{bootstrap_metrics['object_precision']} [{confidence_intervals['object_precision'][0]:.4f}, {confidence_intervals['object_precision'][1]:.4f}]"
         )
         print(
-            f"Object level recall: {object_recall:.4f} [{confidence_intervals['object_recall'][0]:.4f}, {confidence_intervals['object_recall'][1]:.4f}]"
+            f"Object level recall: {object_recall:.4f}\t{bootstrap_metrics['object_recall']} [{confidence_intervals['object_recall'][0]:.4f}, {confidence_intervals['object_recall'][1]:.4f}]"
         )
         print(
-            f"Object level F1: {object_f1:.4f} [{confidence_intervals['object_f1'][0]:.4f}, {confidence_intervals['object_f1'][1]:.4f}]"
+            f"Object level F1: {object_f1:.4f}\t{bootstrap_metrics['object_f1']} [{confidence_intervals['object_f1'][0]:.4f}, {confidence_intervals['object_f1'][1]:.4f}]"
         )
     else:
         print(f"Pixel level IoU: {pixel_level_iou:.4f}")
