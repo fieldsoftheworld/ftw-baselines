@@ -19,18 +19,18 @@ from ftw_tools.training.trainers import CustomSemanticSegmentationTask
 
 def expand_countries(countries: list[str]) -> list[str]:
     """Expand the 'full_data' placeholder to the full list of countries.
-        Args:
-            countries: List of country names, may contain 'full_data' placeholder
-        Returns:
-            List of country names with 'full_data' expanded to FULL_DATA_COUNTRIES.
-            Always returns a new list to avoid modifying the original.
-        Examples:
-            >>> expand_countries(['full_data'])
-            ['austria', 'belgium', ...]
-            >>> expand_countries(['rwanda', 'kenya'])
-            ['rwanda', 'kenya']
-            >>> expand_countries(['rwanda', 'full_data', 'kenya'])
-            ['austria', 'belgium', ...]  # full_data replaces entire list
+    Args:
+        countries: List of country names, may contain 'full_data' placeholder
+    Returns:
+        List of country names with 'full_data' expanded to FULL_DATA_COUNTRIES.
+        Always returns a new list to avoid modifying the original.
+    Examples:
+        >>> expand_countries(['full_data'])
+        ['austria', 'belgium', ...]
+        >>> expand_countries(['rwanda', 'kenya'])
+        ['rwanda', 'kenya']
+        >>> expand_countries(['rwanda', 'full_data', 'kenya'])
+        ['austria', 'belgium', ...]  # full_data replaces entire list
     """
     if "full_data" in countries:
         return FULL_DATA_COUNTRIES.copy()
