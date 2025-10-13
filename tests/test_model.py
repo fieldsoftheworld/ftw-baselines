@@ -11,6 +11,7 @@ from ftw_tools.cli import data_download, model_fit, model_test
 
 CONFIG_FILE = "tests/data-files/min_config.yaml"
 
+
 @pytest.fixture(scope="session")
 def shared_data_dir(tmp_path_factory):
     """Download data once and reuse across all tests in this module."""
