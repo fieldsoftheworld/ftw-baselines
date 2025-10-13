@@ -4,6 +4,7 @@ import kornia as K
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from segmentation_models_pytorch.losses import DiceLoss as Dice
 
 
 class PixelWeightedCE(nn.Module):
@@ -116,3 +117,46 @@ class PixelWeightedCE(nn.Module):
         num = (w * ce).sum()
         den = w.sum().clamp_min(1e-8)
         return num / den
+
+
+class logCoshDice(Dice):
+    def __init__(self, class_weights=None, **kwargs):
+        super().__init__(**kwargs)
+        self.class_weights = (
+            torch.tensor(class_weights, dtype=torch.float32) if class_weights is not None else None
+        )
+        
+    def aggregate_loss(self, loss: torch.Tensor) -> torch.Tensor:
+        if self.class_weights is not None:
+            weights = self.class_weights.to(loss.device)
+            loss = (loss * weights)/weights.sum()
+
+        loss = loss.mean()
+        loss = torch.log(torch.cosh(loss))
+        return loss
+
+
+class logCoshDiceCE(nn.Module):
+    def __init__(self, weight_ce=0.5, weight_dice=0.5, 
+                 ignore_index=None, class_weights=None, 
+                 mode="multiclass", classes=None):
+        super().__init__()
+        # cross entropy
+        ignore_value = -1000 if ignore_index is None else ignore_index
+        self.ce_loss = nn.CrossEntropyLoss(
+            ignore_index=ignore_value,
+            weight=class_weights
+        )
+        # logcosh dice
+        self.dice_loss = logCoshDice(mode=mode, classes=classes, 
+                              class_weights=class_weights,
+                              ignore_index=ignore_index)
+
+        # weighting
+        self.weight_ce = weight_ce
+        self.weight_dice = weight_dice
+
+    def forward(self, inputs, targets):
+        loss_ce = self.ce_loss(inputs, targets)
+        loss_dice = self.dice_loss(inputs, targets)
+        return self.weight_ce * loss_ce + self.weight_dice * loss_dice
