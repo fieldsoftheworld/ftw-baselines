@@ -33,10 +33,10 @@ def expand_countries(countries: Sequence[str]) -> list[str]:
         >>> expand_countries(['rwanda', 'full_data', 'kenya'])
         ['austria', 'belgium', ...]  # full_data replaces entire list
     """
-    countries = list(countries)  # Make a copy to avoid modifying the original
+    countries = list(countries)  # Make sure this is a list
     if "full_data" in countries:
         return FULL_DATA_COUNTRIES.copy()
-    return countries.copy()
+    return countries
 
 
 def fit(config, ckpt_path, cli_args):
