@@ -1,5 +1,6 @@
 import os
 import time
+from typing import Sequence
 
 import numpy as np
 import torch
@@ -17,7 +18,7 @@ from ftw_tools.training.metrics import get_object_level_metrics
 from ftw_tools.training.trainers import CustomSemanticSegmentationTask
 
 
-def expand_countries(countries: list[str]) -> list[str]:
+def expand_countries(countries: Sequence[str]) -> list[str]:
     """Expand the 'full_data' placeholder to the full list of countries.
     Args:
         countries: List of country names, may contain 'full_data' placeholder
@@ -32,6 +33,7 @@ def expand_countries(countries: list[str]) -> list[str]:
         >>> expand_countries(['rwanda', 'full_data', 'kenya'])
         ['austria', 'belgium', ...]  # full_data replaces entire list
     """
+    countries = list(countries)  # Make a copy to avoid modifying the original
     if "full_data" in countries:
         return FULL_DATA_COUNTRIES.copy()
     return countries.copy()
@@ -77,7 +79,7 @@ def test(
     model_path,
     dir,
     gpu,
-    countries: list[str],
+    countries: Sequence[str],
     iou_threshold,
     out,
     model_predicts_3_classes,
