@@ -29,6 +29,7 @@ from torchvision.models._api import WeightsEnum
 from ftw_tools.inference.models import FCSiamAvg
 from ftw_tools.training.losses import PixelWeightedCE
 from ftw_tools.training.metrics import get_object_level_metrics
+from .losses import PixelWeightedCE, logCoshDice, logCoshDiceCE
 
 
 class CustomSemanticSegmentationTask(BaseTask):
@@ -76,8 +77,8 @@ class CustomSemanticSegmentationTask(BaseTask):
             in_channels: Number of input channels to model.
             num_classes: Number of prediction classes.
             num_filters: Number of filters. Only applicable when model='fcn'.
-            loss: Name of the loss function, currently supports
-                'ce', 'jaccard' or 'focal' loss.
+            loss: Name of the loss function, currently supports:
+                'ce' or 'pixel_weighted_ce' or 'jaccard' or 'focal' or 'dice' or 'ce+dice' or 'logcoshdice' or 'logcoshdice+ce'
             class_weights: Optional rescaling weight given to each
                 class and used with 'ce' loss.
             ignore_index: Optional integer class index to ignore in the loss and
@@ -160,6 +161,9 @@ class CustomSemanticSegmentationTask(BaseTask):
             self.criterion = smp.losses.FocalLoss(
                 "multiclass", ignore_index=ignore_index, normalized=True
             )
+        elif loss == "dice":
+            self.criterion = smp.losses.DiceLoss(mode="multiclass", ignore_index=ignore_index)     
+
         elif loss == "ce+dice":
             self.dice_loss = smp.losses.DiceLoss(
                 "multiclass", ignore_index=ignore_index
@@ -175,13 +179,24 @@ class CustomSemanticSegmentationTask(BaseTask):
             )
             self.criterion = lambda y_pred, y_true: self.ce_loss(
                 y_pred, y_true
-            ) + self.dice_loss(y_pred, y_true)
+            ) + self.dice_loss(y_pred, y_true) 
 
+        elif loss == "logcoshdice":
+            self.criterion = logCoshDice(mode="multiclass", 
+                                         classes=self.hparams["num_classes"],
+                                         class_weights=class_weights,
+                                         ignore_index=ignore_index)
+        elif loss == "logcoshdice+ce":
+            self.criterion = logCoshDiceCE(weight_ce=0.5, weight_dice=0.5,
+                                          mode="multiclass", 
+                                          classes=self.hparams["num_classes"],
+                                          class_weights=class_weights,
+                                          ignore_index=ignore_index)
         else:
-            raise ValueError(
-                f"Loss type '{loss}' is not valid. "
-                "Currently, supports 'ce', 'jaccard' or 'focal' loss."
+            raise ValueError(f"Loss type '{loss}' is not valid. "
+                             "Currently supports: 'ce', 'pixel_weighted_ce', 'jaccard', 'focal', 'dice', 'ce+dice', 'logcoshdice', 'logcoshdice+ce'."
             )
+
 
     def configure_metrics(self) -> None:
         """Initialize the performance metrics."""
