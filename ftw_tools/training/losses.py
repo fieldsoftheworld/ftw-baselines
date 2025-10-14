@@ -287,7 +287,6 @@ class TverskyFocalLoss(nn.Module):
 
 
 # Locally Weighted Tversky Focal Loss
-
 class LocallyWeightedTverskyFocalLoss(nn.Module):
     r"""
     Tversky focal loss weighted by inverse of label frequency calculated
@@ -365,7 +364,6 @@ class LocallyWeightedTverskyFocalLoss(nn.Module):
 
 
 # Tversky Focal + Cross Entropy Combined Loss
-
 class TverskyFocalCELoss(nn.Module):
     """
     Combination of Tversky focal loss and cross entropy loss.
@@ -401,9 +399,9 @@ class TverskyFocalCELoss(nn.Module):
         return loss
 
 
-# Dice, LogCosh Dice, Jaccard, and Focal Wrappers
+# Dice, LogCosh Dice, Jaccard, and Focal Wrappers, handdles ignore index (for presence only countries case) which is not handled in smp
 
-class DiceLossWithIgnoreIndex(nn.Module):
+class DiceLossWith(nn.Module):
     def __init__(self, base_loss, ignore_index):
         super().__init__()
         self.base_loss = base_loss
@@ -436,7 +434,7 @@ class LogCoshDiceLoss(nn.Module):
         return torch.log(torch.cosh(dice_loss))
 
 
-class JaccardLossWithIgnoreIndex(nn.Module):
+class JaccardLoss(nn.Module):
     def __init__(self, base_loss, ignore_index):
         super().__init__()
         self.base_loss = base_loss

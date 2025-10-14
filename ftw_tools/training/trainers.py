@@ -34,10 +34,9 @@ from ftw_tools.training.losses import (
                                         TverskyFocalLoss,
                                         LocallyWeightedTverskyFocalLoss,
                                         TverskyFocalCELoss,
-                                        DiceLossWithIgnoreIndex,
+                                        DiceLoss,
                                         LogCoshDiceLoss,
-                                        FocalDiceLoss,
-                                        JaccardLossWithIgnoreIndex
+                                        JaccardLoss
                                     )
 
 
@@ -173,7 +172,7 @@ class CustomSemanticSegmentationTask(BaseTask):
                 mode="multiclass", classes=self.hparams["num_classes"]
             )
             if ignore_index is not None:
-                self.criterion = JaccardLossWithIgnoreIndex(base_jaccard, ignore_index)
+                self.criterion = JaccardLoss(base_jaccard, ignore_index)
             else:
                 self.criterion = base_jaccard
 
@@ -187,7 +186,7 @@ class CustomSemanticSegmentationTask(BaseTask):
                 mode="multiclass", classes=self.hparams["num_classes"]
             )
             if ignore_index is not None:
-                self.criterion = DiceLossWithIgnoreIndex(base_dice, ignore_index)
+                self.criterion = DiceLoss(base_dice, ignore_index)
             else:
                 self.criterion = base_dice
 
