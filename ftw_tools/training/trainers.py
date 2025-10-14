@@ -28,7 +28,7 @@ from torchvision.models._api import WeightsEnum
 
 from ftw_tools.inference.models import FCSiamAvg
 from ftw_tools.training.losses import (
-                                        PixelWeightedCE
+                                        PixelWeightedCE,
                                         FtnmtLoss,
                                         CombinedLoss,
                                         TverskyFocalLoss,
