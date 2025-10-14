@@ -30,12 +30,13 @@ from ftw_tools.inference.models import FCSiamAvg
 from ftw_tools.training.losses import (
                                         PixelWeightedCE,
                                         FtnmtLoss,
+                                        logCoshDice, 
+                                        logCoshDiceCE,
                                         CombinedLoss,
                                         TverskyFocalLoss,
                                         LocallyWeightedTverskyFocalLoss,
                                         TverskyFocalCELoss,
                                         DiceLoss,
-                                        LogCoshDiceLoss,
                                         JaccardLoss
                                     )
 
@@ -206,29 +207,18 @@ class CustomSemanticSegmentationTask(BaseTask):
             self.criterion = lambda y_pred, y_true: self.ce_loss(
                 y_pred, y_true
             ) + self.dice_loss(y_pred, y_true)
-            
-            # Combined CE + Dice loss, if we want to want to cont
-            # ce_weight = self.ce_weight
-            # dice_weight = self.dice_weight
-            
-            # ignore_value = -1000 if ignore_index is None else ignore_index
-            # ce_loss = nn.CrossEntropyLoss(
-            #     ignore_index=ignore_value, weight=class_weights
-            # )
-            # dice_loss = smp.losses.DiceLoss(
-            #     mode="multiclass", classes=self.hparams["num_classes"]
-            # )
-            
-            # self.criterion = CombinedLoss(ce_loss, dice_loss, ce_weight, dice_weight, ignore_index)
-
-        elif loss == "log_cosh_dice":
-            ignore_index = self.hparams.get("ignore_index", None)
-
-            base_dice = smp.losses.DiceLoss(
-                mode="multiclass", classes=self.hparams["num_classes"]
-            )
-
-            self.criterion = LogCoshDiceLoss(base_dice, ignore_index)
+   
+        elif loss == "logcoshdice":
+            self.criterion = logCoshDice(mode="multiclass", 
+                                         classes=self.hparams["num_classes"],
+                                         class_weights=class_weights,
+                                         ignore_index=ignore_index)
+        elif loss == "logcoshdice+ce":
+            self.criterion = logCoshDiceCE(weight_ce=0.5, weight_dice=0.5,
+                                          mode="multiclass", 
+                                          classes=self.hparams["num_classes"],
+                                          class_weights=class_weights,
+                                          ignore_index=ignore_index)
 
         elif loss == "ftnmt":
             self.criterion = FtnmtLoss(
