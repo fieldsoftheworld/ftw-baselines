@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Union, Dict
+from typing import Dict, Optional, Tuple, Union
 
 import kornia as K
 import torch
@@ -123,13 +123,15 @@ class logCoshDice(Dice):
     def __init__(self, class_weights=None, **kwargs):
         super().__init__(**kwargs)
         self.class_weights = (
-            torch.tensor(class_weights, dtype=torch.float32) if class_weights is not None else None
+            torch.tensor(class_weights, dtype=torch.float32)
+            if class_weights is not None
+            else None
         )
-        
+
     def aggregate_loss(self, loss: torch.Tensor) -> torch.Tensor:
         if self.class_weights is not None:
             weights = self.class_weights.to(loss.device)
-            loss = (loss * weights)/weights.sum()
+            loss = (loss * weights) / weights.sum()
 
         loss = loss.mean()
         loss = torch.log(torch.cosh(loss))
@@ -137,20 +139,28 @@ class logCoshDice(Dice):
 
 
 class logCoshDiceCE(nn.Module):
-    def __init__(self, weight_ce=0.5, weight_dice=0.5, 
-                 ignore_index=None, class_weights=None, 
-                 mode="multiclass", classes=None):
+    def __init__(
+        self,
+        weight_ce=0.5,
+        weight_dice=0.5,
+        ignore_index=None,
+        class_weights=None,
+        mode="multiclass",
+        classes=None,
+    ):
         super().__init__()
         # cross entropy
         ignore_value = -1000 if ignore_index is None else ignore_index
         self.ce_loss = nn.CrossEntropyLoss(
-            ignore_index=ignore_value,
-            weight=class_weights
+            ignore_index=ignore_value, weight=class_weights
         )
         # logcosh dice
-        self.dice_loss = logCoshDice(mode=mode, classes=classes, 
-                              class_weights=class_weights,
-                              ignore_index=ignore_index)
+        self.dice_loss = logCoshDice(
+            mode=mode,
+            classes=classes,
+            class_weights=class_weights,
+            ignore_index=ignore_index,
+        )
 
         # weighting
         self.weight_ce = weight_ce
@@ -161,18 +171,28 @@ class logCoshDiceCE(nn.Module):
         loss_dice = self.dice_loss(inputs, targets)
         return self.weight_ce * loss_ce + self.weight_dice * loss_dice
 
+
 class FtnmtLoss(nn.Module):
     """
     Multi-class Fractal Tanimoto (with dual) loss
     """
 
-    def __init__(self, num_classes, loss_depth=5, smooth=1e-5, ignore_index=None, class_weights=None):
+    def __init__(
+        self,
+        num_classes,
+        loss_depth=5,
+        smooth=1e-5,
+        ignore_index=None,
+        class_weights=None,
+    ):
         super().__init__()
         self.num_classes = num_classes
         self.loss_depth = loss_depth
         self.smooth = smooth
         self.ignore_index = ignore_index
-        self.class_weights = class_weights if class_weights is not None else torch.ones(num_classes)
+        self.class_weights = (
+            class_weights if class_weights is not None else torch.ones(num_classes)
+        )
 
     def tnmt_base(self, preds, labels):
         tpl = torch.sum(preds * labels, dim=(0, 2, 3))
@@ -183,8 +203,8 @@ class FtnmtLoss(nn.Module):
         denum = 0.0
 
         for d in range(self.loss_depth):
-            a = 2. ** d
-            b = -(2. * a - 1.)
+            a = 2.0**d
+            b = -(2.0 * a - 1.0)
             denum += torch.reciprocal(a * (tpp + tll) + b * tpl + self.smooth)
 
         result = (num * denum) / self.loss_depth
@@ -204,10 +224,10 @@ class FtnmtLoss(nn.Module):
 
             # One-hot target for class c
             labels_c = (targets == c).float().unsqueeze(1)  # [B, 1, H, W]
-            preds_c = preds[:, c:c+1, :, :]
+            preds_c = preds[:, c : c + 1, :, :]
 
             l1 = self.tnmt_base(preds_c, labels_c)
-            l2 = self.tnmt_base(1. - preds_c, 1. - labels_c)
+            l2 = self.tnmt_base(1.0 - preds_c, 1.0 - labels_c)
             score = 0.5 * (l1 + l2)
 
             weight = self.class_weights[c] if self.class_weights is not None else 1.0
@@ -236,9 +256,9 @@ class CombinedLoss(nn.Module):
             if inputs.dim() > 2:
                 # inputs: [B, C, H, W], targets: [B, H, W], mask: [B, H, W]
                 inputs = inputs.permute(0, 2, 3, 1)  # [B, H, W, C]
-                inputs = inputs[mask]               # [N, C]
+                inputs = inputs[mask]  # [N, C]
                 inputs = inputs.view(-1, inputs.shape[-1])  # [N, C]
-                targets = targets[mask]             # [N]
+                targets = targets[mask]  # [N]
             else:
                 inputs = inputs[mask]
                 targets = targets[mask]
@@ -246,19 +266,21 @@ class CombinedLoss(nn.Module):
         loss2_val = self.loss2(inputs, targets)
         return self.weight1 * loss1_val + self.weight2 * loss2_val
 
+
 def _as_long_index(t: torch.Tensor) -> torch.Tensor:
     """Return a LongTensor suitable for one_hot/indexing."""
     if t.dtype != torch.long:
         return t.long()
     return t
 
+
 # Binary Tversky Focal Loss
 class BinaryTverskyFocalLoss(nn.Module):
-    '''
+    """
     Pytorch version of Tversky focal loss proposed in
     "A novel focal Tversky loss function and improved Attention U-Net for
     lesion segmentation" (https://arxiv.org/abs/1810.07842)
-    '''
+    """
 
     def __init__(self, smooth=1, alpha=0.7, gamma=1.33):
         super(BinaryTverskyFocalLoss, self).__init__()
@@ -268,26 +290,31 @@ class BinaryTverskyFocalLoss(nn.Module):
         self.gamma = gamma
 
     def forward(self, predict, target):
-        assert predict.shape[0] == target.shape[0], \
+        assert predict.shape[0] == target.shape[0], (
             "predict & target batch size do not match"
+        )
 
         predict = predict.contiguous().view(-1)
         target = target.contiguous().view(-1)
 
         num = (predict * target).sum() + self.smooth
-        den = (predict * target).sum() + \
-            self.alpha * ((1 - predict) * target).sum() + \
-            self.beta * (predict * (1 - target)).sum() + self.smooth
-        loss = torch.pow(1 - num/den, 1 / self.gamma)
+        den = (
+            (predict * target).sum()
+            + self.alpha * ((1 - predict) * target).sum()
+            + self.beta * (predict * (1 - target)).sum()
+            + self.smooth
+        )
+        loss = torch.pow(1 - num / den, 1 / self.gamma)
 
         return loss
 
 
 # Multiclass Tversky Focal Loss
 class TverskyFocalLoss(nn.Module):
-    '''
+    """
     Tversky focal loss
-    '''
+    """
+
     def __init__(self, weight=None, ignore_index=-100, **kwargs):
         super(TverskyFocalLoss, self).__init__()
         self.kwargs = kwargs
@@ -301,14 +328,18 @@ class TverskyFocalLoss(nn.Module):
             target_oh = target
             valid_mask = (target_oh.sum(dim=1, keepdim=True) > 0).squeeze(1)
         elif len(predict.shape) == 4:
-            valid_mask = (target != self.ignore_index)
+            valid_mask = target != self.ignore_index
             if isinstance(valid_mask, bool):
-                valid_mask = torch.full_like(target, valid_mask, dtype=torch.bool, device=device)
+                valid_mask = torch.full_like(
+                    target, valid_mask, dtype=torch.bool, device=device
+                )
 
             safe_target = _as_long_index(target.masked_fill(~valid_mask, 0))
-            target_oh = (F.one_hot(safe_target, num_classes=nclass)
-                         .permute(0, 3, 1, 2)
-                         .contiguous())
+            target_oh = (
+                F.one_hot(safe_target, num_classes=nclass)
+                .permute(0, 3, 1, 2)
+                .contiguous()
+            )
         else:
             raise ValueError("Incompatible shapes between 'predict' and 'target'.")
 
@@ -317,21 +348,28 @@ class TverskyFocalLoss(nn.Module):
         total_loss = 0
 
         if self.weight is None:
-            weight = torch.full((nclass,), 1.0 / nclass, dtype=torch.float32, device=device)
+            weight = torch.full(
+                (nclass,), 1.0 / nclass, dtype=torch.float32, device=device
+            )
         else:
             if isinstance(self.weight, list):
                 weight = torch.tensor(self.weight, dtype=torch.float32, device=device)
             elif isinstance(self.weight, torch.Tensor):
                 weight = self.weight.to(device=device, dtype=torch.float32)
             else:
-                weight = torch.tensor([float(self.weight)] * nclass, dtype=torch.float32, device=device)
+                weight = torch.tensor(
+                    [float(self.weight)] * nclass, dtype=torch.float32, device=device
+                )
 
         predict = F.softmax(predict, dim=1)
 
         for i in range(nclass):
-            tversky_loss = tversky(predict[:, i] * valid_float, target_oh[:, i] * valid_float)
-            assert weight.shape[0] == nclass, \
+            tversky_loss = tversky(
+                predict[:, i] * valid_float, target_oh[:, i] * valid_float
+            )
+            assert weight.shape[0] == nclass, (
                 f"Expect weight shape [{nclass}], get[{weight.shape[0]}]"
+            )
             tversky_loss *= weight[i]
             total_loss += tversky_loss
 
@@ -344,6 +382,7 @@ class LocallyWeightedTverskyFocalLoss(nn.Module):
     Tversky focal loss weighted by inverse of label frequency calculated
     locally based on the input batch.
     """
+
     def __init__(self, ignore_index=-100, **kwargs):
         super(LocallyWeightedTverskyFocalLoss, self).__init__()
         self.kwargs = kwargs
@@ -366,9 +405,13 @@ class LocallyWeightedTverskyFocalLoss(nn.Module):
             valid = torch.ones_like(target_labels, dtype=torch.bool, device=device)
         else:
             try:
-                valid = (target_labels != self.ignore_index)
+                valid = target_labels != self.ignore_index
             except Exception:
-                valid = torch.tensor(bool(target_labels != self.ignore_index), dtype=torch.bool, device=device)
+                valid = torch.tensor(
+                    bool(target_labels != self.ignore_index),
+                    dtype=torch.bool,
+                    device=device,
+                )
 
         if isinstance(valid, bool):
             valid = torch.tensor(valid, dtype=torch.bool, device=device)
@@ -382,7 +425,7 @@ class LocallyWeightedTverskyFocalLoss(nn.Module):
 
         in_range_mask = (unique >= 0) & (unique < num_class)
         if getattr(self, "ignore_index", None) is not None:
-            in_range_mask &= (unique != self.ignore_index)
+            in_range_mask &= unique != self.ignore_index
 
         if not in_range_mask.any():
             return torch.ones(num_class, device=device) * 1e-5
@@ -392,7 +435,7 @@ class LocallyWeightedTverskyFocalLoss(nn.Module):
 
         denom = valid.sum().float().to(device)
         ratio = unique_counts / denom.clamp_min(1e-6)
-        weight = (1.0 / ratio)
+        weight = 1.0 / ratio
         weight = weight / weight.sum()
 
         loss_weight = torch.ones(num_class, device=device) * 1e-5
@@ -407,11 +450,13 @@ class LocallyWeightedTverskyFocalLoss(nn.Module):
         if isinstance(loss_weight, torch.Tensor):
             loss_weight = loss_weight.to(device=predict.device, dtype=torch.float32)
         else:
-            loss_weight = torch.tensor(loss_weight, dtype=torch.float32, device=predict.device)
+            loss_weight = torch.tensor(
+                loss_weight, dtype=torch.float32, device=predict.device
+            )
 
-        loss_fn = TverskyFocalLoss(weight=loss_weight,
-                                   ignore_index=self.ignore_index,
-                                   **self.kwargs)
+        loss_fn = TverskyFocalLoss(
+            weight=loss_weight, ignore_index=self.ignore_index, **self.kwargs
+        )
         return loss_fn(predict, target)
 
 
@@ -420,8 +465,16 @@ class TverskyFocalCELoss(nn.Module):
     """
     Combination of Tversky focal loss and cross entropy loss.
     """
-    def __init__(self, loss_weight=None, tversky_weight=0.5, tversky_smooth=1,
-                 tversky_alpha=0.7, tversky_gamma=1.33, ignore_index=-100):
+
+    def __init__(
+        self,
+        loss_weight=None,
+        tversky_weight=0.5,
+        tversky_smooth=1,
+        tversky_alpha=0.7,
+        tversky_gamma=1.33,
+        ignore_index=-100,
+    ):
         super(TverskyFocalCELoss, self).__init__()
         self.loss_weight = loss_weight
         self.tversky_weight = tversky_weight
@@ -431,27 +484,39 @@ class TverskyFocalCELoss(nn.Module):
         self.ignore_index = ignore_index
 
     def forward(self, predict, target):
-        assert predict.shape[0] == target.shape[0], "predict & target batch size do not match"
+        assert predict.shape[0] == target.shape[0], (
+            "predict & target batch size do not match"
+        )
 
         tversky = TverskyFocalLoss(
-            weight=self.loss_weight, ignore_index=self.ignore_index,
-            smooth=self.tversky_smooth, alpha=self.tversky_alpha, gamma=self.tversky_gamma
+            weight=self.loss_weight,
+            ignore_index=self.ignore_index,
+            smooth=self.tversky_smooth,
+            alpha=self.tversky_alpha,
+            gamma=self.tversky_gamma,
         )
 
         ce_weight = None
         if self.loss_weight is not None:
             if isinstance(self.loss_weight, list):
-                ce_weight = torch.tensor(self.loss_weight, dtype=torch.float32, device=predict.device)
+                ce_weight = torch.tensor(
+                    self.loss_weight, dtype=torch.float32, device=predict.device
+                )
             elif isinstance(self.loss_weight, torch.Tensor):
-                ce_weight = self.loss_weight.to(device=predict.device, dtype=torch.float32)
+                ce_weight = self.loss_weight.to(
+                    device=predict.device, dtype=torch.float32
+                )
 
         ce = nn.CrossEntropyLoss(weight=ce_weight, ignore_index=self.ignore_index)
-        loss = self.tversky_weight * tversky(predict, target) + (1 - self.tversky_weight) * ce(predict, target)
+        loss = self.tversky_weight * tversky(predict, target) + (
+            1 - self.tversky_weight
+        ) * ce(predict, target)
 
         return loss
 
 
 # Dice, LogCosh Dice, Jaccard, and Focal Wrappers, handles ignore index (for presence only countries case) which is not handled in smp
+
 
 class DiceLoss(nn.Module):
     def __init__(self, base_loss, ignore_index):

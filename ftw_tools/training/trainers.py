@@ -28,19 +28,17 @@ from torchvision.models._api import WeightsEnum
 
 from ftw_tools.inference.models import FCSiamAvg
 from ftw_tools.training.losses import (
-                                        PixelWeightedCE,
-                                        FtnmtLoss,
-                                        logCoshDice, 
-                                        logCoshDiceCE,
-                                        CombinedLoss,
-                                        TverskyFocalLoss,
-                                        LocallyWeightedTverskyFocalLoss,
-                                        TverskyFocalCELoss,
-                                        DiceLoss,
-                                        JaccardLoss
-                                    )
-
-
+    CombinedLoss,
+    DiceLoss,
+    FtnmtLoss,
+    JaccardLoss,
+    LocallyWeightedTverskyFocalLoss,
+    PixelWeightedCE,
+    TverskyFocalCELoss,
+    TverskyFocalLoss,
+    logCoshDice,
+    logCoshDiceCE,
+)
 from ftw_tools.training.metrics import get_object_level_metrics
 
 
@@ -207,18 +205,23 @@ class CustomSemanticSegmentationTask(BaseTask):
             self.criterion = lambda y_pred, y_true: self.ce_loss(
                 y_pred, y_true
             ) + self.dice_loss(y_pred, y_true)
-   
+
         elif loss == "logcoshdice":
-            self.criterion = logCoshDice(mode="multiclass", 
-                                         classes=self.hparams["num_classes"],
-                                         class_weights=class_weights,
-                                         ignore_index=ignore_index)
+            self.criterion = logCoshDice(
+                mode="multiclass",
+                classes=self.hparams["num_classes"],
+                class_weights=class_weights,
+                ignore_index=ignore_index,
+            )
         elif loss == "logcoshdice+ce":
-            self.criterion = logCoshDiceCE(weight_ce=0.5, weight_dice=0.5,
-                                          mode="multiclass", 
-                                          classes=self.hparams["num_classes"],
-                                          class_weights=class_weights,
-                                          ignore_index=ignore_index)
+            self.criterion = logCoshDiceCE(
+                weight_ce=0.5,
+                weight_dice=0.5,
+                mode="multiclass",
+                classes=self.hparams["num_classes"],
+                class_weights=class_weights,
+                ignore_index=ignore_index,
+            )
 
         elif loss == "ftnmt":
             self.criterion = FtnmtLoss(
@@ -247,14 +250,10 @@ class CustomSemanticSegmentationTask(BaseTask):
                 class_weights=class_weights,
             )
 
-            self.criterion = CombinedLoss(
-                ce_loss, ftnmt_loss, ce_weight, ftnmt_weight
-            )
+            self.criterion = CombinedLoss(ce_loss, ftnmt_loss, ce_weight, ftnmt_weight)
 
         elif loss == "localtversky":
-            self.criterion = LocallyWeightedTverskyFocalLoss(
-                ignore_index=ignore_index
-            )
+            self.criterion = LocallyWeightedTverskyFocalLoss(ignore_index=ignore_index)
 
         elif loss == "tversky_ce":
             self.criterion = TverskyFocalCELoss(
