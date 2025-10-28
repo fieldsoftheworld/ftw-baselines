@@ -183,6 +183,10 @@ class CustomSemanticSegmentationTask(BaseTask):
             self.criterion = smp.losses.FocalLoss(
                 "multiclass", ignore_index=ignore_index, normalized=True
             )
+        elif loss == "tversky":
+            self.criterion = smp.losses.TverskyLoss(
+                "multiclass", ignore_index=ignore_index
+            )
         elif loss == "dice":
             self.criterion = smp.losses.DiceLoss(
                 "multiclass", ignore_index=ignore_index

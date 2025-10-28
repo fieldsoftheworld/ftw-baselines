@@ -18,6 +18,16 @@ from torchgeo.datasets import NonGeoDataset
 from ftw_tools.settings import ALL_COUNTRIES, TEMPORAL_OPTIONS
 from ftw_tools.utils import validate_checksums
 
+EMBEDDING_OPTIONS = [
+    "aef",
+    "galileo",
+    "croma"
+]
+
+
+def get_base_path_for_embeddinG(embedding_name: str):
+
+
 
 class FTW(NonGeoDataset):
     valid_splits = ["train", "val", "test"]
@@ -49,7 +59,8 @@ class FTW(NonGeoDataset):
             checksum: if True, check the MD5 of the downloaded files (may be slow)
             load_boundaries: if True, load the 3 class masks with boundaries
             load_edges: if True, load the edge masks
-            temporal_options : for ablation study, valid option are (stacked, windowA, windowB, median, rgb, random_window, aef)
+            temporal_options : for abalation study, valid option are (stacked, windowA,
+                windowB, median, rgb, random_window, aef, galileo, ...)
             swap_order: if True, swap the order of temporal data (i.e. use window A first)
             ignore_sample_fn: path to a filename with a list of samples to ignore
         Raises:
@@ -61,13 +72,10 @@ class FTW(NonGeoDataset):
 
         if countries is None:
             raise ValueError("Please specify the countries to load the dataset from")
-        if temporal_options not in TEMPORAL_OPTIONS:
-            if temporal_options == "aef":
-                print(
-                    "WARNING: AEF data is distributed differently than other FTW data."
-                )
-            else:
-                raise ValueError(f"Invalid temporal option {temporal_options}")
+        if temporal_options not in TEMPORAL_OPTIONS and temporal_options in EMBEDDING_OPTIONS:
+            print(f"WARNING: {temporal_options} data is distributed differently than other FTW data.")
+        elif temporal_options not in TEMPORAL_OPTIONS:
+            raise ValueError(f"Invalid temporal option {temporal_options}")
 
         if isinstance(countries, str):
             countries = [countries]
@@ -154,9 +162,6 @@ class FTW(NonGeoDataset):
                 )
                 edge_fn = Path(
                     os.path.join(country_root, "label_masks/edges", f"{idx}.tif")
-                )
-                aef_fn = Path(
-                    os.path.join(self.root, "aef", country, "2024", f"{idx}.npy")
                 )
 
                 # Skip the image AOI's which does not have all four corresponding files
