@@ -443,7 +443,7 @@ class TverskyFocalCELoss(nn.Module):
         return loss
 
 
-# Dice, LogCosh Dice, Jaccard, and Focal Wrappers, handdles ignore index (for presence only countries case) which is not handled in smp
+# Dice, LogCosh Dice, Jaccard, and Focal Wrappers, handles ignore index (for presence only countries case) which is not handled in smp
 
 class DiceLoss(nn.Module):
     def __init__(self, base_loss, ignore_index):
