@@ -12,7 +12,7 @@ import yaml
 from ftw_tools.settings import ALL_COUNTRIES, FULL_DATA_COUNTRIES
 
 # list of GPU IDs that we want to use, one job will be started for every ID in the list
-GPUS = [1, 4, 6, 7]
+GPUS = [2, 3, 4, 5, 6]
 DRY_RUN = False  # if False then print out the commands to be run, if True then run
 
 
@@ -176,7 +176,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--bootstrap",
         action="store_true",
-        help="Whether to compute 95% confidence intervals using bootstrap sampling",
+        help="Whether to compute 95%% confidence intervals using bootstrap sampling",
     )
     args = parser.parse_args()
     main(args)

@@ -28,9 +28,6 @@ def randomChannelShuffle(x):
 class FTWDataModule(LightningDataModule):
     """LightningDataModule implementation for the FTW dataset."""
 
-    mean = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0])
-    std = torch.tensor([3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000])
-
     def __init__(
         self,
         root: str = "data/ftw/",
@@ -45,6 +42,7 @@ class FTWDataModule(LightningDataModule):
         resize_factor: Optional[float] = None,
         brightness_aug: bool = False,
         resize_aug: bool = False,
+        use_potentially_better_norm: bool = False,
         **kwargs: Any,
     ) -> None:
         """Initialize a new FTWDataModule instance.
@@ -80,6 +78,9 @@ class FTWDataModule(LightningDataModule):
         self.kwargs = kwargs
 
         # for the temporal option windowA, windowB and median we will have 4 channel input
+        
+        self.mean = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0])
+        self.std = torch.tensor([3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000])
         if self.temporal_options in ("windowA", "windowB", "median", "random_window"):
             self.mean = torch.tensor([0, 0, 0, 0])
             self.std = torch.tensor([3000, 3000, 3000, 3000])

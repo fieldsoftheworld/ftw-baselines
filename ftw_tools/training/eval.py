@@ -1,5 +1,7 @@
 import os
 import time
+import logging
+from contextlib import contextmanager
 from typing import Dict, Tuple, Sequence
 
 import numpy as np
@@ -38,6 +40,15 @@ def expand_countries(countries: Sequence[str]) -> list[str]:
         return FULL_DATA_COUNTRIES.copy()
     return countries
 
+@contextmanager
+def gpu_memory_manager():
+    """Context manager for efficient GPU memory management."""
+    try:
+        yield
+    finally:
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
 
 def compute_metrics_from_aggregated_data(
     all_outputs: torch.Tensor,
@@ -46,15 +57,8 @@ def compute_metrics_from_aggregated_data(
     all_object_fps: list[int], 
     all_object_fns: list[int],
     test_on_3_classes: bool = False,
-    device: torch.device | None = None
 ) -> dict[str, float]:
     """Compute metrics from aggregated predictions and targets."""
-    if device is None:
-        device = all_outputs.device
-    
-    # Ensure tensors are on the correct device
-    all_outputs = all_outputs.to(device)
-    all_masks = all_masks.to(device)
     
     # Create metrics collection
     if test_on_3_classes:
@@ -62,13 +66,13 @@ def compute_metrics_from_aggregated_data(
             JaccardIndex(task="multiclass", average="none", num_classes=3, ignore_index=3),
             Precision(task="multiclass", average="none", num_classes=3, ignore_index=3),
             Recall(task="multiclass", average="none", num_classes=3, ignore_index=3),
-        ]).to(device)
+        ]).to(all_outputs.device)
     else:
         metrics = MetricCollection([
             JaccardIndex(task="multiclass", average="none", num_classes=2, ignore_index=3),
             Precision(task="multiclass", average="none", num_classes=2, ignore_index=3),
             Recall(task="multiclass", average="none", num_classes=2, ignore_index=3),
-        ]).to(device)
+        ]).to(all_outputs.device)
     
     # Compute pixel-level metrics on GPU
     metrics.update(all_outputs, all_masks)
@@ -113,8 +117,8 @@ def compute_metrics_from_aggregated_data(
 
 
 def bootstrap_confidence_intervals(
-    all_outputs_list: list[torch.Tensor],
-    all_masks_list: list[torch.Tensor], 
+    all_outputs_list: list[np.ndarray],
+    all_masks_list: list[np.ndarray],
     all_object_tps: list[int],
     all_object_fps: list[int],
     all_object_fns: list[int],
@@ -133,12 +137,20 @@ def bootstrap_confidence_intervals(
     np.random.seed(42)  # For reproducibility
     n_samples = len(all_outputs_list)
 
+    print("Creating tensor list for bootstrapping")
+    all_outputs_tensor_list = [torch.from_numpy(arr).to(device) for arr in all_outputs_list]
+    all_masks_tensor_list = [torch.from_numpy(arr).to(device) for arr in all_masks_list]
+
     # Compute point estimates using all data
-    all_outputs = torch.cat(all_outputs_list, dim=0)
-    all_masks = torch.cat(all_masks_list, dim=0)
+    print("Concatenating all data for point estimates")
+    all_outputs = torch.cat(all_outputs_tensor_list, dim=0)
+    all_masks = torch.cat(all_masks_tensor_list, dim=0)
+    print("Computing point estimates")
     metrics = compute_metrics_from_aggregated_data(
-        all_outputs, all_masks, all_object_tps, all_object_fps, all_object_fns, test_on_3_classes, device
+        all_outputs, all_masks, all_object_tps, all_object_fps, all_object_fns, test_on_3_classes
     )
+    del all_outputs, all_masks
+    torch.cuda.empty_cache() if torch.cuda.is_available() else None
 
     # Bootstrap sampling
     bootstrap_metrics = []
@@ -148,20 +160,24 @@ def bootstrap_confidence_intervals(
         indices = np.random.choice(n_samples, size=n_samples, replace=True)
 
         # Aggregate bootstrap sample data
-        boot_outputs_list = [all_outputs_list[i] for i in indices]
-        boot_masks_list = [all_masks_list[i] for i in indices]
+        boot_outputs_list = [all_outputs_tensor_list[i] for i in indices]
+        boot_masks_list = [all_masks_tensor_list[i] for i in indices]
         boot_object_tps = [all_object_tps[i] for i in indices]
         boot_object_fps = [all_object_fps[i] for i in indices]
         boot_object_fns = [all_object_fns[i] for i in indices]
-        
+
         # Concatenate bootstrap sample
         boot_outputs = torch.cat(boot_outputs_list, dim=0)
         boot_masks = torch.cat(boot_masks_list, dim=0)
 
         boot_metrics = compute_metrics_from_aggregated_data(
-            boot_outputs, boot_masks, boot_object_tps, boot_object_fps, boot_object_fns, test_on_3_classes, device
+            boot_outputs, boot_masks, boot_object_tps, boot_object_fps, boot_object_fns, test_on_3_classes
         )
         bootstrap_metrics.append(boot_metrics)
+
+        # Free memory after each bootstrap iteration
+        del boot_outputs, boot_masks
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None
 
     # Compute confidence intervals
     alpha = 1 - confidence_level
@@ -349,11 +365,11 @@ def test(
             mask_np = masks_np[i]
 
             if bootstrap:
-                # Store per-sample tensors for bootstrap (keep on GPU)
-                all_outputs_list.append(outputs[i])
-                all_masks_list.append(masks[i])
+                # Store per-sample tensors for bootstrap
+                all_outputs_list.append(output_np)
+                all_masks_list.append(mask_np)
 
-            # Object-level metrics per sample (computed on CPU arrays)
+            # Object-level metrics per sample
             tps, fps, fns = get_object_level_metrics(
                 mask_np, output_np, iou_threshold=iou_threshold
             )
@@ -396,6 +412,10 @@ def test(
     # Bootstrap confidence intervals if requested
     confidence_intervals = None
     if bootstrap:
+
+        del metrics, model # Free memory
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None
+
         bootstrap_metrics, confidence_intervals = bootstrap_confidence_intervals(
             all_outputs_list,
             all_masks_list,
