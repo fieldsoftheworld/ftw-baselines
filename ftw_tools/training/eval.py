@@ -40,6 +40,7 @@ def expand_countries(countries: Sequence[str]) -> list[str]:
         return FULL_DATA_COUNTRIES.copy()
     return countries
 
+
 @contextmanager
 def gpu_memory_manager():
     """Context manager for efficient GPU memory management."""
