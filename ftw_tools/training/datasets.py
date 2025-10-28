@@ -49,7 +49,7 @@ class FTW(NonGeoDataset):
             checksum: if True, check the MD5 of the downloaded files (may be slow)
             load_boundaries: if True, load the 3 class masks with boundaries
             load_edges: if True, load the edge masks
-            temporal_options : for abalation study, valid option are (stacked, windowA, windowB, median, rgb, random_window)
+            temporal_options : for ablation study, valid option are (stacked, windowA, windowB, median, rgb, random_window, aef)
             swap_order: if True, swap the order of temporal data (i.e. use window A first)
             ignore_sample_fn: path to a filename with a list of samples to ignore
         Raises:
@@ -155,6 +155,9 @@ class FTW(NonGeoDataset):
                 edge_fn = Path(
                     os.path.join(country_root, "label_masks/edges", f"{idx}.tif")
                 )
+                aef_fn = Path(
+                    os.path.join(self.root, "aef", country, "2024", f"{idx}.npy")
+                )
 
                 # Skip the image AOI's which does not have all four corresponding files
                 if not (
@@ -178,9 +181,7 @@ class FTW(NonGeoDataset):
                 if self.load_edges:
                     file_record["edge"] = str(edge_fn)
                 if temporal_options == "aef":
-                    file_record["aef"] = os.path.join(
-                        self.root, "aef", country, "2024", f"{idx}.npy"
-                    )
+                    file_record["aef"] = str(aef_fn)
                 all_filenames.append(file_record)
 
         if self.num_samples == -1:  # select all samples

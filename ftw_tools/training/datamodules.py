@@ -42,7 +42,6 @@ class FTWDataModule(LightningDataModule):
         resize_factor: Optional[float] = None,
         brightness_aug: bool = False,
         resize_aug: bool = False,
-        use_potentially_better_norm: bool = False,
         **kwargs: Any,
     ) -> None:
         """Initialize a new FTWDataModule instance.
