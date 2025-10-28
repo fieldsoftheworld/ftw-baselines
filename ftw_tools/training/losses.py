@@ -232,8 +232,16 @@ class CombinedLoss(nn.Module):
         # Mask out ignored pixels
         if self.ignore_index is not None:
             mask = targets != self.ignore_index
-            targets = targets * mask 
-            inputs = inputs * mask.unsqueeze(1)
+            # For 2D/3D inputs, flatten and select only valid pixels
+            if inputs.dim() > 2:
+                # inputs: [B, C, H, W], targets: [B, H, W], mask: [B, H, W]
+                inputs = inputs.permute(0, 2, 3, 1)  # [B, H, W, C]
+                inputs = inputs[mask]               # [N, C]
+                inputs = inputs.view(-1, inputs.shape[-1])  # [N, C]
+                targets = targets[mask]             # [N]
+            else:
+                inputs = inputs[mask]
+                targets = targets[mask]
 
         loss2_val = self.loss2(inputs, targets)
         return self.weight1 * loss1_val + self.weight2 * loss2_val
