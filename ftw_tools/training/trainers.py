@@ -27,7 +27,18 @@ from torchmetrics.classification import (
 from torchvision.models._api import WeightsEnum
 
 from ftw_tools.inference.models import FCSiamAvg
-from ftw_tools.training.losses import PixelWeightedCE
+from ftw_tools.training.losses import (
+    CombinedLoss,
+    DiceLoss,
+    FtnmtLoss,
+    JaccardLoss,
+    LocallyWeightedTverskyFocalLoss,
+    PixelWeightedCE,
+    TverskyFocalCELoss,
+    TverskyFocalLoss,
+    logCoshDice,
+    logCoshDiceCE,
+)
 from ftw_tools.training.metrics import get_object_level_metrics
 
 
@@ -152,14 +163,32 @@ class CustomSemanticSegmentationTask(BaseTask):
                 class_weights=class_weights,
                 ignore_index=ignore_index,
             )
+
         elif loss == "jaccard":
-            self.criterion = smp.losses.JaccardLoss(
+            ignore_index = self.hparams.get("ignore_index", None)
+
+            base_jaccard = smp.losses.JaccardLoss(
                 mode="multiclass", classes=self.hparams["num_classes"]
             )
+            if ignore_index is not None:
+                self.criterion = JaccardLoss(base_jaccard, ignore_index)
+            else:
+                self.criterion = base_jaccard
+
         elif loss == "focal":
             self.criterion = smp.losses.FocalLoss(
                 "multiclass", ignore_index=ignore_index, normalized=True
             )
+        elif loss == "dice":
+            ignore_index = self.hparams.get("ignore_index", None)
+            base_dice = smp.losses.DiceLoss(
+                mode="multiclass", classes=self.hparams["num_classes"]
+            )
+            if ignore_index is not None:
+                self.criterion = DiceLoss(base_dice, ignore_index)
+            else:
+                self.criterion = base_dice
+
         elif loss == "ce+dice":
             self.dice_loss = smp.losses.DiceLoss(
                 "multiclass", ignore_index=ignore_index
@@ -177,10 +206,70 @@ class CustomSemanticSegmentationTask(BaseTask):
                 y_pred, y_true
             ) + self.dice_loss(y_pred, y_true)
 
+        elif loss == "logcoshdice":
+            self.criterion = logCoshDice(
+                mode="multiclass",
+                classes=self.hparams["num_classes"],
+                class_weights=class_weights,
+                ignore_index=ignore_index,
+            )
+        elif loss == "logcoshdice+ce":
+            self.criterion = logCoshDiceCE(
+                weight_ce=0.5,
+                weight_dice=0.5,
+                mode="multiclass",
+                classes=self.hparams["num_classes"],
+                class_weights=class_weights,
+                ignore_index=ignore_index,
+            )
+
+        elif loss == "ftnmt":
+            self.criterion = FtnmtLoss(
+                num_classes=self.hparams["num_classes"],
+                loss_depth=self.hparams.get("loss_depth", 5),
+                smooth=1e-5,
+                ignore_index=ignore_index,
+                class_weights=class_weights,
+            )
+
+        elif loss == "ce+ftnmt":
+            # ce_weight = self.ce_weight
+            # ftnmt_weight = self.ftnmt_weight
+            ce_weight = getattr(self, "ce_weight", 0.5)
+            ftnmt_weight = getattr(self, "ftnmt_weight", 0.5)
+            ignore_value = -1000 if ignore_index is None else ignore_index
+
+            ce_loss = nn.CrossEntropyLoss(
+                ignore_index=ignore_value, weight=class_weights
+            )
+            ftnmt_loss = FtnmtLoss(
+                num_classes=self.hparams["num_classes"],
+                loss_depth=self.hparams.get("loss_depth", 5),
+                smooth=1e-5,
+                ignore_index=ignore_index,
+                class_weights=class_weights,
+            )
+
+            self.criterion = CombinedLoss(ce_loss, ftnmt_loss, ce_weight, ftnmt_weight)
+
+        elif loss == "localtversky":
+            self.criterion = LocallyWeightedTverskyFocalLoss(ignore_index=ignore_index)
+
+        elif loss == "tversky_ce":
+            self.criterion = TverskyFocalCELoss(
+                loss_weight=class_weights,
+                tversky_weight=self.hparams.get("tversky_weight", 0.5),
+                tversky_smooth=1,
+                tversky_alpha=0.7,
+                tversky_gamma=1.33,
+                ignore_index=ignore_index,
+            )
         else:
             raise ValueError(
                 f"Loss type '{loss}' is not valid. "
-                "Currently, supports 'ce', 'jaccard' or 'focal' loss."
+                "Currently supported: 'ce', 'pixel_weighted_ce', 'jaccard', "
+                "'focal', 'dice', 'ce+dice', 'logcoshdice', 'ftnmt', "
+                "'ce+ftnmt', 'localtversky', or 'tversky_ce'."
             )
 
     def configure_metrics(self) -> None:
