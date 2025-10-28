@@ -3,7 +3,7 @@
 import os
 import random
 from pathlib import Path
-from typing import Any, Callable, Optional, Sequence, Union
+from typing import Any, Callable, Optional, Sequence
 
 import geopandas as gpd
 import matplotlib.pyplot as plt
@@ -25,11 +25,12 @@ class FTW(NonGeoDataset):
     def __init__(
         self,
         root: str = "data/ftw",
-        countries: Union[Sequence[str], str] = None,
+        countries: Sequence[str] | str | None = None,
         split: str = "train",
         transforms: Optional[Callable[[dict[str, Any]], dict[str, Any]]] = None,
         checksum: bool = False,
         load_boundaries: bool = False,
+        load_edges: bool = False,
         temporal_options: str = "stacked",
         swap_order: bool = False,
         num_samples: int = -1,
@@ -47,7 +48,8 @@ class FTW(NonGeoDataset):
                 entry and returns a transformed version
             checksum: if True, check the MD5 of the downloaded files (may be slow)
             load_boundaries: if True, load the 3 class masks with boundaries
-            temporal_options : for abalation study, valid option are (stacked, windowA, windowB, median, rgb, random_window, aef)
+            load_edges: if True, load the edge masks
+            temporal_options : for ablation study, valid option are (stacked, windowA, windowB, median, rgb, random_window, aef)
             swap_order: if True, swap the order of temporal data (i.e. use window A first)
             ignore_sample_fn: path to a filename with a list of samples to ignore
         Raises:
@@ -78,6 +80,7 @@ class FTW(NonGeoDataset):
         self.transforms = transforms
         self.checksum = checksum
         self.load_boundaries = load_boundaries
+        self.load_edges = load_edges
         self.temporal_options = temporal_options
         self.num_samples = num_samples
 
@@ -98,6 +101,8 @@ class FTW(NonGeoDataset):
                 print("Using window A first, then window B")
             else:
                 print("Using window B first, then window A")
+            if self.load_edges:
+                print("Loading edge masks")
 
         if not self._check_integrity():
             raise RuntimeError(
@@ -147,6 +152,12 @@ class FTW(NonGeoDataset):
                         country_root, "label_masks/semantic_3class", f"{idx}.tif"
                     )
                 )
+                edge_fn = Path(
+                    os.path.join(country_root, "label_masks/edges", f"{idx}.tif")
+                )
+                aef_fn = Path(
+                    os.path.join(self.root, "aef", country, "2024", f"{idx}.npy")
+                )
 
                 # Skip the image AOI's which does not have all four corresponding files
                 if not (
@@ -162,16 +173,16 @@ class FTW(NonGeoDataset):
                 else:
                     mask_fn = masks_2c_fn
 
-                all_filenames.append(
-                    {
-                        "window_b": str(window_b_fn),
-                        "window_a": str(window_a_fn),
-                        "aef": os.path.join(
-                            self.root, "aef", country, "2024", f"{idx}.npy"
-                        ),
-                        "mask": str(mask_fn),
-                    }
-                )
+                file_record = {
+                    "window_b": str(window_b_fn),
+                    "window_a": str(window_a_fn),
+                    "mask": str(mask_fn),
+                }
+                if self.load_edges:
+                    file_record["edge"] = str(edge_fn)
+                if temporal_options == "aef":
+                    file_record["aef"] = str(aef_fn)
+                all_filenames.append(file_record)
 
         if self.num_samples == -1:  # select all samples
             self.filenames = all_filenames
@@ -326,6 +337,12 @@ class FTW(NonGeoDataset):
         mask = torch.from_numpy(mask).long()
 
         sample = {"image": image, "mask": mask}
+
+        if self.load_edges:
+            with rasterio.open(filenames["edge"]) as f:
+                edge = f.read(1)
+            edge = torch.from_numpy(edge).long()
+            sample["edge"] = edge
 
         if self.transforms is not None:
             sample = self.transforms(sample)

@@ -28,9 +28,6 @@ def randomChannelShuffle(x):
 class FTWDataModule(LightningDataModule):
     """LightningDataModule implementation for the FTW dataset."""
 
-    mean = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0])
-    std = torch.tensor([3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000])
-
     def __init__(
         self,
         root: str = "data/ftw/",
@@ -43,6 +40,8 @@ class FTWDataModule(LightningDataModule):
         num_samples: int = -1,
         random_shuffle: bool = False,
         resize_factor: Optional[float] = None,
+        brightness_aug: bool = False,
+        resize_aug: bool = False,
         **kwargs: Any,
     ) -> None:
         """Initialize a new FTWDataModule instance.
@@ -75,8 +74,12 @@ class FTWDataModule(LightningDataModule):
         self.temporal_options = temporal_options
         self.num_samples = num_samples
         self.ignore_sample_fn = kwargs.pop("ignore_sample_fn", None)
+        self.kwargs = kwargs
 
         # for the temporal option windowA, windowB and median we will have 4 channel input
+
+        self.mean = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0])
+        self.std = torch.tensor([3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000])
         if self.temporal_options in ("windowA", "windowB", "median", "random_window"):
             self.mean = torch.tensor([0, 0, 0, 0])
             self.std = torch.tensor([3000, 3000, 3000, 3000])
@@ -102,6 +105,16 @@ class FTWDataModule(LightningDataModule):
             K.RandomVerticalFlip(p=0.5),
             K.RandomSharpness(p=0.5),
         ]
+
+        if brightness_aug:
+            augs.append(K.RandomBrightness(p=0.5, brightness=(0.8, 1.5)))
+        if resize_aug:
+            augs.append(
+                K.RandomResizedCrop(
+                    (256, 256), scale=(0.3, 0.9), ratio=(0.75, 1.33), p=0.5
+                )
+            )
+
         if random_shuffle:
             print("Using random channel shuffle augmentation")
             augs.append(kornia.contrib.Lambda(randomChannelShuffle))
@@ -137,6 +150,7 @@ class FTWDataModule(LightningDataModule):
                 temporal_options=self.temporal_options,
                 num_samples=self.num_samples,
                 ignore_sample_fn=self.ignore_sample_fn,
+                **self.kwargs,
             )
         if stage in ["fit", "validate"]:
             self.val_dataset = FTW(
