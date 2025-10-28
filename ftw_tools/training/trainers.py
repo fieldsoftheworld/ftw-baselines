@@ -268,7 +268,7 @@ class CustomSemanticSegmentationTask(BaseTask):
             raise ValueError(
                 f"Loss type '{loss}' is not valid. "
                 "Currently supported: 'ce', 'pixel_weighted_ce', 'jaccard', "
-                "'focal', 'dice', 'ce+dice', 'log_cosh_dice', 'ftnmt', "
+                "'focal', 'dice', 'ce+dice', 'logcoshdice', 'ftnmt', "
                 "'ce+ftnmt', 'localtversky', or 'tversky_ce'."
             )
 
