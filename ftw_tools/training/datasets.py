@@ -3,8 +3,8 @@
 import os
 import random
 from pathlib import Path
-from typing import Any, Callable, Optional, Sequence
-
+from typing import Any, Callable, Optional, Sequence, Tuple
+import math
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -21,12 +21,59 @@ from ftw_tools.utils import validate_checksums
 EMBEDDING_OPTIONS = [
     "aef",
     "galileo",
-    "croma"
+    "croma",
+    "decur",
+    "prithvi",
+    "dofa",
+    "satlas",
+    "softcon",
+    "terrafm",
+    "dinov3",
 ]
 
 
-def get_base_path_for_embeddinG(embedding_name: str):
+def get_base_path_for_embedding(embedding_name: str, root: str, country: str, idx: str) -> Tuple[str, str | None]:
 
+    if embedding_name == "aef":
+        return (os.path.join(root, "embeddings", "aef", country, "2024", f"{idx}.npy"), None)
+    elif embedding_name == "galileo":
+        win_a = os.path.join(root, "embeddings", "FTW-Galileo-Embeddings", country, "galileo_base", "window_a", f"{idx}.npy/", f"{idx}.npy")
+        win_b = os.path.join(root, "embeddings", "FTW-Galileo-Embeddings", country, "galileo_base", "window_b", f"{idx}.npy/", f"{idx}.npy")
+        return (win_a, win_b)
+    elif embedding_name == "croma":
+        win_a = os.path.join(root, "embeddings", "FTW-CROMA-Embeddings", country, "croma_base", "window_a", f"{idx}.npy/", f"{idx}.npy")
+        win_b = os.path.join(root, "embeddings", "FTW-CROMA-Embeddings", country, "croma_base", "window_b", f"{idx}.npy/", f"{idx}.npy")
+        return (win_a, win_b)
+    elif embedding_name == "decur":
+        win_a = os.path.join(root, "embeddings", "FTW-DECUR-Embeddings", country, "decur_optical", "window_a", f"{idx}.npy/", f"{idx}.npy")
+        win_b = os.path.join(root, "embeddings", "FTW-DECUR-Embeddings", country, "decur_optical", "window_b", f"{idx}.npy/", f"{idx}.npy")
+        return (win_a, win_b)
+    elif embedding_name == "prithvi":
+        win_a = os.path.join(root, "embeddings", "FTW-Prithvi-Embeddings", country, "prithvi_eo_v2", "window_a", f"{idx}.npy/", f"{idx}.npy")
+        win_b = os.path.join(root, "embeddings", "FTW-Prithvi-Embeddings", country, "prithvi_eo_v2", "window_b", f"{idx}.npy/", f"{idx}.npy")
+        return (win_a, win_b)
+    elif embedding_name == "dofa":
+        win_a = os.path.join(root, "embeddings", "FTW-DOFA-Embeddings", country, "dofa_v1", "window_a", f"{idx}.npy/", f"{idx}.npy")
+        win_b = os.path.join(root, "embeddings", "FTW-DOFA-Embeddings", country, "dofa_v1", "window_b", f"{idx}.npy/", f"{idx}.npy")
+        return (win_a, win_b)
+    elif embedding_name == "satlas":
+        win_a = os.path.join(root, "embeddings", "FTW-Satlas-Embeddings", country, "satlas_swin_tiny_ms", "window_a", f"{idx}.npy/", f"{idx}.npy")
+        win_b = os.path.join(root, "embeddings", "FTW-Satlas-Embeddings", country, "satlas_swin_tiny_ms", "window_b", f"{idx}.npy/", f"{idx}.npy")
+        return (win_a, win_b)
+    elif embedding_name == "softcon":
+        win_a = os.path.join(root, "embeddings", "FTW-SoftCon-Embeddings", country, "softcon_B13_vits14", "window_a", f"{idx}.npy/", f"{idx}.npy")
+        win_b = os.path.join(root, "embeddings", "FTW-SoftCon-Embeddings", country, "softcon_B13_vits14", "window_b", f"{idx}.npy/", f"{idx}.npy")
+        return (win_a, win_b)
+    elif embedding_name == "terrafm":
+        win_a = os.path.join(root, "embeddings", "terrafm", country, "window_a", f"terrafm_{idx}.pt")
+        win_b = os.path.join(root, "embeddings", "terrafm", country, "window_b", f"terrafm_{idx}.pt")
+        return (win_a, win_b)
+    elif embedding_name == "dinov3":
+        win_a = os.path.join(root, "embeddings", "dinov3", country, "window_a", f"dinov3_{idx}.pt")
+        win_b = os.path.join(root, "embeddings", "dinov3", country, "window_b", f"dinov3_{idx}.pt")
+        return (win_a, win_b)
+    else:
+        raise ValueError(f"Invalid embedding name {embedding_name}")
 
 
 class FTW(NonGeoDataset):
@@ -185,8 +232,13 @@ class FTW(NonGeoDataset):
                 }
                 if self.load_edges:
                     file_record["edge"] = str(edge_fn)
-                if temporal_options == "aef":
-                    file_record["aef"] = str(aef_fn)
+                if temporal_options in EMBEDDING_OPTIONS:
+                    embedding_fns = get_base_path_for_embedding(
+                        temporal_options, self.root, country, idx
+                    )
+                    file_record["embedding_a"] = embedding_fns[0]
+                    if embedding_fns[1] is not None:
+                        file_record["embedding_b"] = embedding_fns[1]
                 all_filenames.append(file_record)
 
         if self.num_samples == -1:  # select all samples
@@ -292,7 +344,7 @@ class FTW(NonGeoDataset):
         images = []
 
         if self.temporal_options == "aef":
-            image = np.load(filenames["aef"])
+            image = np.load(filenames["embedding_a"])
             image = np.flip(image, axis=0).copy()
             image = torch.from_numpy(image).float().permute(2, 0, 1)
             image = F.interpolate(
@@ -301,6 +353,36 @@ class FTW(NonGeoDataset):
                 mode="bilinear",
                 align_corners=False,
             ).squeeze(0)
+        elif self.temporal_options in EMBEDDING_OPTIONS:
+            if self.temporal_options in ["terrafm", "dinov3"]:
+                image_a = torch.load(filenames["embedding_a"])
+                image_b = torch.load(filenames["embedding_b"])
+
+                spatial_dim, embedding_dim = image_a.shape
+                size = int(math.sqrt(spatial_dim))
+                image_a = image_a.reshape(size, size, embedding_dim)
+                image_b = image_b.reshape(size, size, embedding_dim)
+
+                image = torch.cat([image_a, image_b], dim=2).permute(2,0,1).float()
+                # image = F.interpolate(
+                #     image.unsqueeze(0),
+                #     size=(32, 32),
+                #     mode="bilinear",
+                #     align_corners=False,
+                # ).squeeze(0)
+            else:
+                win_a_fn = filenames["embedding_a"]
+                win_b_fn = filenames["embedding_b"]
+                image_a = np.load(win_a_fn)
+                image_b = np.load(win_b_fn)
+                image = np.concatenate([image_a, image_b], axis=0)
+                image = torch.from_numpy(image).float()
+                image = F.interpolate(
+                    image.unsqueeze(0),
+                    size=(32, 32),
+                    mode="bilinear",
+                    align_corners=False,
+                ).squeeze(0)
         else:
             if self.temporal_options in ("stacked", "median", "windowB", "rgb"):
                 with rasterio.open(filenames["window_b"]) as f:

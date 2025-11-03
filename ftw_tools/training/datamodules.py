@@ -4,6 +4,7 @@ from typing import Any, Optional
 
 import kornia
 import kornia.augmentation as K
+import numpy as np
 import kornia.constants
 import torch
 from lightning import LightningDataModule
@@ -13,9 +14,35 @@ from torch.utils.data import DataLoader, Subset
 
 from ftw_tools.training.datasets import FTW
 
+EMBEDDING_SIZES = {
+    # aef torch.Size([64, 256, 256])
+    # galileo torch.Size([1536, 64, 64])
+    # croma torch.Size([1536, 15, 15])
+    # decur torch.Size([768, 14, 14])
+    # prithvi torch.Size([2048, 14, 14])
+    # dofa torch.Size([2048, 14, 14])
+    # satlas torch.Size([1536, 16, 16])
+    # softcon torch.Size([768, 16, 16])
+    "aef": 64,
+    "galileo": 1536,
+    "croma": 1536,
+    "decur": 768,
+    "prithvi": 2048,
+    "dofa": 2048,
+    "satlas": 1536,
+    "softcon": 768,
+}
+
 
 def preprocess(sample):
     sample["image"] = sample["image"] / 3000
+    return sample
+
+def preprocess_random_brightness(sample, range=0):
+    min_val = 3000 - range
+    max_val = 3000 + range
+    brightness_val = np.random.uniform(min_val, max_val)
+    sample["image"] = sample["image"] / 2250
     return sample
 
 
@@ -78,11 +105,12 @@ class FTWDataModule(LightningDataModule):
 
         # for the temporal option windowA, windowB and median we will have 4 channel input
 
-        self.mean = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0])
-        self.std = torch.tensor([3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000])
         if self.temporal_options in ("windowA", "windowB", "median", "random_window"):
             self.mean = torch.tensor([0, 0, 0, 0])
             self.std = torch.tensor([3000, 3000, 3000, 3000])
+        elif temporal_options == "stacked":
+            self.mean = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0])
+            self.std = torch.tensor([3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000])
         elif (
             self.temporal_options == "rgb"
         ):  # for the rgb temporal option we are just selecting these 3 channls from both window_a and window_b images
@@ -91,6 +119,9 @@ class FTWDataModule(LightningDataModule):
         elif self.temporal_options == "aef":
             self.mean = torch.tensor([0] * 64)
             self.std = torch.tensor([125] * 64)
+        else:
+            self.mean = torch.tensor([0] * EMBEDDING_SIZES[self.temporal_options])
+            self.std = torch.tensor([1] * EMBEDDING_SIZES[self.temporal_options])
 
         print("Loaded datamodule with:")
         print(f"Train countries: {self.train_countries}")

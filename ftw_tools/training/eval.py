@@ -13,8 +13,8 @@ from torchgeo.trainers import BaseTask
 from torchmetrics import JaccardIndex, MetricCollection, Precision, Recall
 from tqdm import tqdm
 
-from ftw_tools.settings import FULL_DATA_COUNTRIES
-from ftw_tools.training.datamodules import preprocess
+from ftw_tools.settings import FULL_DATA_COUNTRIES, ALL_COUNTRIES
+from ftw_tools.training.datamodules import preprocess, preprocess_random_brightness
 from ftw_tools.training.datasets import FTW
 from ftw_tools.training.metrics import get_object_level_metrics
 from ftw_tools.training.trainers import CustomSemanticSegmentationTask
@@ -277,6 +277,7 @@ def test(
     temporal_options: str,
     use_val_set: bool,
     swap_order: bool,
+    norm_constant: float | None,
     num_workers: int,
     bootstrap: bool = False,
 ):
@@ -306,11 +307,19 @@ def test(
     print("Creating dataloader")
     tic = time.time()
 
+    preprocess_fn = preprocess
+    if norm_constant is not None:
+        def _norm(sample):
+            sample["image"] = sample["image"] / norm_constant
+            return sample
+        preprocess_fn = _norm
+
+
     ds = FTW(
         root=dir,
         countries=countries,
         split=target_split,
-        transforms=preprocess,
+        transforms=preprocess_fn,
         load_boundaries=test_on_3_classes,
         temporal_options=temporal_options,
         swap_order=swap_order,

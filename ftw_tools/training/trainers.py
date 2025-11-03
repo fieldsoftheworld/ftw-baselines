@@ -26,8 +26,8 @@ from torchmetrics.classification import (
 )
 from torchvision.models._api import WeightsEnum
 
-from ftw_tools.inference.models import FCSiamAvg
-from ftw_tools.training.losses import (
+from ..inference.models import FCSiamAvg
+from .losses import (
     CombinedLoss,
     DiceLoss,
     FtnmtLoss,
@@ -39,7 +39,9 @@ from ftw_tools.training.losses import (
     logCoshDice,
     logCoshDiceCE,
 )
-from ftw_tools.training.metrics import get_object_level_metrics
+from .models import SmallTo256Decoder
+from .metrics import get_object_level_metrics
+from .utils import batch_corner_consensus_from_model
 
 
 class CustomSemanticSegmentationTask(BaseTask):
@@ -316,6 +318,9 @@ class CustomSemanticSegmentationTask(BaseTask):
         self.val_tps = 0
         self.val_fps = 0
         self.val_fns = 0
+        # consensus accumulators
+        self.val_consensus_sum = 0.0
+        self.val_consensus_count = 0
 
     def configure_models(self) -> None:
         """Initialize the model.
@@ -412,6 +417,12 @@ class CustomSemanticSegmentationTask(BaseTask):
                 encoder_weights="imagenet" if weights is True else None,
                 in_channels=in_channels // 2,
                 classes=num_classes,
+            )
+        elif model == "decoder_3":
+            self.model = SmallTo256Decoder(
+                in_c=in_channels,
+                num_classes=num_classes,
+                num_upsamples=3,
             )
         else:
             raise ValueError(
@@ -519,6 +530,15 @@ class CustomSemanticSegmentationTask(BaseTask):
             self.val_tps += tps
             self.val_fps += fps
             self.val_fns += fns
+
+        # corner consensus metric accumulation (re-run model on corner crops to capture context truncation)
+        consensus_scores = batch_corner_consensus_from_model(
+            self.model, x.detach(), size=128, padding=64
+        )
+        for cs in consensus_scores:
+            if cs is not None:
+                self.val_consensus_sum += cs
+                self.val_consensus_count += 1
 
         self.log(
             "val/loss",
@@ -633,6 +653,19 @@ class CustomSemanticSegmentationTask(BaseTask):
         self.val_tps = 0
         self.val_fps = 0
         self.val_fns = 0
+        # log consensus if any samples valid
+        if self.val_consensus_count > 0:
+            avg_consensus = self.val_consensus_sum / self.val_consensus_count
+            self.log(
+                "val/corner_consensus",
+                avg_consensus,
+                on_step=False,
+                on_epoch=True,
+                prog_bar=False,
+                sync_dist=True,
+            )
+        self.val_consensus_sum = 0.0
+        self.val_consensus_count = 0
 
         per_class = self.val_metrics.compute()
         self._log_per_class(per_class, "val")
