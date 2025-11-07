@@ -10,7 +10,7 @@ import pandas as pd
 import yaml
 
 # list of GPU IDs that we want to use, one job will be started for every ID in the list
-GPUS = [0,1,2,7]
+GPUS = [3,4,5,6,7]
 DRY_RUN = False  # if False then print out the commands to be run, if True then run
 
 
@@ -104,7 +104,7 @@ def main(args: argparse.Namespace):
             "--gpu",
             "GPU",
             "--output_fn",
-            output_file,  # This argument is required but not actually used by the script
+            output_file,
             "--name",
             model_name,
         ]

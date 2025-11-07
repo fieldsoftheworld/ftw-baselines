@@ -120,7 +120,8 @@ class FTW(NonGeoDataset):
         if countries is None:
             raise ValueError("Please specify the countries to load the dataset from")
         if temporal_options not in TEMPORAL_OPTIONS and temporal_options in EMBEDDING_OPTIONS:
-            print(f"WARNING: {temporal_options} data is distributed differently than other FTW data.")
+            if verbose:
+                print(f"WARNING: {temporal_options} data is distributed differently than other FTW data.")
         elif temporal_options not in TEMPORAL_OPTIONS:
             raise ValueError(f"Invalid temporal option {temporal_options}")
 
@@ -359,11 +360,7 @@ class FTW(NonGeoDataset):
                 image_b = torch.load(filenames["embedding_b"])
 
                 spatial_dim, embedding_dim = image_a.shape
-                size = int(math.sqrt(spatial_dim))
-                image_a = image_a.reshape(size, size, embedding_dim)
-                image_b = image_b.reshape(size, size, embedding_dim)
-
-                image = torch.cat([image_a, image_b], dim=2).permute(2,0,1).float()
+                image = torch.concatenate([image_a, image_b], dim=0).float()
                 # image = F.interpolate(
                 #     image.unsqueeze(0),
                 #     size=(32, 32),
@@ -373,16 +370,13 @@ class FTW(NonGeoDataset):
             else:
                 win_a_fn = filenames["embedding_a"]
                 win_b_fn = filenames["embedding_b"]
-                image_a = np.load(win_a_fn)
-                image_b = np.load(win_b_fn)
-                image = np.concatenate([image_a, image_b], axis=0)
+                image_a = np.load(win_a_fn).transpose(1,2,0)
+                image_b = np.load(win_b_fn).transpose(1,2,0)
+                H, W, D = image_a.shape
+                image_a = image_a.reshape(H*W, D)
+                image_b = image_b.reshape(H*W, D)
+                image = np.concatenate([image_a, image_b], axis=0)  # 2 x N x D
                 image = torch.from_numpy(image).float()
-                image = F.interpolate(
-                    image.unsqueeze(0),
-                    size=(32, 32),
-                    mode="bilinear",
-                    align_corners=False,
-                ).squeeze(0)
         else:
             if self.temporal_options in ("stacked", "median", "windowB", "rgb"):
                 with rasterio.open(filenames["window_b"]) as f:

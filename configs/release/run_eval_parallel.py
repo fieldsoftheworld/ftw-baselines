@@ -12,7 +12,7 @@ import yaml
 from ftw_tools.settings import ALL_COUNTRIES
 
 # list of GPU IDs that we want to use, one job will be started for every ID in the list
-GPUS = [1,2,3,4]
+GPUS = [0,1,2,3,4,5,6]
 DRY_RUN = False  # if False then print out the commands to be run, if True then run
 
 

@@ -31,6 +31,8 @@ EMBEDDING_SIZES = {
     "dofa": 2048,
     "satlas": 1536,
     "softcon": 768,
+    "terrafm": 768,
+    "dinov3": 1024,
 }
 
 
@@ -105,6 +107,8 @@ class FTWDataModule(LightningDataModule):
 
         # for the temporal option windowA, windowB and median we will have 4 channel input
 
+        self.mean = torch.tensor([0, 0, 0, 0])
+        self.std = torch.tensor([3000, 3000, 3000, 3000])
         if self.temporal_options in ("windowA", "windowB", "median", "random_window"):
             self.mean = torch.tensor([0, 0, 0, 0])
             self.std = torch.tensor([3000, 3000, 3000, 3000])
@@ -119,9 +123,6 @@ class FTWDataModule(LightningDataModule):
         elif self.temporal_options == "aef":
             self.mean = torch.tensor([0] * 64)
             self.std = torch.tensor([125] * 64)
-        else:
-            self.mean = torch.tensor([0] * EMBEDDING_SIZES[self.temporal_options])
-            self.std = torch.tensor([1] * EMBEDDING_SIZES[self.temporal_options])
 
         print("Loaded datamodule with:")
         print(f"Train countries: {self.train_countries}")
@@ -138,7 +139,7 @@ class FTWDataModule(LightningDataModule):
         ]
 
         if brightness_aug:
-            augs.append(K.RandomBrightness(p=0.5, brightness=(0.8, 1.5)))
+            augs.append(K.RandomBrightness(p=0.5, brightness=(0.5, 1.5)))
         if resize_aug:
             augs.append(
                 K.RandomResizedCrop(
@@ -161,6 +162,10 @@ class FTWDataModule(LightningDataModule):
                     antialias=True,
                 )
             )
+
+        self.do_augs = True
+        if temporal_options in EMBEDDING_SIZES:
+            self.do_augs = False
 
         print("Augmentations:")
         for aug in augs:
@@ -230,7 +235,7 @@ class FTWDataModule(LightningDataModule):
         )
 
     def on_after_batch_transfer(self, batch: dict[str, Tensor], dataloader_idx: int):
-        if self.trainer:
+        if self.trainer and self.do_augs:
             if self.trainer.training:
                 batch = self.train_aug(batch)
             else:

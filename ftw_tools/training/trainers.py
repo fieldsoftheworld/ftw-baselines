@@ -39,9 +39,26 @@ from .losses import (
     logCoshDice,
     logCoshDiceCE,
 )
-from .models import SmallTo256Decoder
+from .models import SegmentationHead
 from .metrics import get_object_level_metrics
 from .utils import batch_corner_consensus_from_model
+
+EMBEDDING_TO_PATCH_SIZE = {
+    "galileo": 4,
+    "satlas": 16,
+    "softcon": 16,
+    "terrafm": 16,
+    "dinov3": 16,
+}
+
+EMBEDDING_TO_FEATURE_DIM = {
+    "galileo": 768,
+    "satlas": 768,
+    "softcon": 384,
+    "terrafm": 768,
+    "dinov3": 1024,
+}
+
 
 
 class CustomSemanticSegmentationTask(BaseTask):
@@ -69,6 +86,8 @@ class CustomSemanticSegmentationTask(BaseTask):
         freeze_backbone: bool = False,
         freeze_decoder: bool = False,
         edge_agreement_loss: bool = False,
+        patch_size: Optional[int] = None,
+        feature_dim: Optional[int] = None,
         model_kwargs: dict[Any, Any] = dict(),
     ) -> None:
         """Initialize a new SemanticSegmentationTask instance.
@@ -104,6 +123,8 @@ class CustomSemanticSegmentationTask(BaseTask):
                 the segmentation head.
             edge_agreement_loss: If True, ignore non-edge pixels by remapping them to
                 the reserved "unknown" class index before loss computation.
+            patch_size: Patch size used in the embedding model.
+            feature_dim: Feature dimension used in the embedding model.
             model_kwargs: Additional keyword arguments to pass to the model
 
         Warns:
@@ -337,6 +358,9 @@ class CustomSemanticSegmentationTask(BaseTask):
         model_kwargs: dict[Any, Any] = self.hparams["model_kwargs"]
         patch_weights: bool = self.hparams["patch_weights"]
 
+        patch_size: int = self.hparams.get("patch_size", 16)
+        feature_dim: int = self.hparams.get("feature_dim", 256)
+
         if model == "unet":
             self.model = smp.Unet(
                 encoder_name=backbone,
@@ -418,11 +442,14 @@ class CustomSemanticSegmentationTask(BaseTask):
                 in_channels=in_channels // 2,
                 classes=num_classes,
             )
-        elif model == "decoder_3":
-            self.model = SmallTo256Decoder(
-                in_c=in_channels,
+        elif model == "mlp_vit_decoder":
+            self.model = SegmentationHead(
+                fusion_type="mlp",
+                decoder_type="vit",
+                dim=feature_dim,
+                patch_size=patch_size,
                 num_classes=num_classes,
-                num_upsamples=3,
+                bca_heads=8,
             )
         else:
             raise ValueError(
@@ -531,14 +558,15 @@ class CustomSemanticSegmentationTask(BaseTask):
             self.val_fps += fps
             self.val_fns += fns
 
-        # corner consensus metric accumulation (re-run model on corner crops to capture context truncation)
-        consensus_scores = batch_corner_consensus_from_model(
-            self.model, x.detach(), size=128, padding=64
-        )
-        for cs in consensus_scores:
-            if cs is not None:
-                self.val_consensus_sum += cs
-                self.val_consensus_count += 1
+        if len(x.shape) == 4:
+            # corner consensus metric accumulation (re-run model on corner crops to capture context truncation)
+            consensus_scores = batch_corner_consensus_from_model(
+                self.model, x.detach(), size=128, padding=64
+            )
+            for cs in consensus_scores:
+                if cs is not None:
+                    self.val_consensus_sum += cs
+                    self.val_consensus_count += 1
 
         self.log(
             "val/loss",
@@ -558,6 +586,7 @@ class CustomSemanticSegmentationTask(BaseTask):
             and self.logger
             and hasattr(self.logger, "experiment")
             and hasattr(self.logger.experiment, "add_figure")
+            and len(x.shape) == 4
         ):
             datamodule = self.trainer.datamodule
             batch["prediction"] = y_hat.argmax(dim=1)
