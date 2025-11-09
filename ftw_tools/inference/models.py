@@ -11,7 +11,7 @@ import torch.nn as nn
 import torchvision.transforms.v2 as T
 import ultralytics
 from torch import Tensor
-from torchgeo.models import FCSiamConc, FCSiamDiff
+from torchgeo.models import FCSiamConc, FCSiamDiff, FCN
 from ultralytics.engine.results import Results
 
 # torchvision.ops.nms is not supported on MPS yet
@@ -36,6 +36,27 @@ def load_model_from_checkpoint(path: str) -> tuple[nn.Module, str]:
             encoder_weights=None,
             in_channels=hparams["in_channels"],
             classes=hparams["num_classes"],
+        )
+    elif model_type == "unet_r":
+        model = smp.Unet(
+            encoder_name=hparams["backbone"],
+            encoder_weights=None,
+            decoder_channels=(16, 32, 64, 128, 256),
+            in_channels=hparams["in_channels"],
+            classes=hparams["num_classes"],
+        )
+    elif model_type == "upernet":
+        model = smp.UPerNet(
+            encoder_name=hparams["backbone"],
+            encoder_weights=None,
+            in_channels=hparams["in_channels"],
+            classes=hparams["num_classes"],
+        )
+    elif model_type == "fcn":
+        model = FCN(
+            in_channels=hparams["in_channels"],
+            classes=hparams["num_classes"],
+            num_filters=hparams["num_filters"],
         )
     elif model_type == "deeplabv3+":
         model = smp.DeepLabV3Plus(

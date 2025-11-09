@@ -86,6 +86,8 @@ class CustomSemanticSegmentationTask(BaseTask):
         freeze_backbone: bool = False,
         freeze_decoder: bool = False,
         edge_agreement_loss: bool = False,
+        consensus_agreement_loss: bool = False,
+        consensus_agreement_loss_weight: float = 0.1,
         patch_size: Optional[int] = None,
         feature_dim: Optional[int] = None,
         model_kwargs: dict[Any, Any] = dict(),
@@ -123,6 +125,11 @@ class CustomSemanticSegmentationTask(BaseTask):
                 the segmentation head.
             edge_agreement_loss: If True, ignore non-edge pixels by remapping them to
                 the reserved "unknown" class index before loss computation.
+            consensus_agreement_loss: If True, adds an auxiliary loss that penalizes
+                disagreement between model predictions on two large overlapping
+                spatial crops (top-left & bottom-right) of each image.
+            consensus_agreement_loss_weight: Scalar weight multiplied by the
+                consensus agreement loss before being added to the primary loss.
             patch_size: Patch size used in the embedding model.
             feature_dim: Feature dimension used in the embedding model.
             model_kwargs: Additional keyword arguments to pass to the model
@@ -154,6 +161,10 @@ class CustomSemanticSegmentationTask(BaseTask):
         self.class_names = ["background", "field", "boundary", "unknown"]
         self.weights = weights
         self.edge_agreement_loss = edge_agreement_loss
+        self.consensus_agreement_loss = consensus_agreement_loss
+        self.consensus_agreement_loss_weight: float = float(
+            consensus_agreement_loss_weight
+        )
         super().__init__()
         print(self.hparams)
 
@@ -518,6 +529,20 @@ class CustomSemanticSegmentationTask(BaseTask):
 
         loss: Tensor = self.criterion(y_hat, y)
 
+        # Optional consensus agreement loss: encourages local consistency between overlapping large crops.
+        if getattr(self, "consensus_agreement_loss", False):
+            consensus_loss = self._compute_consensus_agreement_loss(x)
+            if consensus_loss is not None:
+                self.log(
+                    "train/consensus_loss",
+                    consensus_loss,
+                    on_step=True,
+                    on_epoch=True,
+                    prog_bar=False,
+                    sync_dist=True,
+                )
+                loss = loss + self.consensus_agreement_loss_weight * consensus_loss
+
         self.log(
             "train/loss",
             loss,
@@ -529,6 +554,60 @@ class CustomSemanticSegmentationTask(BaseTask):
         self.train_metrics.update(y_hat, y)
 
         return loss
+
+    def _compute_consensus_agreement_loss(self, x: Tensor) -> Optional[Tensor]:
+        """Compute disagreement penalty between two large spatial crops.
+
+        Procedure:
+        * Take a 192x192 crop from top-left and bottom-right of each image.
+        * Upsample each crop to 256x256.
+        * Run model on both crops (with special handling for FCSiam variants).
+        * Identify the spatial overlap region between the two original crops (only
+          exists if H<384 or W<384).
+        * Compare the model probability distributions in the corresponding
+          overlapping regions (scaled indices after upsampling) using MSE.
+        * Return mean disagreement across batch, or 0 if no overlap.
+
+        Notes:
+            - If image spatial size is smaller than 192 we skip (return None).
+            - Overlap is zero for dimensions >=384, leading to None (no penalty).
+        """
+        import torch.nn.functional as F  # local import to avoid namespace pollution
+
+        B, C, H, W = x.shape
+        if H < 192 or W < 192:
+            return None  # Can't form required crops
+
+        # Define crop windows
+        top_left = x[:, :, 0:192, 0:192]
+        bottom_right = x[:, :, H - 192 : H, W - 192 : W]
+
+        # Upsample to 256x256 for increased context before decoding
+        # top_left_up = F.interpolate(top_left, size=(256, 256), mode="bilinear", align_corners=False)
+        # bottom_right_up = F.interpolate(bottom_right, size=(256, 256), mode="bilinear", align_corners=False)
+
+        # Forward helper to handle FCSiam models
+        def _forward(patch: Tensor) -> Tensor:
+            if self.hparams["model"] in ["fcsiamdiff", "fcsiamconc", "fcsiamavg"]:
+                # Channels are concatenated time steps; reshape for siam models
+                return self(rearrange(patch, "b (t c) h w -> b t c h w", t=2))
+            return self(patch)
+
+        with torch.set_grad_enabled(True):  # ensure grads propagate
+            logits_a = _forward(top_left)  # shape [B, num_classes, 256,256]
+            logits_b = _forward(bottom_right)
+
+        # Select overlapping regions: last rows/cols of top-left patch & first of bottom-right patch
+        patch_a_overlap = logits_a[:, :, 192 - 64 :, 192 - 64 :]
+        patch_b_overlap = logits_b[:, :, :64, :64]
+
+        # Convert to probabilities
+        probs_a = torch.softmax(patch_a_overlap, dim=1)
+        probs_b = torch.softmax(patch_b_overlap, dim=1)
+
+        # MSE disagreement (other options: KL). Lower is better agreement.
+        consensus_loss = F.mse_loss(probs_a, probs_b)
+        return consensus_loss
 
     def validation_step(
         self, batch: Any, batch_idx: int, dataloader_idx: int = 0
@@ -560,8 +639,13 @@ class CustomSemanticSegmentationTask(BaseTask):
 
         if len(x.shape) == 4:
             # corner consensus metric accumulation (re-run model on corner crops to capture context truncation)
+            fcsiam_mode = self.hparams["model"] in ["fcsiamdiff", "fcsiamconc", "fcsiamavg"]
+            if fcsiam_mode:
+                x_proc = rearrange(x.detach(), "b (t c) h w -> b t c h w", t=2)
+            else:
+                x_proc = x.detach()
             consensus_scores = batch_corner_consensus_from_model(
-                self.model, x.detach(), size=128, padding=64
+                self.model, x_proc, size=128, padding=64, fcsiam_mode=fcsiam_mode
             )
             for cs in consensus_scores:
                 if cs is not None:

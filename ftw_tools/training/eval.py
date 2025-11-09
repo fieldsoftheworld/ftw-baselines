@@ -14,7 +14,7 @@ from torchmetrics import JaccardIndex, MetricCollection, Precision, Recall
 from tqdm import tqdm
 
 from ftw_tools.settings import FULL_DATA_COUNTRIES, ALL_COUNTRIES
-from ftw_tools.training.datamodules import preprocess, preprocess_random_brightness
+from ftw_tools.training.datamodules import preprocess
 from ftw_tools.training.datasets import FTW
 from ftw_tools.training.metrics import get_object_level_metrics
 from ftw_tools.training.trainers import CustomSemanticSegmentationTask

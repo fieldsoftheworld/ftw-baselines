@@ -74,18 +74,21 @@ def main(args: argparse.Namespace):
                 images = rearrange(images, "b (t c) h w -> b t c h w", t=2)
 
             for i in range(images.shape[0]):
-                img1 = images[
-                    i : i + 1, :, 0 : size + padding, 0 : size + padding
-                ]  # top-left
-                img2 = images[
-                    i : i + 1, :, 0 : size + padding, -size - padding :
-                ]  # top-right
-                img3 = images[
-                    i : i + 1, :, -size - padding :, 0 : size + padding
-                ]  # bottom-left
-                img4 = images[
-                    i : i + 1, :, -size - padding :, -size - padding :
-                ]  # bottom-right
+                # Support both 4D (B,C,H,W) and 5D (B,T,C,H,W) inputs.
+                if images.ndim == 4:  # (B,C,H,W)
+                    img1 = images[i : i + 1, :, 0 : size + padding, 0 : size + padding]  # top-left
+                    img2 = images[i : i + 1, :, 0 : size + padding, -size - padding :]  # top-right
+                    img3 = images[i : i + 1, :, -size - padding :, 0 : size + padding]  # bottom-left
+                    img4 = images[i : i + 1, :, -size - padding :, -size - padding :]  # bottom-right
+                elif images.ndim == 5:  # (B,T,C,H,W) for fcsiam* models
+                    # Correct indexing keeps temporal and channel dimensions intact.
+                    img1 = images[i : i + 1, :, :, 0 : size + padding, 0 : size + padding]  # top-left
+                    img2 = images[i : i + 1, :, :, 0 : size + padding, -size - padding :]  # top-right
+                    img3 = images[i : i + 1, :, :, -size - padding :, 0 : size + padding]  # bottom-left
+                    img4 = images[i : i + 1, :, :, -size - padding :, -size - padding :]  # bottom-right
+                else:
+                    raise ValueError(f"Unsupported image ndim {images.ndim}, expected 4 or 5.")
+
                 batch_tensor = torch.cat([img1, img2, img3, img4], dim=0).to(device)
 
                 with torch.inference_mode():
