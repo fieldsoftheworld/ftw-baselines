@@ -7,6 +7,8 @@ from typing import Dict, Sequence, Tuple
 import numpy as np
 import torch
 from einops import rearrange
+import kornia.augmentation as K
+from kornia.constants import Resample
 from lightning.pytorch.cli import LightningCLI
 from torch.utils.data import DataLoader
 from torchgeo.trainers import BaseTask
@@ -278,6 +280,7 @@ def test(
     use_val_set: bool,
     swap_order: bool,
     norm_constant: float | None,
+    resize_factor: int,
     num_workers: int,
     bootstrap: bool = False,
 ):
@@ -307,19 +310,14 @@ def test(
     print("Creating dataloader")
     tic = time.time()
 
-    preprocess_fn = preprocess
+    norm = 3000.0  # Default normalization constant
     if norm_constant is not None:
-        def _norm(sample):
-            sample["image"] = sample["image"] / norm_constant
-            return sample
-        preprocess_fn = _norm
-
+        norm = norm_constant
 
     ds = FTW(
         root=dir,
         countries=countries,
         split=target_split,
-        transforms=preprocess_fn,
         load_boundaries=test_on_3_classes,
         temporal_options=temporal_options,
         swap_order=swap_order,
@@ -356,6 +354,14 @@ def test(
             ]
         ).to(device)
 
+    patch_size = 256
+    up_sample = K.Resize(
+        (patch_size * resize_factor, patch_size * resize_factor)
+    ).to(device)
+    down_sample = K.Resize(
+        (patch_size, patch_size), resample=Resample.NEAREST.name
+    ).to(device)
+
     # For bootstrap: collect per-sample data
     all_outputs_list = []
     all_masks_list = []
@@ -368,16 +374,19 @@ def test(
     all_fns = 0
 
     for batch in tqdm(dl):
-        images = batch["image"]
+        images = batch["image"].to(device) / norm
         masks = batch["mask"].to(device)
+
+        if resize_factor != 1:
+            images = up_sample(images)
 
         if model_type in ["fcsiamdiff", "fcsiamconc", "fcsiamavg"]:
             images = rearrange(images, "b (t c) h w -> b t c h w", t=2)
-        images = images.to(device)
 
         with torch.inference_mode():
             outputs = model(images).argmax(dim=1)
-
+        if resize_factor != 1:
+            outputs = down_sample(outputs.unsqueeze(1).float()).squeeze().long()
         if model_predicts_3_classes:
             new_outputs = torch.zeros(
                 outputs.shape[0], outputs.shape[1], outputs.shape[2], device=device
