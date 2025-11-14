@@ -4,10 +4,10 @@ import time
 from contextlib import contextmanager
 from typing import Dict, Sequence, Tuple
 
+import kornia.augmentation as K
 import numpy as np
 import torch
 from einops import rearrange
-import kornia.augmentation as K
 from kornia.constants import Resample
 from lightning.pytorch.cli import LightningCLI
 from torch.utils.data import DataLoader
@@ -15,7 +15,7 @@ from torchgeo.trainers import BaseTask
 from torchmetrics import JaccardIndex, MetricCollection, Precision, Recall
 from tqdm import tqdm
 
-from ftw_tools.settings import FULL_DATA_COUNTRIES, ALL_COUNTRIES
+from ftw_tools.settings import ALL_COUNTRIES, FULL_DATA_COUNTRIES
 from ftw_tools.training.datamodules import preprocess
 from ftw_tools.training.datasets import FTW
 from ftw_tools.training.metrics import get_object_level_metrics
@@ -355,12 +355,12 @@ def test(
         ).to(device)
 
     patch_size = 256
-    up_sample = K.Resize(
-        (patch_size * resize_factor, patch_size * resize_factor)
-    ).to(device)
-    down_sample = K.Resize(
-        (patch_size, patch_size), resample=Resample.NEAREST.name
-    ).to(device)
+    up_sample = K.Resize((patch_size * resize_factor, patch_size * resize_factor)).to(
+        device
+    )
+    down_sample = K.Resize((patch_size, patch_size), resample=Resample.NEAREST.name).to(
+        device
+    )
 
     # For bootstrap: collect per-sample data
     all_outputs_list = []

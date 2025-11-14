@@ -11,7 +11,7 @@ import torch.nn as nn
 import torchvision.transforms.v2 as T
 import ultralytics
 from torch import Tensor
-from torchgeo.models import FCSiamConc, FCSiamDiff, FCN
+from torchgeo.models import FCN, FCSiamConc, FCSiamDiff
 from ultralytics.engine.results import Results
 
 # torchvision.ops.nms is not supported on MPS yet

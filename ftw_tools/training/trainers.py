@@ -39,27 +39,8 @@ from .losses import (
     logCoshDice,
     logCoshDiceCE,
 )
-from .models import SegmentationHead
 from .metrics import get_object_level_metrics
 from .utils import batch_corner_consensus_from_model
-
-EMBEDDING_TO_PATCH_SIZE = {
-    "galileo": 4,
-    "satlas": 16,
-    "softcon": 16,
-    "terrafm": 16,
-    "dinov3": 16,
-}
-
-EMBEDDING_TO_FEATURE_DIM = {
-    "galileo": 768,
-    "satlas": 768,
-    "softcon": 384,
-    "terrafm": 768,
-    "dinov3": 1024,
-}
-
-
 
 class CustomSemanticSegmentationTask(BaseTask):
     """Semantic Segmentation.
@@ -88,8 +69,6 @@ class CustomSemanticSegmentationTask(BaseTask):
         edge_agreement_loss: bool = False,
         consensus_agreement_loss: bool = False,
         consensus_agreement_loss_weight: float = 0.1,
-        patch_size: Optional[int] = None,
-        feature_dim: Optional[int] = None,
         model_kwargs: dict[Any, Any] = dict(),
     ) -> None:
         """Initialize a new SemanticSegmentationTask instance.
@@ -152,7 +131,6 @@ class CustomSemanticSegmentationTask(BaseTask):
            *learning_rate* and *learning_rate_schedule_patience* were renamed to
            *lr* and *patience*.
         """
-        print("Using custom trainer")
         if ignore_index is not None and loss == "jaccard":
             warnings.warn(
                 "ignore_index has no effect on training when loss='jaccard'",
@@ -399,14 +377,6 @@ class CustomSemanticSegmentationTask(BaseTask):
             self.model = FCN(
                 in_channels=in_channels, classes=num_classes, num_filters=num_filters
             )
-        elif model == "actually_just_a_conv":
-            self.model = nn.Conv2d(
-                in_channels=in_channels,
-                out_channels=num_classes,
-                kernel_size=1,
-                stride=1,
-                padding=0,
-            )
         elif model == "upernet":
             self.model = smp.UPerNet(
                 encoder_name=backbone,
@@ -452,20 +422,8 @@ class CustomSemanticSegmentationTask(BaseTask):
                 in_channels=in_channels // 2,
                 classes=num_classes,
             )
-        elif model == "mlp_vit_decoder":
-            self.model = SegmentationHead(
-                fusion_type="mlp",
-                decoder_type="vit",
-                dim=feature_dim,
-                patch_size=patch_size,
-                num_classes=num_classes,
-                bca_heads=8,
-            )
         else:
-            raise ValueError(
-                f"Model type '{model}' is not valid. "
-                "Currently, only supports 'unet', 'deeplabv3+', and 'fcn', 'upernet', 'segformer', and 'dpt'."
-            )
+            raise ValueError(f"Model type '{model}' is not valid.")
 
         if in_channels < 5 and model in ["fcsiamdiff", "fcsiamconc", "fcsiamavg"]:
             raise ValueError("FCSiam models require more than one input image.")
@@ -528,20 +486,6 @@ class CustomSemanticSegmentationTask(BaseTask):
 
         loss: Tensor = self.criterion(y_hat, y)
 
-        # Optional consensus agreement loss: encourages local consistency between overlapping large crops.
-        if getattr(self, "consensus_agreement_loss", False):
-            consensus_loss = self._compute_consensus_agreement_loss(x)
-            if consensus_loss is not None:
-                self.log(
-                    "train/consensus_loss",
-                    consensus_loss,
-                    on_step=True,
-                    on_epoch=True,
-                    prog_bar=False,
-                    sync_dist=True,
-                )
-                loss = loss + self.consensus_agreement_loss_weight * consensus_loss
-
         self.log(
             "train/loss",
             loss,
@@ -551,62 +495,8 @@ class CustomSemanticSegmentationTask(BaseTask):
             sync_dist=True,
         )
         self.train_metrics.update(y_hat, y)
-
         return loss
 
-    def _compute_consensus_agreement_loss(self, x: Tensor) -> Optional[Tensor]:
-        """Compute disagreement penalty between two large spatial crops.
-
-        Procedure:
-        * Take a 192x192 crop from top-left and bottom-right of each image.
-        * Upsample each crop to 256x256.
-        * Run model on both crops (with special handling for FCSiam variants).
-        * Identify the spatial overlap region between the two original crops (only
-          exists if H<384 or W<384).
-        * Compare the model probability distributions in the corresponding
-          overlapping regions (scaled indices after upsampling) using MSE.
-        * Return mean disagreement across batch, or 0 if no overlap.
-
-        Notes:
-            - If image spatial size is smaller than 192 we skip (return None).
-            - Overlap is zero for dimensions >=384, leading to None (no penalty).
-        """
-        import torch.nn.functional as F  # local import to avoid namespace pollution
-
-        B, C, H, W = x.shape
-        if H < 192 or W < 192:
-            return None  # Can't form required crops
-
-        # Define crop windows
-        top_left = x[:, :, 0:192, 0:192]
-        bottom_right = x[:, :, H - 192 : H, W - 192 : W]
-
-        # Upsample to 256x256 for increased context before decoding
-        # top_left_up = F.interpolate(top_left, size=(256, 256), mode="bilinear", align_corners=False)
-        # bottom_right_up = F.interpolate(bottom_right, size=(256, 256), mode="bilinear", align_corners=False)
-
-        # Forward helper to handle FCSiam models
-        def _forward(patch: Tensor) -> Tensor:
-            if self.hparams["model"] in ["fcsiamdiff", "fcsiamconc", "fcsiamavg"]:
-                # Channels are concatenated time steps; reshape for siam models
-                return self(rearrange(patch, "b (t c) h w -> b t c h w", t=2))
-            return self(patch)
-
-        with torch.set_grad_enabled(True):  # ensure grads propagate
-            logits_a = _forward(top_left)  # shape [B, num_classes, 256,256]
-            logits_b = _forward(bottom_right)
-
-        # Select overlapping regions: last rows/cols of top-left patch & first of bottom-right patch
-        patch_a_overlap = logits_a[:, :, 192 - 64 :, 192 - 64 :]
-        patch_b_overlap = logits_b[:, :, :64, :64]
-
-        # Convert to probabilities
-        probs_a = torch.softmax(patch_a_overlap, dim=1)
-        probs_b = torch.softmax(patch_b_overlap, dim=1)
-
-        # MSE disagreement (other options: KL). Lower is better agreement.
-        consensus_loss = F.mse_loss(probs_a, probs_b)
-        return consensus_loss
 
     def validation_step(
         self, batch: Any, batch_idx: int, dataloader_idx: int = 0
@@ -638,7 +528,11 @@ class CustomSemanticSegmentationTask(BaseTask):
 
         if len(x.shape) == 4:
             # corner consensus metric accumulation (re-run model on corner crops to capture context truncation)
-            fcsiam_mode = self.hparams["model"] in ["fcsiamdiff", "fcsiamconc", "fcsiamavg"]
+            fcsiam_mode = self.hparams["model"] in [
+                "fcsiamdiff",
+                "fcsiamconc",
+                "fcsiamavg",
+            ]
             if fcsiam_mode:
                 x_proc = rearrange(x.detach(), "b (t c) h w -> b t c h w", t=2)
             else:

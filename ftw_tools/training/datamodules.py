@@ -4,8 +4,8 @@ from typing import Any, Optional
 
 import kornia
 import kornia.augmentation as K
-import numpy as np
 import kornia.constants
+import numpy as np
 import torch
 from lightning import LightningDataModule
 from matplotlib.figure import Figure
@@ -14,37 +14,9 @@ from torch.utils.data import DataLoader, Subset
 
 from ftw_tools.training.datasets import FTW
 
-EMBEDDING_SIZES = {
-    # aef torch.Size([64, 256, 256])
-    # galileo torch.Size([1536, 64, 64])
-    # croma torch.Size([1536, 15, 15])
-    # decur torch.Size([768, 14, 14])
-    # prithvi torch.Size([2048, 14, 14])
-    # dofa torch.Size([2048, 14, 14])
-    # satlas torch.Size([1536, 16, 16])
-    # softcon torch.Size([768, 16, 16])
-    "aef": 64,
-    "galileo": 1536,
-    "croma": 1536,
-    "decur": 768,
-    "prithvi": 2048,
-    "dofa": 2048,
-    "satlas": 1536,
-    "softcon": 768,
-    "terrafm": 768,
-    "dinov3": 1024,
-}
-
 
 def preprocess(sample):
     sample["image"] = sample["image"] / 3000
-    return sample
-
-def preprocess_random_brightness(sample, range=0):
-    min_val = 3000 - range
-    max_val = 3000 + range
-    brightness_val = np.random.uniform(min_val, max_val)
-    sample["image"] = sample["image"] / brightness_val
     return sample
 
 
@@ -61,7 +33,9 @@ def randomDivisorNormalize(x: torch.Tensor) -> torch.Tensor:
     """
     if x.dim() != 4:
         return x
-    divisors = torch.empty(x.size(0), 1, 1, 1, device=x.device, dtype=x.dtype).uniform_(1500.0, 4500.0)
+    divisors = torch.empty(x.size(0), 1, 1, 1, device=x.device, dtype=x.dtype).uniform_(
+        1500.0, 4500.0
+    )
     return x / divisors
 
 
@@ -125,7 +99,6 @@ class FTWDataModule(LightningDataModule):
             raise ValueError("preprocess_aug is mutually exclusive with brightness_aug")
 
         # for the temporal option windowA, windowB and median we will have 4 channel input
-
         self.mean = torch.tensor([0, 0, 0, 0])
         self.std = torch.tensor([3000, 3000, 3000, 3000])
         if self.temporal_options in ("windowA", "windowB", "median", "random_window"):
@@ -134,14 +107,11 @@ class FTWDataModule(LightningDataModule):
         elif temporal_options == "stacked":
             self.mean = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0])
             self.std = torch.tensor([3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000])
-        elif (
-            self.temporal_options == "rgb"
-        ):  # for the rgb temporal option we are just selecting these 3 channls from both window_a and window_b images
+        elif self.temporal_options == "rgb":
             self.mean = torch.tensor([0, 0, 0, 0, 0, 0])
             self.std = torch.tensor([3000, 3000, 3000, 3000, 3000, 3000])
-        elif self.temporal_options == "aef":
-            self.mean = torch.tensor([0] * 64)
-            self.std = torch.tensor([125] * 64)
+        else:
+            raise ValueError(f"Unknown temporal option: {temporal_options}")
 
         print("Loaded datamodule with:")
         print(f"Train countries: {self.train_countries}")
@@ -172,13 +142,11 @@ class FTWDataModule(LightningDataModule):
             )
 
         if random_shuffle:
-            print("Using random channel shuffle augmentation")
             augs.append(kornia.contrib.Lambda(randomChannelShuffle))
 
         if resize_factor is not None:
             if resize_factor < 1:
                 raise ValueError("Resize factor must be >= 1")
-            print(f"Using resize factor of {resize_factor}")
             augs.append(
                 K.Resize(
                     (int(256 * resize_factor), int(256 * resize_factor)),
@@ -186,10 +154,6 @@ class FTWDataModule(LightningDataModule):
                     antialias=True,
                 )
             )
-
-        self.do_augs = True
-        if temporal_options in EMBEDDING_SIZES:
-            self.do_augs = False
 
         print("Augmentations:")
         for aug in augs:
@@ -259,7 +223,7 @@ class FTWDataModule(LightningDataModule):
         )
 
     def on_after_batch_transfer(self, batch: dict[str, Tensor], dataloader_idx: int):
-        if self.trainer and self.do_augs:
+        if self.trainer:
             if self.trainer.training:
                 batch = self.train_aug(batch)
             else:

@@ -9,11 +9,13 @@ from tqdm import tqdm
 
 from ftw_tools.inference.models import load_model_from_checkpoint
 from ftw_tools.settings import ALL_COUNTRIES
-from ftw_tools.training.datasets import FTW
 from ftw_tools.training.datamodules import preprocess
+from ftw_tools.training.datasets import FTW
 
 
-def extract_overlap_region(pred_patch: np.ndarray | torch.Tensor, corner: int, padding: int, overlap_size: int):
+def extract_overlap_region(
+    pred_patch: np.ndarray | torch.Tensor, corner: int, padding: int, overlap_size: int
+):
     """Extract the central overlap region of size ``overlap_size`` from a corner patch prediction.
 
     Let the full image be size D x D. We create corner crops of size C = (D + S)/2, where S is the desired
@@ -27,7 +29,9 @@ def extract_overlap_region(pred_patch: np.ndarray | torch.Tensor, corner: int, p
     - bottom-right: rows [0 : S],                 cols [0 : S]
     """
     if corner == 0:  # top-left
-        return pred_patch[:, padding : padding + overlap_size, padding : padding + overlap_size]
+        return pred_patch[
+            :, padding : padding + overlap_size, padding : padding + overlap_size
+        ]
     elif corner == 1:  # top-right
         return pred_patch[:, padding : padding + overlap_size, :overlap_size]
     elif corner == 2:  # bottom-left
@@ -88,18 +92,36 @@ def main(args: argparse.Namespace):
             for i in range(images.shape[0]):
                 # Support both 4D (B,C,H,W) and 5D (B,T,C,H,W) inputs.
                 if images.ndim == 4:  # (B,C,H,W)
-                    img1 = images[i : i + 1, :, 0:corner_crop_size, 0:corner_crop_size]  # top-left
-                    img2 = images[i : i + 1, :, 0:corner_crop_size, -corner_crop_size:]  # top-right
-                    img3 = images[i : i + 1, :, -corner_crop_size:, 0:corner_crop_size]  # bottom-left
-                    img4 = images[i : i + 1, :, -corner_crop_size:, -corner_crop_size:]  # bottom-right
+                    img1 = images[
+                        i : i + 1, :, 0:corner_crop_size, 0:corner_crop_size
+                    ]  # top-left
+                    img2 = images[
+                        i : i + 1, :, 0:corner_crop_size, -corner_crop_size:
+                    ]  # top-right
+                    img3 = images[
+                        i : i + 1, :, -corner_crop_size:, 0:corner_crop_size
+                    ]  # bottom-left
+                    img4 = images[
+                        i : i + 1, :, -corner_crop_size:, -corner_crop_size:
+                    ]  # bottom-right
                 elif images.ndim == 5:  # (B,T,C,H,W) for fcsiam* models
                     # Preserve temporal dimension.
-                    img1 = images[i : i + 1, :, :, 0:corner_crop_size, 0:corner_crop_size]
-                    img2 = images[i : i + 1, :, :, 0:corner_crop_size, -corner_crop_size:]
-                    img3 = images[i : i + 1, :, :, -corner_crop_size:, 0:corner_crop_size]
-                    img4 = images[i : i + 1, :, :, -corner_crop_size:, -corner_crop_size:]
+                    img1 = images[
+                        i : i + 1, :, :, 0:corner_crop_size, 0:corner_crop_size
+                    ]
+                    img2 = images[
+                        i : i + 1, :, :, 0:corner_crop_size, -corner_crop_size:
+                    ]
+                    img3 = images[
+                        i : i + 1, :, :, -corner_crop_size:, 0:corner_crop_size
+                    ]
+                    img4 = images[
+                        i : i + 1, :, :, -corner_crop_size:, -corner_crop_size:
+                    ]
                 else:
-                    raise ValueError(f"Unsupported image ndim {images.ndim}, expected 4 or 5.")
+                    raise ValueError(
+                        f"Unsupported image ndim {images.ndim}, expected 4 or 5."
+                    )
 
                 batch_tensor = torch.cat([img1, img2, img3, img4], dim=0).to(device)
 
@@ -148,9 +170,7 @@ def main(args: argparse.Namespace):
 
     print(f"\nPer-country statistics:")
     country_stats = (
-        df.groupby("country")["consensus_score"]
-        .agg(["count", "mean", "std"])
-        .round(4)
+        df.groupby("country")["consensus_score"].agg(["count", "mean", "std"]).round(4)
     )
     print(country_stats)
 

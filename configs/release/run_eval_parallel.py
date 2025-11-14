@@ -12,7 +12,7 @@ import yaml
 from ftw_tools.settings import ALL_COUNTRIES
 
 # list of GPU IDs that we want to use, one job will be started for every ID in the list
-GPUS = [0,1,2,3,4,5,6,7]
+GPUS = [0, 1, 2, 3, 4, 5, 6, 7]
 DRY_RUN = False  # if False then print out the commands to be run, if True then run
 
 
@@ -195,6 +195,8 @@ if __name__ == "__main__":
         default=None,
         help="Normalization constant to use for evaluation (overrides training-time value if set)",
     )
-    parser.add_argument("--resize_factor", type=int, default=None, help="Resize factor for images")
+    parser.add_argument(
+        "--resize_factor", type=int, default=None, help="Resize factor for images"
+    )
     args = parser.parse_args()
     main(args)
