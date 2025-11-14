@@ -67,8 +67,6 @@ class CustomSemanticSegmentationTask(BaseTask):
         freeze_backbone: bool = False,
         freeze_decoder: bool = False,
         edge_agreement_loss: bool = False,
-        consensus_agreement_loss: bool = False,
-        consensus_agreement_loss_weight: float = 0.1,
         model_kwargs: dict[Any, Any] = dict(),
     ) -> None:
         """Initialize a new SemanticSegmentationTask instance.
@@ -104,13 +102,6 @@ class CustomSemanticSegmentationTask(BaseTask):
                 the segmentation head.
             edge_agreement_loss: If True, ignore non-edge pixels by remapping them to
                 the reserved "unknown" class index before loss computation.
-            consensus_agreement_loss: If True, adds an auxiliary loss that penalizes
-                disagreement between model predictions on two large overlapping
-                spatial crops (top-left & bottom-right) of each image.
-            consensus_agreement_loss_weight: Scalar weight multiplied by the
-                consensus agreement loss before being added to the primary loss.
-            patch_size: Patch size used in the embedding model.
-            feature_dim: Feature dimension used in the embedding model.
             model_kwargs: Additional keyword arguments to pass to the model
 
         Warns:
@@ -139,10 +130,6 @@ class CustomSemanticSegmentationTask(BaseTask):
         self.class_names = ["background", "field", "boundary", "unknown"]
         self.weights = weights
         self.edge_agreement_loss = edge_agreement_loss
-        self.consensus_agreement_loss = consensus_agreement_loss
-        self.consensus_agreement_loss_weight: float = float(
-            consensus_agreement_loss_weight
-        )
         super().__init__()
 
     def configure_losses(self) -> None:
