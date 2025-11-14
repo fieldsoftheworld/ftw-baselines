@@ -1,8 +1,7 @@
-import logging
 import os
 import time
 from contextlib import contextmanager
-from typing import Dict, Sequence, Tuple
+from typing import Sequence
 
 import kornia.augmentation as K
 import numpy as np
@@ -15,8 +14,7 @@ from torchgeo.trainers import BaseTask
 from torchmetrics import JaccardIndex, MetricCollection, Precision, Recall
 from tqdm import tqdm
 
-from ftw_tools.settings import ALL_COUNTRIES, FULL_DATA_COUNTRIES
-from ftw_tools.training.datamodules import preprocess
+from ftw_tools.settings import FULL_DATA_COUNTRIES
 from ftw_tools.training.datasets import FTW
 from ftw_tools.training.metrics import get_object_level_metrics
 from ftw_tools.training.trainers import CustomSemanticSegmentationTask

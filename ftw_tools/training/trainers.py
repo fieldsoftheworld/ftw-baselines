@@ -29,13 +29,11 @@ from torchvision.models._api import WeightsEnum
 from ..inference.models import FCSiamAvg
 from .losses import (
     CombinedLoss,
-    DiceLoss,
     FtnmtLoss,
     JaccardLoss,
     LocallyWeightedTverskyFocalLoss,
     PixelWeightedCE,
     TverskyFocalCELoss,
-    TverskyFocalLoss,
     logCoshDice,
     logCoshDiceCE,
 )

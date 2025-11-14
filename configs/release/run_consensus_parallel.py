@@ -6,8 +6,6 @@ import os
 import subprocess
 from multiprocessing import Process, Queue
 
-import pandas as pd
-import yaml
 
 # list of GPU IDs that we want to use, one job will be started for every ID in the list
 GPUS = [3, 4, 5, 6, 7]
