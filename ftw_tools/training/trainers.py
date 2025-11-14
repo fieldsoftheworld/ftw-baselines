@@ -328,7 +328,6 @@ class CustomSemanticSegmentationTask(BaseTask):
         model_kwargs: dict[Any, Any] = self.hparams["model_kwargs"]
         patch_weights: bool = self.hparams["patch_weights"]
 
-
         if model == "unet":
             self.model = smp.Unet(
                 encoder_name=backbone,
