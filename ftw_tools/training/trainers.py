@@ -166,7 +166,6 @@ class CustomSemanticSegmentationTask(BaseTask):
             consensus_agreement_loss_weight
         )
         super().__init__()
-        print(self.hparams)
 
     def configure_losses(self) -> None:
         """Initialize the loss criterion.
