@@ -187,11 +187,6 @@ if __name__ == "__main__":
         default=128,
         help="Desired size (in pixels) of the central overlap region shared by the four corner crops",
     )
-    parser.add_argument(
-        "--name",
-        type=str,
-        help="Name to use for output file instead of model checkpoint name",
-    )
 
     args = parser.parse_args()
     main(args)
