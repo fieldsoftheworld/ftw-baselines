@@ -49,7 +49,7 @@ class FTW(NonGeoDataset):
             checksum: if True, check the MD5 of the downloaded files (may be slow)
             load_boundaries: if True, load the 3 class masks with boundaries
             load_edges: if True, load the edge masks
-            temporal_options : for abalation study, valid option are (stacked, windowA,
+            temporal_options : for ablation study, valid option are (stacked, windowA,
                 windowB, median, rgb, random_window)
             swap_order: if True, swap the order of temporal data (i.e. use window A first)
             ignore_sample_fn: path to a filename with a list of samples to ignore
