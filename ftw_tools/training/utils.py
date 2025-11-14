@@ -106,6 +106,7 @@ def batch_corner_consensus_from_model(
         images: Tensor (B,C,H,W) or (B,T,C,H,W) when fcsiam_mode=True.
         size: Inner patch size.
         padding: Overlap padding.
+        fcsiam_mode: If True, expects images of shape (B,T,C,H,W) for FCSiam mode; otherwise (B,C,H,W). Default is False.
 
     Returns:
         list[float | None]: Per-sample consensus scores.
