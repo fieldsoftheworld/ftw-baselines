@@ -332,8 +332,6 @@ class CustomSemanticSegmentationTask(BaseTask):
         model_kwargs: dict[Any, Any] = self.hparams["model_kwargs"]
         patch_weights: bool = self.hparams["patch_weights"]
 
-        patch_size: int = self.hparams.get("patch_size", 16)
-        feature_dim: int = self.hparams.get("feature_dim", 256)
 
         if model == "unet":
             self.model = smp.Unet(
