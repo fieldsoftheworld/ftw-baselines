@@ -42,6 +42,7 @@ from .losses import (
 from .metrics import get_object_level_metrics
 from .utils import batch_corner_consensus_from_model
 
+
 class CustomSemanticSegmentationTask(BaseTask):
     """Semantic Segmentation.
 
@@ -483,7 +484,6 @@ class CustomSemanticSegmentationTask(BaseTask):
         )
         self.train_metrics.update(y_hat, y)
         return loss
-
 
     def validation_step(
         self, batch: Any, batch_idx: int, dataloader_idx: int = 0

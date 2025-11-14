@@ -163,7 +163,9 @@ class FTW(NonGeoDataset):
                     continue
 
                 if self.load_edges and not edge_fn.exists():
-                    raise ValueError("ERROR: Missing edge files! Run ./scripts/add_edges_to_dataset.py")
+                    raise ValueError(
+                        "ERROR: Missing edge files! Run ./scripts/add_edges_to_dataset.py"
+                    )
 
                 if self.load_boundaries:
                     mask_fn = masks_3c_fn
