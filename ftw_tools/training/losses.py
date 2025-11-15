@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
 import kornia as K
 import torch

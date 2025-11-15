@@ -25,6 +25,19 @@ def randomChannelShuffle(x):
     return torch.cat([x[:, 4:8], x[:, :4]], dim=1)
 
 
+def randomDivisorNormalize(x: torch.Tensor) -> torch.Tensor:
+    """Divide each sample in the batch by a random scalar in [1500, 4500].
+
+    Applied as a Kornia Lambda when preprocess_aug is enabled.
+    """
+    if x.dim() != 4:
+        return x
+    divisors = torch.empty(x.size(0), 1, 1, 1, device=x.device, dtype=x.dtype).uniform_(
+        1500.0, 4500.0
+    )
+    return x / divisors
+
+
 class FTWDataModule(LightningDataModule):
     """LightningDataModule implementation for the FTW dataset."""
 
@@ -41,6 +54,7 @@ class FTWDataModule(LightningDataModule):
         random_shuffle: bool = False,
         resize_factor: Optional[float] = None,
         brightness_aug: bool = False,
+        preprocess_aug: bool = False,
         resize_aug: bool = False,
         **kwargs: Any,
     ) -> None:
@@ -57,6 +71,10 @@ class FTWDataModule(LightningDataModule):
             test_countries: List of countries to use test splits from
             random_shuffle: Whether to use random channel shuffle augmentation
             resize_factor: Optional resize factor to upsample the images
+            brightness_aug: Apply brightness augmentation (cannot be used with preprocess_aug)
+            preprocess_aug: If True, replaces fixed 3000 division with random per-batch
+                divisor drawn uniformly from [1500, 4500] for training batches only.
+                Mutually exclusive with brightness_aug.
             **kwargs: Additional keyword arguments passed to
                 :class:`~src.datasets.FTW`.
         """
@@ -75,22 +93,22 @@ class FTWDataModule(LightningDataModule):
         self.num_samples = num_samples
         self.ignore_sample_fn = kwargs.pop("ignore_sample_fn", None)
         self.kwargs = kwargs
+        self.preprocess_aug = preprocess_aug
+        if self.preprocess_aug and brightness_aug:
+            raise ValueError("preprocess_aug is mutually exclusive with brightness_aug")
 
         # for the temporal option windowA, windowB and median we will have 4 channel input
-
-        self.mean = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0])
-        self.std = torch.tensor([3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000])
         if self.temporal_options in ("windowA", "windowB", "median", "random_window"):
             self.mean = torch.tensor([0, 0, 0, 0])
             self.std = torch.tensor([3000, 3000, 3000, 3000])
-        elif (
-            self.temporal_options == "rgb"
-        ):  # for the rgb temporal option we are just selecting these 3 channls from both window_a and window_b images
+        elif temporal_options == "stacked":
+            self.mean = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0])
+            self.std = torch.tensor([3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000])
+        elif self.temporal_options == "rgb":
             self.mean = torch.tensor([0, 0, 0, 0, 0, 0])
             self.std = torch.tensor([3000, 3000, 3000, 3000, 3000, 3000])
-        elif self.temporal_options == "aef":
-            self.mean = torch.tensor([0] * 64)
-            self.std = torch.tensor([125] * 64)
+        else:
+            raise ValueError(f"Unknown temporal option: {temporal_options}")
 
         print("Loaded datamodule with:")
         print(f"Train countries: {self.train_countries}")
@@ -99,7 +117,12 @@ class FTWDataModule(LightningDataModule):
         print(f"Number of samples: {self.num_samples}")
 
         augs = [
-            K.Normalize(mean=self.mean, std=self.std),
+            # If preprocess_aug enabled, replace fixed normalization with random divisor lambda.
+            *(
+                [kornia.contrib.Lambda(randomDivisorNormalize)]
+                if self.preprocess_aug
+                else [K.Normalize(mean=self.mean, std=self.std)]
+            ),
             K.RandomRotation(p=0.5, degrees=90),
             K.RandomHorizontalFlip(p=0.5),
             K.RandomVerticalFlip(p=0.5),
@@ -107,7 +130,7 @@ class FTWDataModule(LightningDataModule):
         ]
 
         if brightness_aug:
-            augs.append(K.RandomBrightness(p=0.5, brightness=(0.8, 1.5)))
+            augs.append(K.RandomBrightness(p=0.5, brightness=(0.5, 1.5)))
         if resize_aug:
             augs.append(
                 K.RandomResizedCrop(
@@ -116,13 +139,11 @@ class FTWDataModule(LightningDataModule):
             )
 
         if random_shuffle:
-            print("Using random channel shuffle augmentation")
             augs.append(kornia.contrib.Lambda(randomChannelShuffle))
 
         if resize_factor is not None:
             if resize_factor < 1:
                 raise ValueError("Resize factor must be >= 1")
-            print(f"Using resize factor of {resize_factor}")
             augs.append(
                 K.Resize(
                     (int(256 * resize_factor), int(256 * resize_factor)),

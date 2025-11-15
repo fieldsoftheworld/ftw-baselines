@@ -9,10 +9,10 @@ from multiprocessing import Process, Queue
 import pandas as pd
 import yaml
 
-from ftw_tools.settings import ALL_COUNTRIES, FULL_DATA_COUNTRIES
+from ftw_tools.settings import ALL_COUNTRIES
 
 # list of GPU IDs that we want to use, one job will be started for every ID in the list
-GPUS = [2, 3, 4, 5, 6]
+GPUS = [0, 1, 2, 3, 4, 5, 6, 7]
 DRY_RUN = False  # if False then print out the commands to be run, if True then run
 
 
@@ -108,6 +108,12 @@ def main(args: argparse.Namespace):
                     command.append("--use_val_set")
                 if args.bootstrap:
                     command.append("--bootstrap")
+                if args.norm_constant is not None:
+                    command.append("--norm_constant")
+                    command.append(str(args.norm_constant))
+                if args.resize_factor is not None:
+                    command.append("--resize_factor")
+                    command.append(str(args.resize_factor))
                 work.put(command)
         else:
             command = [
@@ -124,6 +130,8 @@ def main(args: argparse.Namespace):
                 checkpoint,
                 "--out",
                 args.output_fn,
+                "--countries",
+                "full_data",
             ]
             if model_predicts_classes == 3:
                 command.append("--model_predicts_3_classes")
@@ -133,9 +141,12 @@ def main(args: argparse.Namespace):
                 command.append("--use_val_set")
             if args.bootstrap:
                 command.append("--bootstrap")
-            for country in FULL_DATA_COUNTRIES:
-                command.append("--countries")
-                command.append(country)
+            if args.norm_constant is not None:
+                command.append("--norm_constant")
+                command.append(str(args.norm_constant))
+            if args.resize_factor is not None:
+                command.append("--resize_factor")
+                command.append(str(args.resize_factor))
             work.put(command)
 
     processes = []
@@ -177,6 +188,15 @@ if __name__ == "__main__":
         "--bootstrap",
         action="store_true",
         help="Whether to compute 95%% confidence intervals using bootstrap sampling",
+    )
+    parser.add_argument(
+        "--norm_constant",
+        type=float,
+        default=None,
+        help="Normalization constant to use for evaluation (overrides training-time value if set)",
+    )
+    parser.add_argument(
+        "--resize_factor", type=int, default=None, help="Resize factor for images"
     )
     args = parser.parse_args()
     main(args)

@@ -26,20 +26,19 @@ from torchmetrics.classification import (
 )
 from torchvision.models._api import WeightsEnum
 
-from ftw_tools.inference.models import FCSiamAvg
-from ftw_tools.training.losses import (
+from ..inference.models import FCSiamAvg
+from .losses import (
     CombinedLoss,
-    DiceLoss,
     FtnmtLoss,
     JaccardLoss,
     LocallyWeightedTverskyFocalLoss,
     PixelWeightedCE,
     TverskyFocalCELoss,
-    TverskyFocalLoss,
     logCoshDice,
     logCoshDiceCE,
 )
-from ftw_tools.training.metrics import get_object_level_metrics
+from .metrics import get_object_level_metrics
+from .utils import batch_corner_consensus_from_model
 
 
 class CustomSemanticSegmentationTask(BaseTask):
@@ -122,7 +121,6 @@ class CustomSemanticSegmentationTask(BaseTask):
            *learning_rate* and *learning_rate_schedule_patience* were renamed to
            *lr* and *patience*.
         """
-        print("Using custom trainer")
         if ignore_index is not None and loss == "jaccard":
             warnings.warn(
                 "ignore_index has no effect on training when loss='jaccard'",
@@ -132,7 +130,6 @@ class CustomSemanticSegmentationTask(BaseTask):
         self.weights = weights
         self.edge_agreement_loss = edge_agreement_loss
         super().__init__()
-        print(self.hparams)
 
     def configure_losses(self) -> None:
         """Initialize the loss criterion.
@@ -183,12 +180,12 @@ class CustomSemanticSegmentationTask(BaseTask):
             self.criterion = smp.losses.FocalLoss(
                 "multiclass", ignore_index=ignore_index, normalized=True
             )
-        elif loss == "dice":
-            self.criterion = smp.losses.DiceLoss(
-                "multiclass", ignore_index=ignore_index
-            )
         elif loss == "tversky":
             self.criterion = smp.losses.TverskyLoss(
+                "multiclass", ignore_index=ignore_index
+            )
+        elif loss == "dice":
+            self.criterion = smp.losses.DiceLoss(
                 "multiclass", ignore_index=ignore_index
             )
         elif loss == "ce+dice":
@@ -312,6 +309,9 @@ class CustomSemanticSegmentationTask(BaseTask):
         self.val_tps = 0
         self.val_fps = 0
         self.val_fns = 0
+        # consensus accumulators
+        self.val_consensus_sum = 0.0
+        self.val_consensus_count = 0
 
     def configure_models(self) -> None:
         """Initialize the model.
@@ -355,14 +355,6 @@ class CustomSemanticSegmentationTask(BaseTask):
         elif model == "fcn":
             self.model = FCN(
                 in_channels=in_channels, classes=num_classes, num_filters=num_filters
-            )
-        elif model == "actually_just_a_conv":
-            self.model = nn.Conv2d(
-                in_channels=in_channels,
-                out_channels=num_classes,
-                kernel_size=1,
-                stride=1,
-                padding=0,
             )
         elif model == "upernet":
             self.model = smp.UPerNet(
@@ -410,10 +402,7 @@ class CustomSemanticSegmentationTask(BaseTask):
                 classes=num_classes,
             )
         else:
-            raise ValueError(
-                f"Model type '{model}' is not valid. "
-                "Currently, only supports 'unet', 'deeplabv3+', and 'fcn', 'upernet', 'segformer', and 'dpt'."
-            )
+            raise ValueError(f"Model type '{model}' is not valid.")
 
         if in_channels < 5 and model in ["fcsiamdiff", "fcsiamconc", "fcsiamavg"]:
             raise ValueError("FCSiam models require more than one input image.")
@@ -485,7 +474,6 @@ class CustomSemanticSegmentationTask(BaseTask):
             sync_dist=True,
         )
         self.train_metrics.update(y_hat, y)
-
         return loss
 
     def validation_step(
@@ -516,6 +504,25 @@ class CustomSemanticSegmentationTask(BaseTask):
             self.val_fps += fps
             self.val_fns += fns
 
+        if len(x.shape) == 4:
+            # corner consensus metric accumulation (re-run model on corner crops to capture context truncation)
+            fcsiam_mode = self.hparams["model"] in [
+                "fcsiamdiff",
+                "fcsiamconc",
+                "fcsiamavg",
+            ]
+            if fcsiam_mode:
+                x_proc = rearrange(x.detach(), "b (t c) h w -> b t c h w", t=2)
+            else:
+                x_proc = x.detach()
+            consensus_scores = batch_corner_consensus_from_model(
+                self.model, x_proc, size=128, padding=64, fcsiam_mode=fcsiam_mode
+            )
+            for cs in consensus_scores:
+                if cs is not None:
+                    self.val_consensus_sum += cs
+                    self.val_consensus_count += 1
+
         self.log(
             "val/loss",
             loss,
@@ -534,6 +541,7 @@ class CustomSemanticSegmentationTask(BaseTask):
             and self.logger
             and hasattr(self.logger, "experiment")
             and hasattr(self.logger.experiment, "add_figure")
+            and len(x.shape) == 4
         ):
             datamodule = self.trainer.datamodule
             batch["prediction"] = y_hat.argmax(dim=1)
@@ -629,6 +637,19 @@ class CustomSemanticSegmentationTask(BaseTask):
         self.val_tps = 0
         self.val_fps = 0
         self.val_fns = 0
+        # log consensus if any samples valid
+        if self.val_consensus_count > 0:
+            avg_consensus = self.val_consensus_sum / self.val_consensus_count
+            self.log(
+                "val/corner_consensus",
+                avg_consensus,
+                on_step=False,
+                on_epoch=True,
+                prog_bar=False,
+                sync_dist=True,
+            )
+        self.val_consensus_sum = 0.0
+        self.val_consensus_count = 0
 
         per_class = self.val_metrics.compute()
         self._log_per_class(per_class, "val")

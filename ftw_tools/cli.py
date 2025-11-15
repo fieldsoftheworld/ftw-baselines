@@ -351,6 +351,20 @@ def model_fit(config, ckpt_path, cli_args):
     help="Whether to run inference on (window_a, window_b) instead of the default (window_b, window_a).",
 )
 @click.option(
+    "--norm_constant",
+    type=click.FloatRange(min=1.0),
+    default=None,
+    show_default=True,
+    help="Override the default radiance normalization constant (e.g., 3000). If set, images are divided by this value instead of 3000 and random brightness is disabled.",
+)
+@click.option(
+    "--resize_factor",
+    type=click.IntRange(min=1),
+    default=1,
+    show_default=True,
+    help="Resize factor to use for inference (1 does nothing).",
+)
+@click.option(
     "--num_workers",
     type=click.IntRange(min=1),
     default=4,
@@ -376,6 +390,8 @@ def model_test(
     temporal_options,
     use_val_set,
     swap_order,
+    norm_constant,
+    resize_factor,
     num_workers,
     bootstrap,
 ):
@@ -393,6 +409,8 @@ def model_test(
         temporal_options,
         use_val_set,
         swap_order,
+        norm_constant,
+        resize_factor,
         num_workers,
         bootstrap,
     )
