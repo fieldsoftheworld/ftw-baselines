@@ -23,10 +23,13 @@ SUPPORTED_POLY_FORMATS_TXT = (
 
 # List of all available countries
 ALL_COUNTRIES = [
+    "altoparana_training",
+    "altoparana_validation",
     "austria",
     "belgium",
     "brazil",
     "cambodia",
+    "cerrado2",
     "corsica",
     "croatia",
     "denmark",
@@ -40,6 +43,8 @@ ALL_COUNTRIES = [
     "lithuania",
     "luxembourg",
     "netherlands",
+    "peruvianamazon_training",
+    "peruvianamazon_validation",
     "portugal",
     "rwanda",
     "slovakia",
