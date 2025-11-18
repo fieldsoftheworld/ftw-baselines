@@ -1,4 +1,22 @@
+import tempfile
+
+import pytest
+import torch
+
 from ftw_tools.inference.model_registry import MODEL_REGISTRY, RELEASE_URL, ModelSpec
+from ftw_tools.inference.models import load_model_from_checkpoint
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("model_name", MODEL_REGISTRY.keys())
+def test_model_loading(model_name: str):
+    if model_name.startswith("DelineateAnything"):
+        return
+
+    url = MODEL_REGISTRY[model_name].url
+    with tempfile.NamedTemporaryFile(suffix=".ckpt") as tmp_file:
+        torch.hub.download_url_to_file(url=url, dst=tmp_file.name)
+        load_model_from_checkpoint(tmp_file.name)
 
 
 def test_valid_model_spec_instance():
