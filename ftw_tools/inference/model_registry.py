@@ -105,4 +105,28 @@ MODEL_REGISTRY = {
         requires_window=False,
         requires_polygonize=False,
     ),
+    "PRUE_EFNET_B3": ModelSpec(
+        url=f"{RELEASE_URL}v3/prue_efnet3_checkpoint.ckpt",
+        description="PRUE U-Net EfficientNet-B3 Pretrained Model",
+        license="proprietary",
+        version="v3",
+        requires_window=True,
+        requires_polygonize=True,
+    ),
+    "PRUE_EFNET_B5": ModelSpec(
+        url=f"{RELEASE_URL}v3/prue_efnet5_checkpoint.ckpt",
+        description="PRUE U-Net EfficientNet-B5 Pretrained Model",
+        license="proprietary",
+        version="v3",
+        requires_window=True,
+        requires_polygonize=True,
+    ),
+    "PRUE_EFNET_B7": ModelSpec(
+        url=f"{RELEASE_URL}v3/prue_efnet7_checkpoint.ckpt",
+        description="PRUE U-Net EfficientNet-B7 Pretrained Model",
+        license="proprietary",
+        version="v3",
+        requires_window=True,
+        requires_polygonize=True,
+    ),
 }
