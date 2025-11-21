@@ -43,6 +43,12 @@ def test_all_urls_are_valid_https():
         )
 
 
+def test_exactly_one_default_model():
+    assert len(list(filter(lambda m: m.default, MODEL_REGISTRY.values()))) == 1, (
+        "There must be exactly one default model."
+    )
+
+
 def test_all_urls_end_with_ckpt_or_pt():
     for model_name, spec in MODEL_REGISTRY.items():
         assert str(spec.url).endswith((".ckpt", ".pt")), (

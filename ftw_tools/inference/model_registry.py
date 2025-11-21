@@ -22,6 +22,7 @@ class ModelSpec(BaseModel):
     version: str = Field(description="Model version (e.g., v1, v2, v3)")
     requires_window: bool = True
     requires_polygonize: bool = True
+    default: bool = False
 
     @field_validator("url")
     @classmethod
@@ -86,6 +87,7 @@ MODEL_REGISTRY = {
         version="v2",
         requires_window=True,
         requires_polygonize=True,
+        default=True,
     ),
     "DelineateAnything-S": ModelSpec(
         url="https://hf.co/torchgeo/delineate-anything-s/resolve/"
