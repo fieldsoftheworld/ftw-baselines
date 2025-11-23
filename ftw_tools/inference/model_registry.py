@@ -40,7 +40,7 @@ class ModelSpec(BaseModel):
 
 
 MODEL_REGISTRY = {
-    "FTW_v1_ 2_Class_CCBY": ModelSpec(
+    "FTW_v1_2_Class_CCBY": ModelSpec(
         url=f"{RELEASE_URL}v1/{TWO_CLASS_CCBY}",
         description="A two class (field / not-field) model trained on only CC-BY or CC0 input data, that was part of the first release of FTW Baseline models. It works less well than the latest models, but can be used for historical comparison, or by those who require CC-BY license before the newer options are trained on the subset of data. Requires 2 time windows, at the start and end of the growing season.",
         license="CC BY 4.0",
