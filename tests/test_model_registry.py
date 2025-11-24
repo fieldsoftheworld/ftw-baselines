@@ -27,6 +27,8 @@ def test_valid_model_spec_instance():
         version="v1",
         requires_window=True,
         requires_polygonize=True,
+        legacy=True,
+        default=False,
     )
     assert model.url == RELEASE_URL + "v1/" + "2_Class_CCBY_FTW_Pretrained.ckpt"
     assert model.description == "A valid model description."
@@ -34,6 +36,8 @@ def test_valid_model_spec_instance():
     assert model.version == "v1"
     assert model.requires_window is True
     assert model.requires_polygonize is True
+    assert model.legacy is True
+    assert model.default is False
 
 
 def test_all_urls_are_valid_https():

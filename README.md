@@ -177,6 +177,11 @@ The string representations of the models released are defined in `models/model_r
 * 3_Class_FULL_v1
 * 3_Class_FULL_singleWindow_v2
 * 3_Class_FULL_multiWindow_v2
+* DelineateAnything-S
+* DelineateAnything
+* PRUE_EFNET_B3
+* PRUE_EFNET_B5
+* PRUE_EFNET_B7
 
 **Note**: If you want more control ie provide specific Sentinel2 scenes to work with follow steps 3-6 to run each part of the inference pipeline sequentially. There is the option to run step 2 `all` which links together the distinct inference steps. If you decide to run step 2 you will get extracted field boundaries as polygons and don't need to proceed with steps 3-6.
 
