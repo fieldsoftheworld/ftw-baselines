@@ -23,6 +23,7 @@ class ModelSpec(BaseModel):
     requires_window: bool = True
     requires_polygonize: bool = True
     default: bool = False
+    legacy: bool = False
 
     @field_validator("url")
     @classmethod
@@ -47,6 +48,7 @@ MODEL_REGISTRY = {
         version="v1",
         requires_window=True,
         requires_polygonize=True,
+        legacy=True,
     ),
     "2_Class_FULL_v1": ModelSpec(
         url=f"{RELEASE_URL}v1/{TWO_CLASS_FULL}",
@@ -55,6 +57,7 @@ MODEL_REGISTRY = {
         version="v1",
         requires_window=True,
         requires_polygonize=True,
+        legacy=True,
     ),
     "3_Class_CCBY_v1": ModelSpec(
         url=f"{RELEASE_URL}v1/{THREE_CLASS_CCBY}",
@@ -63,6 +66,7 @@ MODEL_REGISTRY = {
         version="v1",
         requires_window=True,
         requires_polygonize=True,
+        legacy=True,
     ),
     "3_Class_FULL_v1": ModelSpec(
         url=f"{RELEASE_URL}v1/{THREE_CLASS_FULL}",
@@ -71,6 +75,7 @@ MODEL_REGISTRY = {
         version="v1",
         requires_window=True,
         requires_polygonize=True,
+        legacy=True,
     ),
     "3_Class_FULL_singleWindow_v2": ModelSpec(
         url=f"{RELEASE_URL}v2/3_Class_FULL_FTW_Pretrained_singleWindow_v2.ckpt",
@@ -79,6 +84,7 @@ MODEL_REGISTRY = {
         version="v2",
         requires_window=False,
         requires_polygonize=True,
+        legacy=True,
     ),
     "3_Class_FULL_multiWindow_v2": ModelSpec(
         url=f"{RELEASE_URL}v2/3_Class_FULL_FTW_Pretrained_v2.ckpt",
@@ -88,6 +94,7 @@ MODEL_REGISTRY = {
         requires_window=True,
         requires_polygonize=True,
         default=True,
+        legacy=True,
     ),
     "DelineateAnything-S": ModelSpec(
         url="https://hf.co/torchgeo/delineate-anything-s/resolve/"
@@ -97,6 +104,7 @@ MODEL_REGISTRY = {
         version="v1",
         requires_window=False,
         requires_polygonize=False,
+        legacy=False,
     ),
     "DelineateAnything": ModelSpec(
         url="https://hf.co/torchgeo/delineate-anything/resolve/"
@@ -106,6 +114,7 @@ MODEL_REGISTRY = {
         version="v1",
         requires_window=False,
         requires_polygonize=False,
+        legacy=False,
     ),
     "PRUE_EFNET_B3": ModelSpec(
         url=f"{RELEASE_URL}v3/prue_efnet3_checkpoint.ckpt",
@@ -114,6 +123,7 @@ MODEL_REGISTRY = {
         version="v3",
         requires_window=True,
         requires_polygonize=True,
+        legacy=False,
     ),
     "PRUE_EFNET_B5": ModelSpec(
         url=f"{RELEASE_URL}v3/prue_efnet5_checkpoint.ckpt",
@@ -122,6 +132,7 @@ MODEL_REGISTRY = {
         version="v3",
         requires_window=True,
         requires_polygonize=True,
+        legacy=False,
     ),
     "PRUE_EFNET_B7": ModelSpec(
         url=f"{RELEASE_URL}v3/prue_efnet7_checkpoint.ckpt",
@@ -130,5 +141,6 @@ MODEL_REGISTRY = {
         version="v3",
         requires_window=True,
         requires_polygonize=True,
+        legacy=False,
     ),
 }
