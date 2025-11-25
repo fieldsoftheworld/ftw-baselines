@@ -5,7 +5,7 @@ requires = [ "hatchling" ]
 
 [project]
 name = "ftw-tools"
-version = "2.0.0b2"
+version = "2.0.0b3"
 description = "Fields of The World (FTW) Command Line Interface (CLI) for data management, ML processing, and more."
 readme = "README.md"
 license = "MIT"
