@@ -176,7 +176,7 @@ The string representations of the models released are defined in `ftw_tools/infe
 * FTW_v1_3_Class_CCBY
 * FTW_v1_3_Class_FULL
 * FTW_v2_3_Class_FULL_singleWindow_v2
-* FTW_3_Class_FULL_multiWindow
+* FTW_v2_3_Class_FULL_multiWindow
 * FTW_PRUE_EFNET_B3
 * FTW_PRUE_EFNET_B5
 * FTW_PRUE_EFNET_B7

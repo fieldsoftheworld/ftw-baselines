@@ -72,7 +72,7 @@ MODEL_REGISTRY = {
         requires_window=True,
         requires_polygonize=True,
     ),
-    "FTW_v2_3_Class_FULL_singleWindow_v2": ModelSpec(
+    "FTW_v2_3_Class_FULL_singleWindow": ModelSpec(
         url=f"{RELEASE_URL}v2/3_Class_FULL_FTW_Pretrained_singleWindow_v2.ckpt",
         description="A three class (field, boundary, neither) model trained on a variety of open data licenses (including CC-BY-NC-SA and non-CC open data licenses), that was part of the FTW Baseline v2 release to demonstrate using FTW data for 'one-shot' (single time window) output. Will perform a bit less well than the latest 2 window models. Requires a single time window - automatic selection will get one at the beginning of the grow season, but other times can be tried.",
         license="Mixed Open Licenses",
@@ -80,7 +80,7 @@ MODEL_REGISTRY = {
         requires_window=False,
         requires_polygonize=True,
     ),
-    "FTW_3_Class_FULL_multiWindow": ModelSpec(
+    "FTW_v2_3_Class_FULL_multiWindow": ModelSpec(
         url=f"{RELEASE_URL}v2/3_Class_FULL_FTW_Pretrained_v2.ckpt",
         description="A three class (field, boundary, neither) model trained on a variety of open data licenses (including CC-BY-NC-SA and non-CC open data licenses), that is the main FTW Baseline v2 release. Generally recommended for a variety of use. Requires 2 time windows, at the start and end of the growing season.",
         license="Mixed Open Licenses",
