@@ -735,8 +735,10 @@ We welcome contributions! Please fork the repository, make your changes, and sub
 3. Set up the environment in development mode (according to the instructions above)
 4. Ensure `uv.lock` has been updated by the previous steps
 5. Ensure all tests succeed
-6. Run `uv build`
-7. Run `uv publish`
+6. Clear the `dist` folder, if it exists
+7. Run `uv build`
+8. Run `uv publish` (permissions have @m-mohr, @cholmes, and @calebrob6)
+9. Check that the released package works
 
 ## License
 
