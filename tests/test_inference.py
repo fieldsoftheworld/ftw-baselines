@@ -149,7 +149,7 @@ def test_inference_run(tmp_path: Path):
     args = [
         inf_input_path,
         "--model",
-        "3_Class_FULL_v1",
+        "FTW_v1_3_Class_FULL",
         "--out",
         str(inf_output_path),
         "--gpu",
@@ -194,7 +194,7 @@ def test_ftw_inference_all(tmp_path: Path, mock_crop_calendar_downloads):
         f"--out={str(out_path)}",
         "--cloud_cover_max=20",
         "--buffer_days=14",
-        "--model=3_Class_FULL_v1",
+        "--model=FTW_v1_3_Class_FULL",
         "--resize_factor=2",
         "--overwrite",
     ]

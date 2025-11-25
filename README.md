@@ -170,18 +170,18 @@ The following commands show the steps for using the FTW CLI to obtain the FTW mo
 In order to use `ftw inference` cli command you need to select one of the existing pre-trained models.
 The pre-trained models with descriptions are in the releases portion of the repo, see [here](https://github.com/fieldsoftheworld/ftw-baselines/releases) for more details.
 
-The string representations of the models released are defined in `models/model_registry.py` and are:
-* 2_Class_CCBY_v1
-* 2_Class_FULL_v1
-* 3_Class_CCBY_v1
-* 3_Class_FULL_v1
-* 3_Class_FULL_singleWindow_v2
-* 3_Class_FULL_multiWindow_v2
-* DelineateAnything-S
+The string representations of the models released are defined in `ftw_tools/inference/model_registry.py` and include:
+* FTW_v1_2_Class_CCBY
+* FTW_v1_2_Class_FULL
+* FTW_v1_3_Class_CCBY
+* FTW_v1_3_Class_FULL
+* FTW_v2_3_Class_FULL_singleWindow_v2
+* FTW_v2_3_Class_FULL_multiWindow
+* FTW_PRUE_EFNET_B3
+* FTW_PRUE_EFNET_B5
+* FTW_PRUE_EFNET_B7
 * DelineateAnything
-* PRUE_EFNET_B3
-* PRUE_EFNET_B5
-* PRUE_EFNET_B7
+* DelineateAnything-S
 
 **Note**: If you want more control ie provide specific Sentinel2 scenes to work with follow steps 3-6 to run each part of the inference pipeline sequentially. There is the option to run step 2 `all` which links together the distinct inference steps. If you decide to run step 2 you will get extracted field boundaries as polygons and don't need to proceed with steps 3-6.
 
@@ -262,7 +262,7 @@ ftw inference all \
     --out=/path/to/output \
     --cloud_cover_max=20 \
     --buffer_days=14 \
-    --model=3_Class_FULL_multiWindow_v2 \
+    --model=FTW_3_Class_FULL_multiWindow \
     --resize_factor=2 \
     --overwrite
 ```
