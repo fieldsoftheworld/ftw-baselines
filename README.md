@@ -35,6 +35,7 @@ This repository provides the codebase for working with the [FTW dataset](https:/
 - [Notes](#notes)
 - [Upcoming features](#upcoming-features)
 - [Contributing](#contributing)
+- [Release](#release)
 - [License](#license)
 
 ## System setup
@@ -726,6 +727,16 @@ Check out the [Issues Section](https://github.com/fieldsoftheworld/ftw-baselines
 ## Contributing
 
 We welcome contributions! Please fork the repository, make your changes, and submit a pull request. For any issues, feel free to open an issue ticket.
+
+## Release
+
+1. Get the latest version from the main branch
+2. Update the version number in `pyproject.toml`
+3. Set up the environment in development mode (according to the instructions above)
+4. Ensure `uv.lock` has been updated by the previous steps
+5. Ensure all tests succeed
+6. Run `uv build`
+7. Run `uv publish`
 
 ## License
 
