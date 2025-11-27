@@ -4,6 +4,9 @@ import os
 from typing import Optional
 
 import click
+import torch
+
+torch.set_float32_matmul_precision("high")
 
 # torchvision.ops.nms is not supported on MPS yet
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
@@ -308,9 +311,9 @@ def model_fit(config, ckpt_path, cli_args):
     "--out",
     "-o",
     type=click.Path(exists=False),
-    default="metrics.json",
+    default="metrics.csv",
     show_default=True,
-    help="Output file for metrics",
+    help="Output csv file for metrics",
 )
 @click.option(
     "--model_predicts_3_classes",
