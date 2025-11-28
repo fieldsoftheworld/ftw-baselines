@@ -4,9 +4,6 @@ import os
 from typing import Optional
 
 import click
-import torch
-
-torch.set_float32_matmul_precision("high")
 
 # torchvision.ops.nms is not supported on MPS yet
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
