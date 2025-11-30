@@ -144,7 +144,7 @@ MODEL_REGISTRY = {
     ),
     "PRUE_EFNET_B3_CCBY": ModelSpec(
         url=f"{RELEASE_URL}v3.1/prue_efnetb3_ccby_checkpoint.ckpt",
-        description="PRUE U-Net EfficientNet-B3 CC-BY Pretrained Model ",
+        description="PRUE U-Net EfficientNet-B3 CC-BY Pretrained Model",
         license="CC BY 4.0",
         version="v3.1",
         requires_window=True,
@@ -154,7 +154,7 @@ MODEL_REGISTRY = {
     ),
     "PRUE_EFNET_B5_CCBY": ModelSpec(
         url=f"{RELEASE_URL}v3.1/prue_efnetb5_ccby_checkpoint.ckpt",
-        description="PRUE U-Net EfficientNet-B5 CC-BY Pretrained Model ",
+        description="PRUE U-Net EfficientNet-B5 CC-BY Pretrained Model",
         license="CC BY 4.0",
         version="v3.1",
         requires_window=True,
@@ -163,7 +163,7 @@ MODEL_REGISTRY = {
     ),
     "PRUE_EFNET_B7_CCBY": ModelSpec(
         url=f"{RELEASE_URL}v3.1/prue_efnetb7_ccby_checkpoint.ckpt",
-        description="PRUE U-Net EfficientNet-B7 CC-BY Pretrained Model ",
+        description="PRUE U-Net EfficientNet-B7 CC-BY Pretrained Model",
         license="CC BY 4.0",
         version="v3.1",
         requires_window=True,
