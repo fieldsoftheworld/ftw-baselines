@@ -2,7 +2,7 @@ trainer:
   max_epochs: 100
   log_every_n_steps: 10
   accelerator: gpu
-  default_root_dir: logs/prue/prue-unet-logcoshdice-augs-efficientnetb7-ccby
+  default_root_dir: logs/prue/prue-unet-logcoshdice-augs-efficientnetb3-ccby
   devices:
     - 0
   callbacks:
