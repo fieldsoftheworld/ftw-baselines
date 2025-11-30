@@ -93,7 +93,6 @@ MODEL_REGISTRY = {
         version="v2",
         requires_window=True,
         requires_polygonize=True,
-        default=True,
         legacy=True,
     ),
     "DelineateAnything-S": ModelSpec(
@@ -151,6 +150,7 @@ MODEL_REGISTRY = {
         requires_window=True,
         requires_polygonize=True,
         legacy=False,
+        default=True,
     ),
     "PRUE_EFNET_B5_CCBY": ModelSpec(
         url=f"{RELEASE_URL}v3.1/prue_efnetb5_ccby_checkpoint.ckpt",
