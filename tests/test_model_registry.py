@@ -21,6 +21,7 @@ def test_model_loading(model_name: str):
 
 def test_valid_model_spec_instance():
     model = ModelSpec(
+        title="FTW v1",
         url=f"{RELEASE_URL}v1/2_Class_CCBY_FTW_Pretrained.ckpt",
         description="A valid model description.",
         license="CC BY 4.0",
@@ -30,6 +31,7 @@ def test_valid_model_spec_instance():
         legacy=True,
         default=False,
     )
+    assert model.title == "FTW v1"
     assert model.url == RELEASE_URL + "v1/" + "2_Class_CCBY_FTW_Pretrained.ckpt"
     assert model.description == "A valid model description."
     assert model.license == "CC BY 4.0"
