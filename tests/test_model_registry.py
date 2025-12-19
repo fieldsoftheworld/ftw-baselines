@@ -21,18 +21,20 @@ def test_model_loading(model_name: str):
 
 def test_valid_model_spec_instance():
     model = ModelSpec(
+        title="FTW v1",
         url=f"{RELEASE_URL}v1/2_Class_CCBY_FTW_Pretrained.ckpt",
         description="A valid model description.",
-        license="CC BY 4.0",
+        license="CC-BY-4.0",
         version="v1",
         requires_window=True,
         requires_polygonize=True,
         legacy=True,
         default=False,
     )
+    assert model.title == "FTW v1"
     assert model.url == RELEASE_URL + "v1/" + "2_Class_CCBY_FTW_Pretrained.ckpt"
     assert model.description == "A valid model description."
-    assert model.license == "CC BY 4.0"
+    assert model.license == "CC-BY-4.0"
     assert model.version == "v1"
     assert model.requires_window is True
     assert model.requires_polygonize is True
