@@ -120,8 +120,6 @@ MODEL_REGISTRY = {
         description="A three class (field, boundary, neither) model trained with EfficientNet-B3 on a variety of open data licenses (including CC-BY-NC-SA and non-CC open data licenses), that is the part of the FTW Baseline v3 release. It along with the other two EfficientNet models will likely perform best. B3 is likely the fastest of FTW v3, but less accurate than B5 and B7. Requires two time windows, at the start and end of the growing season.",
         license="Mixed Open Licenses",
         version="v3",
-        requires_window=True,
-        requires_polygonize=True,
     ),
     "FTW_PRUE_EFNET_B5": ModelSpec(
         title="FTW v3: Standard, B5",
@@ -137,5 +135,29 @@ MODEL_REGISTRY = {
         description="A three class (field, boundary, neither) model trained with EfficientNet-B7 on a variety of open data licenses (including CC-BY-NC-SA and non-CC open data licenses), that is the part of the FTW Baseline v3 release. It along with the other two EfficientNet models will likely perform best. B7 is likely the most accurate of FTW v3, but the slowest. Requires two time windows, at the start and end of the growing season.",
         license="Mixed Open Licenses",
         version="v3",
+    ),
+    "FTW_PRUE_EFNET_B3_CCBY": ModelSpec(
+        title="FTW v3: CC-BY, B3",
+        url=f"{RELEASE_URL}v3.1/prue_efnetb3_ccby_checkpoint.ckpt",
+        description="A three class (field, boundary, neither) model trained with EfficientNet-B3 on only CC-BY or CC0 input data. B3 is likely the fastest of FTW v3, but less accurate than B5 and B7. Requires two time windows, at the start and end of the growing season.",
+        license="CC-BY-4.0",
+        version="v3.1",
+        legacy=False,
+    ),
+    "PRUE_EFNET_B5_CCBY": ModelSpec(
+        title="FTW v3: CC-BY, B5",
+        url=f"{RELEASE_URL}v3.1/prue_efnetb5_ccby_checkpoint.ckpt",
+        description="A three class (field, boundary, neither) model trained with EfficientNet-B5 on only CC-BY or CC0 input data. B5 is a compromise of speed and accuracy in FTW v3, so slower and more accurate than B3 but faster and less accurate than B7. Requires two time windows, at the start and end of the growing season.",
+        license="CC-BY-4.0",
+        version="v3.1",
+        legacy=False,
+    ),
+    "PRUE_EFNET_B7_CCBY": ModelSpec(
+        title="FTW v3: CC-BY, B7",
+        url=f"{RELEASE_URL}v3.1/prue_efnetb7_ccby_checkpoint.ckpt",
+        description="A three class (field, boundary, neither) model trained with EfficientNet-B7 on only CC-BY or CC0 input data. B7 is likely the most accurate of FTW v3, but the slowest. Requires two time windows, at the start and end of the growing season.",
+        license="CC-BY-4.0",
+        version="v3.1",
+        legacy=False,
     ),
 }
