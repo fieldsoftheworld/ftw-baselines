@@ -51,8 +51,6 @@ MODEL_REGISTRY = {
         description="A two class (field / not-field) model trained on only CC-BY or CC0 input data, that was part of the first release of FTW Baseline models. It works less well than the latest models, but can be used for historical comparison, or by those who require CC-BY license before the newer options are trained on the subset of data. Requires two time windows, at the start and end of the growing season.",
         license="CC-BY-4.0",
         version="v1",
-        requires_window=True,
-        requires_polygonize=True,
         legacy=True,
     ),
     "FTW_v1_2_Class_FULL": ModelSpec(
@@ -61,8 +59,6 @@ MODEL_REGISTRY = {
         description="A two class (field / not-field) model trained on a variety of open data licenses (including CC-BY-NC-SA and non-CC open data licenses), that was part of the first release of FTW Baseline models. It works less well than the latest models, but can be used for historical comparison. Requires two time windows, at the start and end of the growing season.",
         license="Mixed Open Licenses",
         version="v1",
-        requires_window=True,
-        requires_polygonize=True,
         legacy=True,
     ),
     "FTW_v1_3_Class_CCBY": ModelSpec(
@@ -71,8 +67,6 @@ MODEL_REGISTRY = {
         description="A three class (field, boundary, neither) model trained on only CC-BY or CC0 input data, that was part of the first release of FTW Baseline models. It works less well than the latest models, but can be used for historical comparison, or by those who require CC-BY license before the newer options are trained on the subset of data. Requires two time windows, at the start and end of the growing season.",
         license="CC-BY-4.0",
         version="v1",
-        requires_window=True,
-        requires_polygonize=True,
         legacy=True,
     ),
     "FTW_v1_3_Class_FULL": ModelSpec(
@@ -81,8 +75,6 @@ MODEL_REGISTRY = {
         description="A three class (field, boundary, neither) model trained on a variety of open data licenses (including CC-BY-NC-SA and non-CC open data licenses), that was part of the first release of FTW Baseline models. It works less well than the latest models, but can be used for historical comparison. Requires two time windows, at the start and end of the growing season.",
         license="Mixed Open Licenses",
         version="v1",
-        requires_window=True,
-        requires_polygonize=True,
         legacy=True,
     ),
     "FTW_v2_3_Class_FULL_singleWindow": ModelSpec(
@@ -92,7 +84,6 @@ MODEL_REGISTRY = {
         license="Mixed Open Licenses",
         version="v2",
         requires_window=False,
-        requires_polygonize=True,
         legacy=True,
     ),
     "FTW_v2_3_Class_FULL_multiWindow": ModelSpec(
@@ -101,8 +92,6 @@ MODEL_REGISTRY = {
         description="A three class (field, boundary, neither) model trained on a variety of open data licenses (including CC-BY-NC-SA and non-CC open data licenses), that is the main FTW Baseline v2 release. Generally recommended for a variety of use. Requires two time windows, at the start and end of the growing season.",
         license="Mixed Open Licenses",
         version="v2",
-        requires_window=True,
-        requires_polygonize=True,
         legacy=True,
     ),
     "DelineateAnything-S": ModelSpec(
@@ -114,7 +103,6 @@ MODEL_REGISTRY = {
         version="v1",
         requires_window=False,
         requires_polygonize=False,
-        legacy=False,
     ),
     "DelineateAnything": ModelSpec(
         title="DelineateAnything v1: Standard",
@@ -125,7 +113,6 @@ MODEL_REGISTRY = {
         version="v1",
         requires_window=False,
         requires_polygonize=False,
-        legacy=False,
     ),
     "FTW_PRUE_EFNET_B3": ModelSpec(
         title="FTW v3: Standard, B3",
@@ -135,7 +122,6 @@ MODEL_REGISTRY = {
         version="v3",
         requires_window=True,
         requires_polygonize=True,
-        legacy=False,
     ),
     "FTW_PRUE_EFNET_B5": ModelSpec(
         title="FTW v3: Standard, B5",
@@ -143,9 +129,6 @@ MODEL_REGISTRY = {
         description="A three class (field, boundary, neither) model trained with EfficientNet-B5 on a variety of open data licenses (including CC-BY-NC-SA and non-CC open data licenses), that is the part of the FTW Baseline v3 release. It along with the other two EfficientNet models will likely perform best. B5 is a compromise of speed and accuracy in FTW v3, so slower and more accurate than B3 but faster and less accurate than B7. Requires two time windows, at the start and end of the growing season.",
         license="Mixed Open Licenses",
         version="v3",
-        requires_window=True,
-        requires_polygonize=True,
-        legacy=False,
         default=True,
     ),
     "FTW_PRUE_EFNET_B7": ModelSpec(
@@ -154,8 +137,5 @@ MODEL_REGISTRY = {
         description="A three class (field, boundary, neither) model trained with EfficientNet-B7 on a variety of open data licenses (including CC-BY-NC-SA and non-CC open data licenses), that is the part of the FTW Baseline v3 release. It along with the other two EfficientNet models will likely perform best. B7 is likely the most accurate of FTW v3, but the slowest. Requires two time windows, at the start and end of the growing season.",
         license="Mixed Open Licenses",
         version="v3",
-        requires_window=True,
-        requires_polygonize=True,
-        legacy=False,
     ),
 }
