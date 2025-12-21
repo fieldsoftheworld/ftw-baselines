@@ -23,6 +23,7 @@ class ModelSpec(BaseModel):
     version: str = Field(description="Model version (e.g., v1, v2, v3)")
     requires_window: bool = True
     requires_polygonize: bool = True
+    instance_segmentation: bool = False
     default: bool = False
     legacy: bool = False
 
@@ -103,6 +104,7 @@ MODEL_REGISTRY = {
         version="v1",
         requires_window=False,
         requires_polygonize=False,
+        instance_segmentation=True,
     ),
     "DelineateAnything": ModelSpec(
         title="DelineateAnything v1: Standard",
@@ -113,6 +115,7 @@ MODEL_REGISTRY = {
         version="v1",
         requires_window=False,
         requires_polygonize=False,
+        instance_segmentation=True,
     ),
     "FTW_PRUE_EFNET_B3": ModelSpec(
         title="FTW v3: Standard, B3",
@@ -143,14 +146,14 @@ MODEL_REGISTRY = {
         license="CC-BY-4.0",
         version="v3.1",
     ),
-    "PRUE_EFNET_B5_CCBY": ModelSpec(
+    "FTW_PRUE_EFNET_B5_CCBY": ModelSpec(
         title="FTW v3: CC-BY, B5",
         url=f"{RELEASE_URL}v3.1/prue_efnetb5_ccby_checkpoint.ckpt",
         description="A three class (field, boundary, neither) model trained with EfficientNet-B5 on only CC-BY or CC0 input data. B5 is a compromise of speed and accuracy in FTW v3, so slower and more accurate than B3 but faster and less accurate than B7. Requires two time windows, at the start and end of the growing season.",
         license="CC-BY-4.0",
         version="v3.1",
     ),
-    "PRUE_EFNET_B7_CCBY": ModelSpec(
+    "FTW_PRUE_EFNET_B7_CCBY": ModelSpec(
         title="FTW v3: CC-BY, B7",
         url=f"{RELEASE_URL}v3.1/prue_efnetb7_ccby_checkpoint.ckpt",
         description="A three class (field, boundary, neither) model trained with EfficientNet-B7 on only CC-BY or CC0 input data. B7 is likely the most accurate of FTW v3, but the slowest. Requires two time windows, at the start and end of the growing season.",
