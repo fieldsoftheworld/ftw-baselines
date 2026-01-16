@@ -46,13 +46,13 @@ class UnionFind:
 
 def merge_adjacent_polygons(features, ratio):
     """Merge polygons when they overlap or touch sufficiently.
-    
+
     Uses an R-tree spatial index for O(N log N) performance instead of O(N²).
-    
+
     Args:
         features: List of feature dicts with geometry and properties
         ratio: Minimum ratio of shared boundary to merge touching polygons
-        
+
     Returns:
         List of merged features
     """
@@ -78,19 +78,19 @@ def merge_adjacent_polygons(features, ratio):
         idx.insert(i, bbox)
 
     uf = UnionFind(n)
-    
+
     # For each polygon, query the R-tree for potentially intersecting polygons
     for i in range(n):
         gi = geoms[i]
         bbox_i = bboxes[i]
-        
+
         # Query R-tree for candidates that intersect bbox_i
         # This is O(log N) per query, giving O(N log N) overall
         for j in idx.intersection(bbox_i):
             # Skip self and already processed pairs (only check j > i)
             if j <= i:
                 continue
-                
+
             gj = geoms[j]
             if not gi.intersects(gj):
                 continue
@@ -148,8 +148,8 @@ def zhang_suen_thinning(img: np.ndarray, max_iters: int = 0) -> np.ndarray:
         raise ValueError("img must be a 2D array")
 
     # Work in uint8 {0,1} with a 1-pixel zero pad to avoid wraparound.
-    I = (img != 0).astype(np.uint8)
-    I = np.pad(I, 1, mode="constant")
+    out_img = (img != 0).astype(np.uint8)
+    out_img = np.pad(out_img, 1, mode="constant")
 
     def neighbors_views(A):
         # Using the standard Zhang–Suen neighbor naming:
@@ -195,7 +195,7 @@ def zhang_suen_thinning(img: np.ndarray, max_iters: int = 0) -> np.ndarray:
         changed = False
 
         # ----- Sub-iteration 1 -----
-        C, Ps = neighbors_views(I)
+        C, Ps = neighbors_views(out_img)
         B = B_count(Ps)
         A = A_count(Ps)
         P2, P3, P4, P5, P6, P7, P8, P9 = Ps
@@ -213,7 +213,7 @@ def zhang_suen_thinning(img: np.ndarray, max_iters: int = 0) -> np.ndarray:
             changed = True
 
         # ----- Sub-iteration 2 -----
-        C, Ps = neighbors_views(I)  # recompute after deletion
+        C, Ps = neighbors_views(out_img)  # recompute after deletion
         B = B_count(Ps)
         A = A_count(Ps)
         P2, P3, P4, P5, P6, P7, P8, P9 = Ps
@@ -233,7 +233,7 @@ def zhang_suen_thinning(img: np.ndarray, max_iters: int = 0) -> np.ndarray:
         iters += 1
 
     # Remove padding, cast back to original dtype
-    out = I[1:-1, 1:-1].astype(img.dtype)
+    out = out_img[1:-1, 1:-1].astype(img.dtype)
     return out
 
 
@@ -492,7 +492,7 @@ def polygonize(
                     pbar.update(1)
 
     # Merge adjacent polygons
-    if merge_adjacent != None:
+    if merge_adjacent is not None:
         rows = merge_adjacent_polygons(rows, merge_adjacent)
 
     if format == "Parquet":

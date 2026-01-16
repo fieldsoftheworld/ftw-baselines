@@ -2,17 +2,14 @@
 
 import time
 
-import pytest
 import shapely.geometry
+
 from ftw_tools.postprocess.polygonize import merge_adjacent_polygons
 
 
 def create_feature(geom, id_val=""):
     """Helper to create a feature dict from a geometry."""
-    return {
-        "geometry": shapely.geometry.mapping(geom),
-        "properties": {"id": id_val},
-    }
+    return {"geometry": shapely.geometry.mapping(geom), "properties": {"id": id_val}}
 
 
 def test_merge_adjacent_empty():
@@ -55,12 +52,12 @@ def test_merge_adjacent_touching_high_ratio():
     poly1 = shapely.geometry.box(0, 0, 1, 1)
     poly2 = shapely.geometry.box(1, 0, 2, 1)  # shares right edge of poly1
     features = [create_feature(poly1, "1"), create_feature(poly2, "2")]
-    
+
     # Shared edge is 1.0, smaller perimeter is 4.0, so ratio = 1.0/4.0 = 0.25
     # With ratio=0.2, they should merge (0.25 >= 0.2)
     result = merge_adjacent_polygons(features, 0.2)
     assert len(result) == 1
-    
+
     # With ratio=0.5, they should NOT merge (0.25 < 0.5)
     result = merge_adjacent_polygons(features, 0.5)
     assert len(result) == 2
@@ -85,7 +82,7 @@ def test_merge_adjacent_multiple_components():
     poly4 = shapely.geometry.box(6, 5, 7, 6)
     # Component 3: poly5 is isolated
     poly5 = shapely.geometry.box(10, 10, 11, 11)
-    
+
     features = [
         create_feature(poly1, "1"),
         create_feature(poly2, "2"),
@@ -121,7 +118,7 @@ def test_merge_adjacent_bbox_optimization():
     for i in range(100):
         poly = shapely.geometry.box(i * 10, i * 10, i * 10 + 1, i * 10 + 1)
         features.append(create_feature(poly, str(i)))
-    
+
     result = merge_adjacent_polygons(features, 0.0)
     assert len(result) == 100  # All separate
 
@@ -146,7 +143,7 @@ def test_merge_adjacent_properties():
     poly2 = shapely.geometry.box(1, 0, 2, 1)
     features = [create_feature(poly1, "A"), create_feature(poly2, "B")]
     result = merge_adjacent_polygons(features, 0.0)
-    
+
     assert len(result) == 1
     merged = result[0]
     assert "A" in merged["properties"]["id"]
@@ -159,7 +156,7 @@ def test_merge_adjacent_properties():
 
 def test_merge_adjacent_performance():
     """Test performance with a large number of polygons.
-    
+
     This test demonstrates that the rtree-based implementation scales well.
     With the old O(N²) implementation, this would take significantly longer.
     """
@@ -173,12 +170,12 @@ def test_merge_adjacent_performance():
             y = j * 2.0
             poly = shapely.geometry.box(x, y, x + 0.9, y + 0.9)
             features.append(create_feature(poly, f"{i}_{j}"))
-    
+
     print(f"\nPerformance test with {len(features)} polygons")
     start = time.time()
     result = merge_adjacent_polygons(features, 0.0)
     elapsed = time.time() - start
-    
+
     print(f"Processing {len(features)} polygons took {elapsed:.3f}s")
     assert len(result) == len(features)  # None should merge due to gaps
     # With rtree optimization, this should complete in under 5 seconds

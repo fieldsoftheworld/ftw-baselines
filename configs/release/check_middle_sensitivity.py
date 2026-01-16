@@ -160,7 +160,7 @@ def main(args: argparse.Namespace):
 
     print(f"\nResults saved to {args.output_fn}")
     print(f"Total patches processed: {len(df)}")
-    print(f"\nOverall statistics:")
+    print("\nOverall statistics:")
     print(
         f"Mean consensus: {df['consensus_score'].mean():.4f} +/- {df['consensus_score'].std():.4f}"
     )
@@ -168,7 +168,7 @@ def main(args: argparse.Namespace):
     print(f"Max consensus: {df['consensus_score'].max():.4f}")
     print(f"Median consensus: {df['consensus_score'].median():.4f}")
 
-    print(f"\nPer-country statistics:")
+    print("\nPer-country statistics:")
     country_stats = (
         df.groupby("country")["consensus_score"].agg(["count", "mean", "std"]).round(4)
     )

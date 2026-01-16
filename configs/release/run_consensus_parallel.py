@@ -116,7 +116,7 @@ def main(args: argparse.Namespace):
     for p in processes:
         p.join()
 
-    print(f"\nAll consensus analysis jobs completed!")
+    print("\nAll consensus analysis jobs completed!")
     print(f"Results saved to: {args.output_dir}")
 
 
