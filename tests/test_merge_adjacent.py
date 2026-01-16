@@ -56,12 +56,12 @@ def test_merge_adjacent_touching_high_ratio():
     poly2 = shapely.geometry.box(1, 0, 2, 1)  # shares right edge of poly1
     features = [create_feature(poly1, "1"), create_feature(poly2, "2")]
     
-    # With ratio=0.5, they should merge (shared edge is 1.0, perimeter is 4.0, so ratio = 0.25 < 0.5)
-    # Actually the smaller perimeter is 4.0, shared is 1.0, so 1.0/4.0 = 0.25
+    # Shared edge is 1.0, smaller perimeter is 4.0, so ratio = 1.0/4.0 = 0.25
+    # With ratio=0.2, they should merge (0.25 >= 0.2)
     result = merge_adjacent_polygons(features, 0.2)
     assert len(result) == 1
     
-    # With ratio=0.5, they should NOT merge
+    # With ratio=0.5, they should NOT merge (0.25 < 0.5)
     result = merge_adjacent_polygons(features, 0.5)
     assert len(result) == 2
 
@@ -163,7 +163,7 @@ def test_merge_adjacent_performance():
     This test demonstrates that the rtree-based implementation scales well.
     With the old O(N²) implementation, this would take significantly longer.
     """
-    # Create a grid of 1000 small polygons (31x32 grid with some spacing)
+    # Create a grid of 1024 small polygons (32x32 grid with spacing)
     features = []
     grid_size = 32
     for i in range(grid_size):
