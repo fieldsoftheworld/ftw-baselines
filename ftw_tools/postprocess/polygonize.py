@@ -12,6 +12,7 @@ import shapely.geometry
 from affine import Affine
 from fiboa_cli.parquet import create_parquet, features_to_dataframe
 from pyproj import CRS, Transformer
+from rtree import index
 from shapely.ops import transform, unary_union
 from skimage.morphology import dilation, erosion
 from tqdm import tqdm
@@ -44,7 +45,17 @@ class UnionFind:
 
 
 def merge_adjacent_polygons(features, ratio):
-    """Merge polygons when they overlap or touch sufficiently."""
+    """Merge polygons when they overlap or touch sufficiently.
+    
+    Uses an R-tree spatial index for O(N log N) performance instead of O(N²).
+    
+    Args:
+        features: List of feature dicts with geometry and properties
+        ratio: Minimum ratio of shared boundary to merge touching polygons
+        
+    Returns:
+        List of merged features
+    """
     print(f"Merging polygons that overlap at least {ratio * 100}%")
     geoms, ids = [], []
     for f in features:
@@ -61,16 +72,25 @@ def merge_adjacent_polygons(features, ratio):
     perims = [g.length for g in geoms]
     bboxes = [g.bounds for g in geoms]  # (minx, miny, maxx, maxy)
 
-    uf = UnionFind(n)
-    for i in range(n):
-        minx_i, miny_i, maxx_i, maxy_i = bboxes[i]
-        gi = geoms[i]
-        for j in range(i + 1, n):
-            minx_j, miny_j, maxx_j, maxy_j = bboxes[j]
-            # quick bbox reject
-            if maxx_i < minx_j or maxx_j < minx_i or maxy_i < miny_j or maxy_j < miny_i:
-                continue
+    # Build R-tree spatial index for O(log N) queries
+    idx = index.Index()
+    for i, bbox in enumerate(bboxes):
+        idx.insert(i, bbox)
 
+    uf = UnionFind(n)
+    
+    # For each polygon, query the R-tree for potentially intersecting polygons
+    for i in range(n):
+        gi = geoms[i]
+        bbox_i = bboxes[i]
+        
+        # Query R-tree for candidates that intersect bbox_i
+        # This is O(log N) per query, giving O(N log N) overall
+        for j in idx.intersection(bbox_i):
+            # Skip self and already processed pairs (only check j > i)
+            if j <= i:
+                continue
+                
             gj = geoms[j]
             if not gi.intersects(gj):
                 continue
