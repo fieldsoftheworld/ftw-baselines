@@ -178,7 +178,7 @@ def bootstrap_confidence_intervals(
 
     # Bootstrap sampling
     bootstrap_metrics = []
-    print(f"Running bootstrapping")
+    print("Running bootstrapping")
     for _ in tqdm(range(n_bootstrap)):
         # Sample with replacement at the sample level
         indices = np.random.choice(n_samples, size=n_samples, replace=True)
