@@ -124,6 +124,7 @@ def scene_selection(
     cloud_cover_max: int = 20,
     buffer_days: int = 14,
     s2_collection: str = "c1",
+    nodata_max: int = None,
     verbose: bool = False,
 ) -> Tuple[str, str]:
     """
@@ -139,6 +140,9 @@ def scene_selection(
             decreasing cloud cover and selecting a date near the crop calendar indicated date.
             Defaults to 14.
         s2_collection (str, optional): Sentinel-2 collection to use (only applies to EarthSearch). Defaults to "c1".
+        nodata_max (int, optional): Maximum allowed nodata pixel percentage. If specified, scenes with higher
+            nodata percentages will be filtered out. Only supported for Microsoft Planetary Computer backend.
+        verbose (bool, optional): Whether to print verbose output. Defaults to False.
 
     Returns:
         tuple: Sentinel2 image ids to be used as input into the 2 image crop model
@@ -154,12 +158,13 @@ def scene_selection(
     )  # to account for southern hemisphere harvest
 
     if verbose:
+        nodata_filter_text = f", nodata_max={nodata_max}%" if nodata_max is not None else ""
         print(
             f"\n=== SCENE SELECTION ===\n"
             f"Crop calendar dates: Start={start_dt.date()} (day {start_day}), End={end_dt.date()} (day {end_day})\n"
             f"STAC Host: {stac_host}\n"
             f"S2 Collection: {s2_collection} ({'EarthSearch only' if stac_host == 'earthsearch' else 'ignored for MSPC'})\n"
-            f"Search parameters: cloud_cover_max={cloud_cover_max}%, buffer_days=±{buffer_days}\n"
+            f"Search parameters: cloud_cover_max={cloud_cover_max}%, buffer_days=±{buffer_days}{nodata_filter_text}\n"
             f"Bounding box: {bbox}\n",
             # search for +/- number of days the crop calendar indicated start and end days
             f"Searching for EARLY SEASON scene around {start_dt.date()} (crop calendar start)",
@@ -172,6 +177,7 @@ def scene_selection(
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
         s2_collection=s2_collection,
+        nodata_max=nodata_max,
         verbose=verbose,
     )
     if verbose:
@@ -185,6 +191,7 @@ def scene_selection(
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
         s2_collection=s2_collection,
+        nodata_max=nodata_max,
         verbose=verbose,
     )
 
@@ -198,6 +205,7 @@ def query_stac(
     cloud_cover_max: int = 20,
     buffer_days=14,
     s2_collection: str = "c1",
+    nodata_max: int = None,
     verbose: bool = False,
 ) -> str:
     """
@@ -212,6 +220,8 @@ def query_stac(
         buffer_days: Number of days to buffer the date for querying.
         stac_host: The STAC host to use ('mspc' or 'earthsearch').
         s2_collection: Sentinel-2 collection to use (only applies to EarthSearch).
+        nodata_max: Maximum allowed nodata pixel percentage (only supported for MSPC).
+        verbose: Whether to print verbose output.
 
     Returns:
         Sentinel-2 image S3 URL.
@@ -225,6 +235,7 @@ def query_stac(
             cloud_cover_max=cloud_cover_max,
             buffer_days=buffer_days,
             s2_collection=s2_collection,
+            nodata_max=nodata_max,
             verbose=verbose,
         )
     elif stac_host == "mspc":
@@ -233,6 +244,7 @@ def query_stac(
             date=date,
             cloud_cover_max=cloud_cover_max,
             buffer_days=buffer_days,
+            nodata_max=nodata_max,
             verbose=verbose,
         )
     else:
@@ -254,10 +266,15 @@ def query_stac(
         print("  Available scenes:")
         for item in items:
             parsed_item = _parse_stac_item(item)
+            nodata_str = (
+                f", area coverage: {100 - parsed_item['nodata_percentage']:.1f}%"
+                if parsed_item["nodata_percentage"] is not None
+                else ""
+            )
             print(
                 f"\t- {parsed_item['id']}: {parsed_item['date']}, "
                 f"MGRS: {parsed_item['mgrs_tile']}, "
-                f"cloud cover: {parsed_item['cloud_cover']:.2f}%"
+                f"cloud cover: {parsed_item['cloud_cover']:.2f}%{nodata_str}"
             )
 
     # Check if AOI is approximately greater than 100 km x 100 km and spans multiple Sentinel 2 MGRS tiles
@@ -288,9 +305,14 @@ def query_stac(
     )
 
     if verbose:
+        nodata_str = (
+            f"\n    Area coverage: {100 - parsed_selected['nodata_percentage']:.1f}%"
+            if parsed_selected["nodata_percentage"] is not None
+            else ""
+        )
         print(
             f"  SELECTED: {parsed_selected['id']} from {parsed_selected['date']}\n"
-            f"    Cloud cover: {parsed_selected['cloud_cover']:.2f}% (lowest among {len(items)} candidates)\n"
+            f"    Cloud cover: {parsed_selected['cloud_cover']:.2f}% (lowest among {len(items)} candidates){nodata_str}\n"
             f"    STAC URL: {least_cloudy_item.get_self_href()}"
         )
 
@@ -386,6 +408,7 @@ def _query_earthsearch(
     cloud_cover_max: int,
     buffer_days: int,
     s2_collection: str,
+    nodata_max: int = None,
     verbose: bool = False,
 ) -> tuple[pystac.ItemCollection, str]:
     """Query EarthSearch for Sentinel-2 imagery.
@@ -396,6 +419,7 @@ def _query_earthsearch(
         cloud_cover_max: Maximum allowed cloud cover percentage.
         buffer_days: Number of days to buffer around the center date.
         s2_collection: Sentinel-2 collection identifier to use.
+        nodata_max: Maximum allowed nodata pixel percentage.
         verbose: Whether to print verbose output.
 
     Returns:
@@ -412,11 +436,19 @@ def _query_earthsearch(
         )
 
     catalog = pystac_client.Client.open(host)
+    
+    # Build query filters
+    query_filters = {"eo:cloud_cover": {"lt": cloud_cover_max}}
+    
+    # Add nodata filter if specified (EarthSearch supports this property)
+    if nodata_max is not None:
+        query_filters["s2:nodata_pixel_percentage"] = {"lt": nodata_max}
+    
     search = catalog.search(
         collections=[collection_name],
         bbox=bbox,
         datetime=date_range,
-        query={"eo:cloud_cover": {"lt": cloud_cover_max}},
+        query=query_filters,
     )
 
     return search.item_collection(), date_range
@@ -427,6 +459,7 @@ def _query_microsoft_pc(
     date: pd.Timestamp,
     cloud_cover_max: int,
     buffer_days: int,
+    nodata_max: int = None,
     verbose: bool = False,
 ) -> tuple[pystac.ItemCollection, str]:
     """Query Microsoft Planetary Computer for Sentinel-2 imagery.
@@ -436,6 +469,7 @@ def _query_microsoft_pc(
         date: Center date for the query.
         cloud_cover_max: Maximum allowed cloud cover percentage.
         buffer_days: Number of days to buffer around the center date.
+        nodata_max: Maximum allowed nodata pixel percentage.
         verbose: Whether to print verbose output.
 
     Returns:
@@ -452,11 +486,19 @@ def _query_microsoft_pc(
         )
 
     catalog = pystac_client.Client.open(host)
+    
+    # Build query filters
+    query_filters = {"eo:cloud_cover": {"lt": cloud_cover_max}}
+    
+    # Add nodata filter if specified (MSPC supports this property)
+    if nodata_max is not None:
+        query_filters["s2:nodata_pixel_percentage"] = {"lt": nodata_max}
+    
     search = catalog.search(
         collections=[collection_name],
         bbox=bbox,
         datetime=date_range,
-        query={"eo:cloud_cover": {"lt": cloud_cover_max}},
+        query=query_filters,
     )
 
     return search.item_collection(), date_range
@@ -474,6 +516,7 @@ def _parse_stac_item(item: pystac.Item) -> dict:
         - date: Item date
         - mgrs_tile: MGRS tile code
         - cloud_cover: Cloud cover percentage
+        - nodata_percentage: Nodata pixel percentage (if available)
         - item: Original STAC item object
     """
     cloud_cover = eo.ext(item).cloud_cover
@@ -481,12 +524,14 @@ def _parse_stac_item(item: pystac.Item) -> dict:
     mgrs_tile = item.properties.get("grid:code") or item.properties.get(
         "s2:mgrs_tile", "Unknown"
     )
+    nodata_percentage = item.properties.get("s2:nodata_pixel_percentage")
 
     return {
         "id": item.id,
         "date": date_str,
         "mgrs_tile": mgrs_tile,
         "cloud_cover": cloud_cover,
+        "nodata_percentage": nodata_percentage,
         "item": item,
     }
 
