@@ -2,7 +2,7 @@ import logging
 import os
 import time
 import urllib.parse
-from typing import Tuple
+from typing import Optional, Tuple
 from urllib.parse import urlparse
 
 import dask.diagnostics.progress
@@ -124,7 +124,7 @@ def scene_selection(
     cloud_cover_max: int = 20,
     buffer_days: int = 14,
     s2_collection: str = "c1",
-    nodata_max: int = None,
+    nodata_max: Optional[int] = None,
     verbose: bool = False,
 ) -> Tuple[str, str]:
     """
@@ -205,7 +205,7 @@ def query_stac(
     cloud_cover_max: int = 20,
     buffer_days=14,
     s2_collection: str = "c1",
-    nodata_max: int = None,
+    nodata_max: Optional[int] = None,
     verbose: bool = False,
 ) -> str:
     """
@@ -406,7 +406,7 @@ def _query_earthsearch(
     cloud_cover_max: int,
     buffer_days: int,
     s2_collection: str,
-    nodata_max: int = None,
+    nodata_max: Optional[int] = None,
     verbose: bool = False,
 ) -> tuple[pystac.ItemCollection, str]:
     """Query EarthSearch for Sentinel-2 imagery.
@@ -457,7 +457,7 @@ def _query_microsoft_pc(
     date: pd.Timestamp,
     cloud_cover_max: int,
     buffer_days: int,
-    nodata_max: int = None,
+    nodata_max: Optional[int] = None,
     verbose: bool = False,
 ) -> tuple[pystac.ItemCollection, str]:
     """Query Microsoft Planetary Computer for Sentinel-2 imagery.
