@@ -2,7 +2,7 @@ import pandas as pd
 import pystac
 import pytest
 
-from ftw_tools.download.download_img import get_item, query_stac
+from ftw_tools.download.download_img import get_item, query_stac, _parse_stac_item
 
 
 @pytest.mark.integration
@@ -63,3 +63,45 @@ def test_query_stac_large_aoi_earthsearch(large_aoi):
         query_stac(
             bbox=large_aoi, stac_host="earthsearch", date=pd.Timestamp("2020-01-01")
         )
+
+
+@pytest.mark.integration
+def test_query_stac_with_nodata_filter_mspc():
+    """Test that nodata_max parameter is accepted and used in queries"""
+    # This test verifies the parameter is accepted - actual filtering is done by the STAC API
+    bbox = [13.0, 48.0, 13.2, 48.2]
+    date = pd.Timestamp("2024-06-01")
+    
+    # Query with nodata filter should not raise an error
+    result = query_stac(
+        bbox=bbox,
+        stac_host="mspc",
+        date=date,
+        cloud_cover_max=20,
+        buffer_days=14,
+        nodata_max=50,  # Filter out scenes with >50% nodata
+    )
+    
+    # Should return a valid STAC item URL
+    assert result is not None
+    assert isinstance(result, str)
+
+
+@pytest.mark.integration
+def test_parse_stac_item_includes_nodata():
+    """Test that parsed STAC items include nodata percentage"""
+    item_id = "S2B_33UUP_20210925_0_L2A"
+    item = get_item(item_id, stac_host="earthsearch")
+    
+    parsed = _parse_stac_item(item)
+    
+    # Check that all expected fields are present
+    assert "id" in parsed
+    assert "date" in parsed
+    assert "mgrs_tile" in parsed
+    assert "cloud_cover" in parsed
+    assert "nodata_percentage" in parsed
+    assert "item" in parsed
+    
+    # nodata_percentage may be None if not available in the item
+    assert parsed["nodata_percentage"] is None or isinstance(parsed["nodata_percentage"], (int, float))
