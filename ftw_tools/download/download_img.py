@@ -141,7 +141,7 @@ def scene_selection(
             Defaults to 14.
         s2_collection (str, optional): Sentinel-2 collection to use (only applies to EarthSearch). Defaults to "c1".
         nodata_max (int, optional): Maximum allowed nodata pixel percentage. If specified, scenes with higher
-            nodata percentages will be filtered out. Only supported for Microsoft Planetary Computer backend.
+            nodata percentages will be filtered out. Supported for both MSPC and EarthSearch backends.
         verbose (bool, optional): Whether to print verbose output. Defaults to False.
 
     Returns:
@@ -220,7 +220,7 @@ def query_stac(
         buffer_days: Number of days to buffer the date for querying.
         stac_host: The STAC host to use ('mspc' or 'earthsearch').
         s2_collection: Sentinel-2 collection to use (only applies to EarthSearch).
-        nodata_max: Maximum allowed nodata pixel percentage (only supported for MSPC).
+        nodata_max: Maximum allowed nodata pixel percentage (supported by both MSPC and EarthSearch).
         verbose: Whether to print verbose output.
 
     Returns:

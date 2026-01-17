@@ -133,7 +133,7 @@ def common_nodata_max_option():
         show_default=True,
         help="Maximum percentage of nodata pixels allowed in the Sentinel-2 scene. "
         "Scenes with higher nodata percentages (lower area coverage) will be filtered out. "
-        "Only supported for Microsoft Planetary Computer (mspc) backend.",
+        "Supported for both Microsoft Planetary Computer and EarthSearch backends.",
     )
 
 
