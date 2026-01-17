@@ -266,11 +266,10 @@ def query_stac(
         print("  Available scenes:")
         for item in items:
             parsed_item = _parse_stac_item(item)
-            nodata_str = (
-                f", area coverage: {100 - parsed_item['nodata_percentage']:.1f}%"
-                if parsed_item["nodata_percentage"] is not None
-                else ""
-            )
+            nodata_str = ""
+            if parsed_item["nodata_percentage"] is not None:
+                area_coverage = 100 - parsed_item["nodata_percentage"]
+                nodata_str = f", area coverage: {area_coverage:.1f}%"
             print(
                 f"\t- {parsed_item['id']}: {parsed_item['date']}, "
                 f"MGRS: {parsed_item['mgrs_tile']}, "
@@ -305,11 +304,10 @@ def query_stac(
     )
 
     if verbose:
-        nodata_str = (
-            f"\n    Area coverage: {100 - parsed_selected['nodata_percentage']:.1f}%"
-            if parsed_selected["nodata_percentage"] is not None
-            else ""
-        )
+        nodata_str = ""
+        if parsed_selected["nodata_percentage"] is not None:
+            area_coverage = 100 - parsed_selected["nodata_percentage"]
+            nodata_str = f"\n    Area coverage: {area_coverage:.1f}%"
         print(
             f"  SELECTED: {parsed_selected['id']} from {parsed_selected['date']}\n"
             f"    Cloud cover: {parsed_selected['cloud_cover']:.2f}% (lowest among {len(items)} candidates){nodata_str}\n"
