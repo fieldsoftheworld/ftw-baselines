@@ -267,7 +267,9 @@ def query_stac(
         for item in items:
             parsed_item = _parse_stac_item(item)
             nodata_str = ""
-            if parsed_item["nodata_percentage"] is not None:
+            if parsed_item["nodata_percentage"] is not None and isinstance(
+                parsed_item["nodata_percentage"], (int, float)
+            ):
                 area_coverage = 100 - parsed_item["nodata_percentage"]
                 nodata_str = f", area coverage: {area_coverage:.1f}%"
             print(
@@ -305,7 +307,9 @@ def query_stac(
 
     if verbose:
         nodata_str = ""
-        if parsed_selected["nodata_percentage"] is not None:
+        if parsed_selected["nodata_percentage"] is not None and isinstance(
+            parsed_selected["nodata_percentage"], (int, float)
+        ):
             area_coverage = 100 - parsed_selected["nodata_percentage"]
             nodata_str = f"\n    Area coverage: {area_coverage:.1f}%"
         print(
