@@ -403,23 +403,24 @@ def run(
             dst.colorinterp = [ColorInterp.palette]
             dst.write(output_mask[0], 1)
 
-    # Save disagreements as a separate GeoTIFF
-    disagreements_out = out.replace(".tif", "_disagreements.tif")
-    disagreements_profile = profile.copy()
-    disagreements_profile.update({"count": 1, "dtype": "uint8", "nodata": None})
-    with rasterio.open(disagreements_out, "w", **disagreements_profile) as dst:
-        dst.update_tags(**tags)
-        dst.write(output_disagreements, 1)
-    print(f"Saved disagreements map to {disagreements_out}")
+    if compute_consensus:
+        # Save disagreements as a separate GeoTIFF
+        disagreements_out = out.replace(".tif", "_disagreements.tif")
+        disagreements_profile = profile.copy()
+        disagreements_profile.update({"count": 1, "dtype": "uint8", "nodata": None})
+        with rasterio.open(disagreements_out, "w", **disagreements_profile) as dst:
+            dst.update_tags(**tags)
+            dst.write(output_disagreements, 1)
+        print(f"Saved disagreements map to {disagreements_out}")
 
-    # Report overlap consistency
-    if overlap_total > 0:
-        overlap_fraction = overlap_agreements / overlap_total
-        print(
-            f"Overlap consistency: {overlap_agreements}/{overlap_total} = {overlap_fraction:.4f}"
-        )
-    else:
-        print("No overlapping regions found.")
+        # Report overlap consistency
+        if overlap_total > 0:
+            overlap_fraction = overlap_agreements / overlap_total
+            print(
+                f"Overlap consistency: {overlap_agreements}/{overlap_total} = {overlap_fraction:.4f}"
+            )
+        else:
+            print("No overlapping regions found.")
 
     print(f"Finished inference and saved output to {out} in {time.time() - tic:.2f}s")
 
