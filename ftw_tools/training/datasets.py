@@ -197,13 +197,17 @@ class FTW(NonGeoDataset):
                 all_filenames.append(file_record)
 
         # Only subsample training data; val/test always use all samples
-        if self.split != "train" or (self.num_samples == -1 and self.percent_samples == -1.0):
+        if self.split != "train" or (
+            self.num_samples == -1 and self.percent_samples == -1.0
+        ):
             self.filenames = all_filenames
         else:
             # Use fixed seed for reproducible subsampling
             rng = random.Random(self.seed)
             if self.percent_samples != -1.0:
-                n_select = max(1, int(len(all_filenames) * self.percent_samples / 100.0))
+                n_select = max(
+                    1, int(len(all_filenames) * self.percent_samples / 100.0)
+                )
             else:
                 n_select = self.num_samples
             n_select = min(n_select, len(all_filenames))
@@ -303,17 +307,35 @@ class FTW(NonGeoDataset):
         filenames = self.filenames[index]
 
         images = []
-        if self.temporal_options in ("stacked", "median", "windowB", "rgb", "window_b_rgb"):
+        if self.temporal_options in (
+            "stacked",
+            "median",
+            "windowB",
+            "rgb",
+            "window_b_rgb",
+        ):
             with rasterio.open(filenames["window_b"]) as f:
                 window_b_img = f.read()
-                if self.temporal_options in ("rgb", "window_b_rgb"):  # select 3 channels only
+                if self.temporal_options in (
+                    "rgb",
+                    "window_b_rgb",
+                ):  # select 3 channels only
                     window_b_img = window_b_img[:3]
                 images.append(window_b_img)
 
-        if self.temporal_options in ("stacked", "median", "windowA", "rgb", "window_a_rgb"):
+        if self.temporal_options in (
+            "stacked",
+            "median",
+            "windowA",
+            "rgb",
+            "window_a_rgb",
+        ):
             with rasterio.open(filenames["window_a"]) as f:
                 window_a_img = f.read()
-                if self.temporal_options in ("rgb", "window_a_rgb"):  # select 3 channels only
+                if self.temporal_options in (
+                    "rgb",
+                    "window_a_rgb",
+                ):  # select 3 channels only
                     window_a_img = window_a_img[:3]
                 images.append(window_a_img)
 

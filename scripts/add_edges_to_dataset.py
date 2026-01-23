@@ -67,7 +67,9 @@ if __name__ == "__main__":
 
         for split in ["val", "test"]:
             print(f"Processing {country} - {split}...")
-            ds = FTW(root="data/ftw", countries=country, split=split, load_boundaries=True)
+            ds = FTW(
+                root="data/ftw", countries=country, split=split, load_boundaries=True
+            )
             dl = DataLoader(ds, batch_size=16, shuffle=False, num_workers=8)
 
             i = 0
