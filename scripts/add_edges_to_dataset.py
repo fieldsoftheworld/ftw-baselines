@@ -65,26 +65,27 @@ if __name__ == "__main__":
     for country in ALL_COUNTRIES:
         os.makedirs(f"data/ftw/{country}/label_masks/edges", exist_ok=True)
 
-        ds = FTW(root="data/ftw", countries=country, load_boundaries=True)
+        for split in ["val", "test"]:
+            print(f"Processing {country} - {split}...")
+            ds = FTW(root="data/ftw", countries=country, split=split, load_boundaries=True)
+            dl = DataLoader(ds, batch_size=16, shuffle=False, num_workers=8)
 
-        dl = DataLoader(ds, batch_size=16, shuffle=False, num_workers=8)
+            i = 0
+            for batch in tqdm(dl):
+                images = batch["image"]  # (B, 8, H, W)
+                bs = images.shape[0]
+                edges = compute_canny_edge_sum(images)  # (B, H, W)
+                for j in range(bs):
+                    mask_fn = ds.filenames[i]["mask"]
+                    edge_fn = mask_fn.replace("semantic_3class", "edges")
 
-        i = 0
-        for batch in tqdm(dl):
-            images = batch["image"]  # (B, 8, H, W)
-            bs = images.shape[0]
-            edges = compute_canny_edge_sum(images)  # (B, H, W)
-            for j in range(bs):
-                mask_fn = ds.filenames[i]["mask"]
-                edge_fn = mask_fn.replace("semantic_3class", "edges")
+                    if os.path.exists(edge_fn):
+                        i += 1
+                        continue
 
-                if os.path.exists(edge_fn):
+                    with rasterio.open(mask_fn) as src:
+                        profile = src.profile
+                    profile.update(count=1, dtype=rasterio.uint8, compress="deflate")
+                    with rasterio.open(edge_fn, "w", **profile) as dst:
+                        dst.write((edges[j].cpu().numpy()).astype(np.uint8), 1)
                     i += 1
-                    continue
-
-                with rasterio.open(mask_fn) as src:
-                    profile = src.profile
-                profile.update(count=1, dtype=rasterio.uint8, compress="deflate")
-                with rasterio.open(edge_fn, "w", **profile) as dst:
-                    dst.write((edges[j].cpu().numpy()).astype(np.uint8), 1)
-                i += 1
