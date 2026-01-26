@@ -129,7 +129,7 @@ def common_nodata_max_option():
         "--nodata_max",
         "-ndx",
         type=click.IntRange(min=0, max=100),
-        default=None,
+        default=50,
         show_default=True,
         help="Maximum percentage of nodata pixels allowed in the Sentinel-2 scene. "
         "Scenes with higher nodata percentages (lower area coverage) will be filtered out. "
