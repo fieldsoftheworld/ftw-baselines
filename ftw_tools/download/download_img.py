@@ -158,7 +158,9 @@ def scene_selection(
     )  # to account for southern hemisphere harvest
 
     if verbose:
-        nodata_filter_text = f", nodata_max={nodata_max}%" if nodata_max is not None else ""
+        nodata_filter_text = (
+            f", nodata_max={nodata_max}%" if nodata_max is not None else ""
+        )
         print(
             f"\n=== SCENE SELECTION ===\n"
             f"Crop calendar dates: Start={start_dt.date()} (day {start_day}), End={end_dt.date()} (day {end_day})\n"
@@ -438,14 +440,14 @@ def _query_earthsearch(
         )
 
     catalog = pystac_client.Client.open(host)
-    
+
     # Build query filters
     query_filters = {"eo:cloud_cover": {"lt": cloud_cover_max}}
-    
+
     # Add nodata filter if specified (EarthSearch supports this property)
     if nodata_max is not None:
         query_filters["s2:nodata_pixel_percentage"] = {"lt": nodata_max}
-    
+
     search = catalog.search(
         collections=[collection_name],
         bbox=bbox,
@@ -488,14 +490,14 @@ def _query_microsoft_pc(
         )
 
     catalog = pystac_client.Client.open(host)
-    
+
     # Build query filters
     query_filters = {"eo:cloud_cover": {"lt": cloud_cover_max}}
-    
+
     # Add nodata filter if specified (MSPC supports this property)
     if nodata_max is not None:
         query_filters["s2:nodata_pixel_percentage"] = {"lt": nodata_max}
-    
+
     search = catalog.search(
         collections=[collection_name],
         bbox=bbox,

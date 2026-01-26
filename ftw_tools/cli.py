@@ -634,7 +634,15 @@ def ftw_inference_all(
 @common_nodata_max_option()
 @common_verbose_option()
 def scene_selection(
-    year, bbox, cloud_cover_max, buffer_days, out, stac_host, s2_collection, nodata_max, verbose
+    year,
+    bbox,
+    cloud_cover_max,
+    buffer_days,
+    out,
+    stac_host,
+    s2_collection,
+    nodata_max,
+    verbose,
 ):
     """Download Sentinel-2 scenes for inference."""
     from ftw_tools.download.download_img import scene_selection
