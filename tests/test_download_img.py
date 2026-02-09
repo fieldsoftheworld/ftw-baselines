@@ -2,7 +2,57 @@ import pandas as pd
 import pystac
 import pytest
 
-from ftw_tools.download.download_img import _parse_stac_item, get_item, query_stac
+from ftw_tools.download.download_img import (
+    _compute_bbox_nodata_percentage,
+    _parse_stac_item,
+    get_item,
+    query_stac,
+)
+
+
+def test_compute_bbox_nodata_fully_covered():
+    """Bbox fully within item footprint -> ~0% nodata."""
+    item_geometry = {
+        "type": "Polygon",
+        "coordinates": [
+            [[10.0, 47.0], [11.0, 47.0], [11.0, 48.0], [10.0, 48.0], [10.0, 47.0]]
+        ],
+    }
+    bbox = [10.2, 47.2, 10.8, 47.8]
+    result = _compute_bbox_nodata_percentage(item_geometry, bbox)
+    assert result < 1.0
+
+
+def test_compute_bbox_nodata_partial_coverage():
+    """Bbox extends beyond item footprint -> ~50% nodata."""
+    item_geometry = {
+        "type": "Polygon",
+        "coordinates": [
+            [[10.0, 47.0], [10.5, 47.0], [10.5, 48.0], [10.0, 48.0], [10.0, 47.0]]
+        ],
+    }
+    bbox = [10.0, 47.0, 11.0, 48.0]
+    result = _compute_bbox_nodata_percentage(item_geometry, bbox)
+    assert 40.0 < result < 60.0
+
+
+def test_compute_bbox_nodata_no_overlap():
+    """Bbox does not overlap item footprint -> 100% nodata."""
+    item_geometry = {
+        "type": "Polygon",
+        "coordinates": [
+            [[10.0, 47.0], [11.0, 47.0], [11.0, 48.0], [10.0, 48.0], [10.0, 47.0]]
+        ],
+    }
+    bbox = [20.0, 47.0, 21.0, 48.0]
+    result = _compute_bbox_nodata_percentage(item_geometry, bbox)
+    assert result > 99.0
+
+
+def test_compute_bbox_nodata_none_geometry():
+    """None geometry -> 100% nodata."""
+    result = _compute_bbox_nodata_percentage(None, [10.0, 47.0, 11.0, 48.0])
+    assert result == 100.0
 
 
 @pytest.mark.integration

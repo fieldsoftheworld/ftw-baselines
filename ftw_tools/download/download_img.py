@@ -280,6 +280,40 @@ def query_stac(
                 f"cloud cover: {parsed_item['cloud_cover']:.2f}%{nodata_str}"
             )
 
+    # Filter by bbox-level nodata: the STAC s2:nodata_pixel_percentage is for the
+    # entire MGRS tile (~100km x 100km). When the user's bbox is at the edge of a
+    # tile, the clipped area can be mostly nodata even though the whole-scene
+    # percentage is low. Compute actual bbox coverage from each item's footprint.
+    if nodata_max is not None and len(items) > 0:
+        filtered_items = []
+        for item in items:
+            bbox_nodata = _compute_bbox_nodata_percentage(item.geometry, bbox)
+            if bbox_nodata <= nodata_max:
+                filtered_items.append(item)
+            elif verbose:
+                parsed_item = _parse_stac_item(item)
+                print(
+                    f"\t  Filtered out {parsed_item['id']}: "
+                    f"bbox nodata {bbox_nodata:.1f}% exceeds {nodata_max}%"
+                )
+
+        if verbose and len(filtered_items) < len(items):
+            print(
+                f"  Bbox nodata filter: {len(items)} -> {len(filtered_items)} scenes "
+                f"(removed {len(items) - len(filtered_items)})"
+            )
+
+        if len(filtered_items) == 0:
+            raise ValueError(
+                f"All {len(items)} candidate scenes were filtered out because "
+                f"the bounding box nodata percentage exceeds {nodata_max}%. "
+                f"The bounding box may be at the edge of a Sentinel-2 MGRS tile. "
+                f"Consider using a different bounding box or relaxing the "
+                f"--nodata_max threshold."
+            )
+
+        items = filtered_items
+
     # Check if AOI is approximately greater than 100 km x 100 km and spans multiple Sentinel 2 MGRS tiles
     if len(items) > 1 and (
         gpd.GeoDataFrame(geometry=[box(*bbox)], crs="EPSG:4326")
@@ -312,8 +346,13 @@ def query_stac(
         if parsed_selected["nodata_percentage"] is not None and isinstance(
             parsed_selected["nodata_percentage"], (int, float)
         ):
-            area_coverage = 100 - parsed_selected["nodata_percentage"]
-            nodata_str = f"\n    Area coverage: {area_coverage:.1f}%"
+            scene_coverage = 100 - parsed_selected["nodata_percentage"]
+            nodata_str = f"\n    Scene-level area coverage: {scene_coverage:.1f}%"
+        if nodata_max is not None:
+            bbox_nodata = _compute_bbox_nodata_percentage(
+                least_cloudy_item.geometry, bbox
+            )
+            nodata_str += f"\n    Bbox-level nodata: {bbox_nodata:.1f}%"
         print(
             f"  SELECTED: {parsed_selected['id']} from {parsed_selected['date']}\n"
             f"    Cloud cover: {parsed_selected['cloud_cover']:.2f}% (lowest among {len(items)} candidates){nodata_str}\n"
@@ -538,6 +577,56 @@ def _parse_stac_item(item: pystac.Item) -> dict:
         "nodata_percentage": nodata_percentage,
         "item": item,
     }
+
+
+def _compute_bbox_nodata_percentage(item_geometry: dict, bbox: list[float]) -> float:
+    """Estimate the nodata percentage within a bounding box from the item's data footprint.
+
+    For Sentinel-2, item.geometry represents the data footprint polygon.
+    Areas of the bbox outside this footprint are nodata. This computes
+    the percentage of the bbox NOT covered by the item's data footprint.
+
+    Args:
+        item_geometry: GeoJSON geometry dict from item.geometry (the data footprint).
+        bbox: Bounding box in [minx, miny, maxx, maxy] format (EPSG:4326).
+
+    Returns:
+        Estimated nodata percentage (0-100) within the bbox.
+    """
+    if item_geometry is None:
+        return 100.0
+
+    try:
+        footprint = shape(item_geometry)
+        bbox_polygon = box(*bbox)
+    except Exception:
+        logger.warning("Failed to parse item geometry, assuming 100%% nodata in bbox")
+        return 100.0
+
+    if not footprint.is_valid or footprint.is_empty:
+        return 100.0
+
+    if not bbox_polygon.is_valid or bbox_polygon.is_empty:
+        return 0.0
+
+    # Project to equal-area CRS for accurate area calculation (matches pattern at line 286)
+    bbox_gdf = gpd.GeoDataFrame(geometry=[bbox_polygon], crs="EPSG:4326").to_crs(
+        "EPSG:6933"
+    )
+    footprint_gdf = gpd.GeoDataFrame(geometry=[footprint], crs="EPSG:4326").to_crs(
+        "EPSG:6933"
+    )
+
+    bbox_projected = bbox_gdf.geometry.iloc[0]
+    footprint_projected = footprint_gdf.geometry.iloc[0]
+
+    bbox_area = bbox_projected.area
+    if bbox_area == 0:
+        return 0.0
+
+    intersection = bbox_projected.intersection(footprint_projected)
+    nodata_pct = (1.0 - intersection.area / bbox_area) * 100.0
+    return max(0.0, min(100.0, nodata_pct))
 
 
 def create_input(
