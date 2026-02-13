@@ -7,7 +7,6 @@ and features_to_dataframe functions to avoid the flatdict dependency.
 import json
 
 import geopandas as gpd
-import pyarrow as pa
 import shapely.geometry
 
 
