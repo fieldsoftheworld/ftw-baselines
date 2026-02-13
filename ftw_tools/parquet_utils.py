@@ -7,6 +7,7 @@ and features_to_dataframe functions to avoid the flatdict dependency.
 import json
 
 import geopandas as gpd
+import pyarrow.parquet as pq
 import shapely.geometry
 
 
@@ -18,7 +19,10 @@ def features_to_dataframe(features, columns):
         columns: List of column names to include in the GeoDataFrame.
 
     Returns:
-        GeoDataFrame with the features converted to rows.
+        GeoDataFrame with the features converted to rows, using EPSG:4326 CRS.
+
+    Note:
+        All input features are assumed to be in WGS84 (EPSG:4326) coordinates.
     """
     rows = []
     for feature in features:
@@ -39,7 +43,7 @@ def features_to_dataframe(features, columns):
     return gpd.GeoDataFrame(rows, columns=columns, geometry="geometry", crs="EPSG:4326")
 
 
-def create_parquet(data, columns, collection, output_file, config, compression=None):
+def create_parquet(data, columns, collection, output_file, config=None, compression=None):
     """Write a GeoDataFrame to a Parquet file with fiboa metadata.
 
     Args:
@@ -47,8 +51,12 @@ def create_parquet(data, columns, collection, output_file, config, compression=N
         columns: List of column names to include in the output.
         collection: Dictionary with fiboa collection metadata.
         output_file: Path to the output Parquet file.
-        config: Configuration dictionary (not used in this simplified version).
+        config: Configuration dictionary (optional, retained for API compatibility).
         compression: Compression algorithm to use (default: 'zstd').
+
+    Note:
+        The config parameter is retained for API compatibility with the original
+        fiboa-cli interface but is not used in this implementation.
     """
     if compression is None:
         compression = "zstd"
@@ -63,8 +71,6 @@ def create_parquet(data, columns, collection, output_file, config, compression=N
 
     # Now reopen and add the fiboa metadata
     # This is needed to add custom metadata to the parquet file
-    import pyarrow.parquet as pq
-
     parquet_file = pq.read_table(output_file)
     existing_metadata = parquet_file.schema.metadata or {}
     existing_metadata[b"fiboa"] = json.dumps(collection).encode("utf-8")
