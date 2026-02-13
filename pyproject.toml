@@ -55,10 +55,10 @@ dependencies = [
   "torchgeo>=0.7,<1",
   "torchvision>=0.17,<0.23",
   "tqdm>=4.65,<5",
+  "ultralytics>=8.3.187,<9",
   "wget",
 ]
-optional-dependencies.all = [ "ftw-tools[delineate-anything,dev]" ]
-optional-dependencies.delineate-anything = [ "ultralytics>=8.3.187,<9" ]
+optional-dependencies.all = [ "ftw-tools[dev]" ]
 optional-dependencies.dev = [
   "build",
   "hatchling",

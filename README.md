@@ -110,12 +110,6 @@ uv run pre-commit install
 uv run pre-commit run --all-files
 ```
 
-To install the optional delineate-anything feature:
-
-```bash
-uv sync --extra delineate-anything
-```
-
 To install everything (all optional dependencies):
 
 ```bash
