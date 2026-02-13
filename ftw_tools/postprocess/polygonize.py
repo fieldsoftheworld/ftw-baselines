@@ -10,13 +10,13 @@ import rasterio
 import rasterio.features
 import shapely.geometry
 from affine import Affine
-from fiboa_cli.parquet import create_parquet, features_to_dataframe
 from pyproj import CRS, Transformer
 from rtree import index
 from shapely.ops import transform, unary_union
 from skimage.morphology import dilation, erosion
 from tqdm import tqdm
 
+from ftw_tools.parquet_utils import create_parquet, features_to_dataframe
 from ftw_tools.settings import SUPPORTED_POLY_FORMATS_TXT
 
 

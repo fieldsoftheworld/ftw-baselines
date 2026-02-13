@@ -3,7 +3,8 @@ import re
 import geopandas as gpd
 import numpy as np
 import shapely
-from fiboa_cli.parquet import create_parquet
+
+from ftw_tools.parquet_utils import create_parquet
 
 
 def merge_polygons(
