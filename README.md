@@ -17,8 +17,6 @@ This repository provides the codebase for working with the [FTW dataset](https:/
     - [Usage](#usage)
     - [Development Setup](#development-setup)
     - [Verify Installation](#verify-installation)
-  - [Troubleshooting](#troubleshooting)
-    - [ImportError: cannot import name 'AugmentationSequential'](#importerror-cannot-import-name-augmentationsequential)
 - [Predicting field boundaries](#predicting-field-boundaries)
   - [FTW Semantic Segmentation Baseline Model](#ftw-semantic-segmentation-baseline-model)
     - [1. Decide which model you want to use](#1-decide-which-model-you-want-to-use)
@@ -159,54 +157,6 @@ Commands:
   inference  Running inference on satellite images plus data prep.
   model      Training and testing FTW models.
 ```
-
-### Troubleshooting
-
-#### ImportError: cannot import name 'AugmentationSequential'
-
-If you encounter an error like:
-
-```
-ImportError: cannot import name 'AugmentationSequential' from 'torchgeo.transforms'
-```
-
-This indicates you have an older version of the FTW package installed. The package was renamed from `ftw`/`ftw_cli` to `ftw-tools` in version 2.0, and the codebase was updated to use Kornia's `AugmentationSequential` instead of the deprecated TorchGeo version.
-
-**Solution:**
-
-1. **Uninstall any old FTW packages:**
-   ```bash
-   pip uninstall ftw ftw-cli ftw_cli -y
-   ```
-
-2. **Create a fresh virtual environment (recommended):**
-   ```bash
-   # Using uv (recommended)
-   uv venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   
-   # Or using standard Python venv
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
-
-3. **Install the latest ftw-tools package:**
-   ```bash
-   # If working from source
-   uv sync --all-extras
-   
-   # Or install from PyPI
-   pip install ftw-tools
-   ```
-
-4. **Verify the installation:**
-   ```bash
-   ftw --help
-   python -c "from ftw_tools.cli import ftw; print('FTW CLI ready')"
-   ```
-
-> [!IMPORTANT]
-> Always use a virtual environment to avoid conflicts with other Python packages. Using the system Python installation (e.g., `/Library/Frameworks/Python.framework/`) can lead to package conflicts and version issues.
 
 ## Predicting field boundaries
 

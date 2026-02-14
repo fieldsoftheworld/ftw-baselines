@@ -10,8 +10,7 @@
 
 ### Unreleased
 
-- Added troubleshooting documentation for users encountering `ImportError: cannot import name 'AugmentationSequential'` when using old package versions
-- Clarified package migration from `ftw`/`ftw_cli` to `ftw-tools`
+- Updated minimum torchgeo version to 0.8.0 to ensure compatibility with Kornia-based augmentations and avoid deprecated `AugmentationSequential` import errors
 
 ### 1.3.0
 
