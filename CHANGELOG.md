@@ -10,6 +10,9 @@
 
 ### Unreleased
 
+- Added troubleshooting documentation for users encountering `ImportError: cannot import name 'AugmentationSequential'` when using old package versions
+- Clarified package migration from `ftw`/`ftw_cli` to `ftw-tools`
+
 ### 1.3.0
 
 - Fixed the overwrite check in `ftw run inference`
