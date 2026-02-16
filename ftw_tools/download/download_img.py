@@ -607,7 +607,7 @@ def _compute_bbox_nodata_percentage(item_geometry: dict, bbox: list[float]) -> f
         return 100.0
 
     if not bbox_polygon.is_valid or bbox_polygon.is_empty:
-        return 0.0
+        raise ValueError("Bounding box polygon is invalid or empty.")
 
     # Project to equal-area CRS for accurate area calculation (matches pattern at line 286)
     bbox_gdf = gpd.GeoDataFrame(geometry=[bbox_polygon], crs="EPSG:4326").to_crs(
@@ -622,7 +622,7 @@ def _compute_bbox_nodata_percentage(item_geometry: dict, bbox: list[float]) -> f
 
     bbox_area = bbox_projected.area
     if bbox_area == 0:
-        return 0.0
+        raise ValueError("Bounding box has zero area after projection.")
 
     intersection = bbox_projected.intersection(footprint_projected)
     nodata_pct = (1.0 - intersection.area / bbox_area) * 100.0
