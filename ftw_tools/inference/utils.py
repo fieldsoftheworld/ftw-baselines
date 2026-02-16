@@ -3,7 +3,9 @@ import re
 import geopandas as gpd
 import numpy as np
 import shapely
-from fiboa_cli.parquet import create_parquet
+from fiboa_cli.registry import Registry
+from vecorel_cli.encoding.geoparquet import GeoParquet
+from vecorel_cli.vecorel.collection import Collection
 
 
 def merge_polygons(
@@ -144,9 +146,8 @@ def postprocess_instance_polygons(
             contain_thresh=overlap_contain_threshold,
         )
 
-    # Convert to hectares
-    polygons["area"] = polygons.geometry.area * 0.0001
-    polygons["perimeter"] = polygons.geometry.length
+    polygons["metrics:area"] = polygons.geometry.area  # in m²
+    polygons["metrics:perimeter"] = polygons.geometry.length  # in m
 
     # Convert back to original CRS
     polygons.to_crs(src_crs, inplace=True)
@@ -157,9 +158,29 @@ def postprocess_instance_polygons(
     return polygons
 
 
-def convert_to_fiboa(
-    polygons: gpd.GeoDataFrame, output: str, timestamp: str | None
-) -> gpd.GeoDataFrame:
+def features_to_dataframe(features, columns):
+    """Convert a list of features to a GeoDataFrame.
+
+    Args:
+        features: The features to convert.
+        columns: The columns to include in the output GeoDataFrame.
+
+    Returns:
+        The converted GeoDataFrame.
+    """
+    data = []
+    for feature in features:
+        row = {}
+        for col in columns:
+            if col == "geometry":
+                row[col] = shapely.geometry.shape(feature["geometry"])
+            else:
+                row[col] = feature["properties"].get(col, None)
+        data.append(row)
+    return gpd.GeoDataFrame(data, geometry="geometry")
+
+
+def convert_to_fiboa(polygons: gpd.GeoDataFrame, output: str, timestamp: str | None):
     """Convert polygons to fiboa parquet format.
 
     Args:
@@ -168,12 +189,18 @@ def convert_to_fiboa(
         timestamp: The timestamp of the image.
 
     Returns:
-        The converted polygons.
+        Nothing. The converted polygons are written to the output file.
     """
-    polygons["determination_method"] = "auto-imagery"
+    polygons["determination:method"] = "auto-imagery"
 
-    config = collection = {"fiboa_version": "0.2.0"}
-    columns = ["id", "area", "perimeter", "determination_method", "geometry"]
+    columns = [
+        "id",
+        "geometry",
+        "metrics:area",
+        "metrics:perimeter",
+        "determination:method",
+    ]
+    extensions = ["https://vecorel.org/geometry-metrics-extension/v0.1.0/schema.yaml"]
 
     if timestamp is not None:
         pattern = re.compile(
@@ -181,9 +208,15 @@ def convert_to_fiboa(
         )
         if pattern.match(timestamp):
             timestamp = re.sub(pattern, r"\1-\2-\3T\4:\5:\6Z", timestamp)
-            polygons["determination_datetime"] = timestamp
-            columns.append("determination_datetime")
+            polygons["determination:datetime"] = timestamp
+            columns.append("determination:datetime")
         else:
             print("WARNING: Unable to parse timestamp from TIFFTAG_DATETIME tag.")
 
-    create_parquet(polygons, columns, collection, output, config, compression="brotli")
+    collection = Collection(
+        Registry.get_default_collection("ftw", extensions=extensions)
+    )
+
+    file = GeoParquet(output)
+    file.set_collection(collection)
+    file.write(polygons, properties=columns)
