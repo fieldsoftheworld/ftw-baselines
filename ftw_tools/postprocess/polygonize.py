@@ -44,7 +44,7 @@ class UnionFind:
             self.rank[ra] += 1
 
 
-def merge_adjacent_polygons(features, ratio):
+def merge_adjacent_polygons(features, ratio, reproject_fn=None):
     """Merge polygons when they overlap or touch sufficiently.
 
     Uses an R-tree spatial index for O(N log N) performance instead of O(N²).
@@ -52,6 +52,9 @@ def merge_adjacent_polygons(features, ratio):
     Args:
         features: List of feature dicts with geometry and properties
         ratio: Minimum ratio of shared boundary to merge touching polygons
+        reproject_fn: Optional callable that reprojects a shapely geometry
+            to a meter-based CRS for accurate area/perimeter computation.
+            If None, metrics are computed in the input CRS units.
 
     Returns:
         List of merged features
@@ -120,10 +123,11 @@ def merge_adjacent_polygons(features, ratio):
     out = []
     for idxs in comps.values():
         u = unary_union([geoms[k] for k in idxs])
+        u_proj = reproject_fn(u) if reproject_fn is not None else u
         props = {
             "id": ",".join([ids[k] for k in idxs if ids[k]]),
-            "metrics:area": float(u.area),
-            "metrics:perimeter": float(u.length),
+            "metrics:area": float(u_proj.area),
+            "metrics:perimeter": float(u_proj.length),
         }
         out.append({"geometry": shapely.geometry.mapping(u), "properties": props})
 
@@ -467,13 +471,23 @@ def polygonize(
                         # explode MultiPolygons if needed
                         if isinstance(geom, shapely.geometry.MultiPolygon):
                             for g in geom.geoms:
+                                if is_meters:
+                                    g_proj = g
+                                else:
+                                    g_proj = shapely.geometry.shape(
+                                        fiona.transform.transform_geom(
+                                            original_crs,
+                                            equal_area_crs,
+                                            shapely.geometry.mapping(g),
+                                        )
+                                    )
                                 rows.append(
                                     {
                                         "geometry": shapely.geometry.mapping(g),
                                         "properties": {
                                             "id": str(i),
-                                            "metrics:area": g.area,  # area in m²
-                                            "metrics:perimeter": g.length,  # perimeter in m
+                                            "metrics:area": g_proj.area,
+                                            "metrics:perimeter": g_proj.length,
                                         },
                                     }
                                 )
@@ -495,7 +509,18 @@ def polygonize(
 
     # Merge adjacent polygons
     if merge_adjacent is not None:
-        rows = merge_adjacent_polygons(rows, merge_adjacent)
+        if is_meters:
+            reproject_fn = None
+        else:
+
+            def reproject_fn(geom):
+                return shapely.geometry.shape(
+                    fiona.transform.transform_geom(
+                        original_crs, equal_area_crs, shapely.geometry.mapping(geom)
+                    )
+                )
+
+        rows = merge_adjacent_polygons(rows, merge_adjacent, reproject_fn=reproject_fn)
 
     if format == "Parquet":
         timestamp = tags.get("TIFFTAG_DATETIME", None)
