@@ -19,11 +19,10 @@ authors = [
   { name = "Snehal Chaudhari", email = "sschaud5@asu.edu" },
 ]
 
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.12,<3.14"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
 ]
@@ -52,7 +51,7 @@ dependencies = [
   "tenacity>=9.1.2,<10",
   "tensorboard>=2.15,<3",
   "torch>=2.2,<2.9",
-  "torchgeo>=0.7,<1",
+  "torchgeo>=0.9,<1",
   "torchvision>=0.17,<0.23",
   "tqdm>=4.65,<5",
   "wget",
