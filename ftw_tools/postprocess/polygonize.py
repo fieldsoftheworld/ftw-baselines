@@ -3,8 +3,7 @@ import os
 import re
 import time
 
-import fiona
-import fiona.transform
+import geopandas as gpd
 import numpy as np
 import rasterio
 import rasterio.features
@@ -349,6 +348,13 @@ def polygonize(
         equal_area_crs = CRS.from_epsg(
             6933
         )  # Define the equal-area projection using EPSG:6933
+        # Transformers for reprojecting to equal-area CRS (for area/perimeter in m²/m)
+        equal_area_transformer = Transformer.from_crs(
+            original_crs, equal_area_crs, always_xy=True
+        ).transform
+        equal_area_from_4326 = Transformer.from_crs(
+            CRS.from_epsg(4326), equal_area_crs, always_xy=True
+        ).transform
         tags = src.tags()
 
         input_height, input_width = src.shape
@@ -450,11 +456,7 @@ def polygonize(
                         else:
                             # Reproject the geometry to the equal-area projection
                             # if the CRS is not in meters
-                            geom_proj_meters = shapely.geometry.shape(
-                                fiona.transform.transform_geom(
-                                    original_crs, equal_area_crs, geom_geojson
-                                )
-                            )
+                            geom_proj_meters = transform(equal_area_transformer, geom)
 
                         area = geom_proj_meters.area
                         perimeter = geom_proj_meters.length
@@ -474,20 +476,14 @@ def polygonize(
                                 if is_meters:
                                     g_proj = g
                                 else:
-                                    # Use the actual CRS of g: EPSG:4326 when is_geojson,
-                                    # otherwise the original CRS.
-                                    source_crs = (
-                                        CRS.from_epsg(4326)
+                                    # If is_geojson, g has been reprojected to
+                                    # EPSG:4326; use the matching transformer.
+                                    proj_fn = (
+                                        equal_area_from_4326
                                         if is_geojson
-                                        else original_crs
+                                        else equal_area_transformer
                                     )
-                                    g_proj = shapely.geometry.shape(
-                                        fiona.transform.transform_geom(
-                                            source_crs,
-                                            equal_area_crs,
-                                            shapely.geometry.mapping(g),
-                                        )
-                                    )
+                                    g_proj = transform(proj_fn, g)
                                 rows.append(
                                     {
                                         "geometry": shapely.geometry.mapping(g),
@@ -521,14 +517,12 @@ def polygonize(
         else:
             # Geometries stored in `rows` may already have been reprojected to EPSG:4326
             # when writing GeoJSON, so choose the correct source CRS accordingly.
-            merge_source_crs = epsg4326 if is_geojson else original_crs
+            merge_proj_fn = (
+                equal_area_from_4326 if is_geojson else equal_area_transformer
+            )
 
             def reproject_fn(geom):
-                return shapely.geometry.shape(
-                    fiona.transform.transform_geom(
-                        merge_source_crs, equal_area_crs, shapely.geometry.mapping(geom)
-                    )
-                )
+                return transform(merge_proj_fn, geom)
 
         rows = merge_adjacent_polygons(rows, merge_adjacent, reproject_fn=reproject_fn)
 
@@ -561,7 +555,10 @@ def polygonize(
         )
         if is_geojson:
             original_crs = epsg4326
-        with fiona.open(out, "w", format, schema=schema, crs=original_crs) as dst:
-            dst.writerecords(rows)
+        gdf = features_to_dataframe(
+            rows, ["geometry"] + list(schema["properties"].keys())
+        )
+        gdf.set_crs(original_crs, inplace=True, allow_override=True)
+        gdf.to_file(out, driver=format)
 
     print(f"Finished polygonizing output at {out} in {time.time() - tic:.2f}s")
