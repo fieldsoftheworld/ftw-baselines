@@ -264,7 +264,7 @@ def query_stac(
         )
 
     # Log all found scenes with their details using uniform parsing
-    if verbose and len(items) > 0:
+    if verbose:
         print("  Available scenes:")
         for item in items:
             parsed_item = _parse_stac_item(item)
@@ -284,7 +284,7 @@ def query_stac(
     # entire MGRS tile (~100km x 100km). When the user's bbox is at the edge of a
     # tile, the clipped area can be mostly nodata even though the whole-scene
     # percentage is low. Compute actual bbox coverage from each item's footprint.
-    if nodata_max is not None and len(items) > 0:
+    if nodata_max is not None:
         filtered_items = []
         for item in items:
             bbox_nodata = _compute_bbox_nodata_percentage(item.geometry, bbox)
