@@ -32,7 +32,7 @@ jobs:
           - windows-latest
           - macos-latest
         python-version:
-          - "3.11" # minimum supported
+          - "3.12" # minimum supported
           - "3.13" # maximum supported
       fail-fast: true
     steps:

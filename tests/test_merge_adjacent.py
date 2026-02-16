@@ -148,10 +148,10 @@ def test_merge_adjacent_properties():
     merged = result[0]
     assert "A" in merged["properties"]["id"]
     assert "B" in merged["properties"]["id"]
-    assert "area" in merged["properties"]
-    assert "perimeter" in merged["properties"]
-    assert merged["properties"]["area"] > 0
-    assert merged["properties"]["perimeter"] > 0
+    assert "metrics:area" in merged["properties"]
+    assert "metrics:perimeter" in merged["properties"]
+    assert merged["properties"]["metrics:area"] > 0
+    assert merged["properties"]["metrics:perimeter"] > 0
 
 
 def test_merge_adjacent_performance():

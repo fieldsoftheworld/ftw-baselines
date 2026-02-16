@@ -27,10 +27,6 @@ from ftw_tools.inference.model_registry import MODEL_REGISTRY
 from ftw_tools.inference.models import load_model_from_checkpoint
 from ftw_tools.inference.utils import convert_to_fiboa, postprocess_instance_polygons
 
-TORCHGEO_06 = Version("0.6.0")
-TORCHGEO_08 = Version("0.8.0.dev0")
-TORCHGEO_CURRENT = parse(torchgeo.__version__)
-
 
 def default_preprocess(sample):
     sample["image"] = sample["image"] / 3000
@@ -218,22 +214,13 @@ def run(
             images = rearrange(images, "b (t c) h w -> b t c h w", t=2)
         images = images.to(device)
 
-        # torchgeo>=0.8 switched from BoundingBox to slices
-        # torchgeo>=0.6 refers to the bounding box as "bounds" instead of "bbox"
         bboxes = []
-        if TORCHGEO_CURRENT >= TORCHGEO_08:
-            for slices in batch["bounds"]:
-                minx = slices[0].start
-                maxx = slices[0].stop
-                miny = slices[1].start
-                maxy = slices[1].stop
-                bboxes.append((minx, miny, maxx, maxy))
-        elif TORCHGEO_CURRENT >= TORCHGEO_06:
-            for bbox in batch["bounds"]:
-                bboxes.append((bbox.minx, bbox.miny, bbox.maxx, bbox.maxy))
-        else:
-            for bbox in batch["bbox"]:
-                bboxes.append((bbox.minx, bbox.miny, bbox.maxx, bbox.maxy))
+        for bounds_tensor in batch["bounds"]:
+            minx = bounds_tensor[0].item()
+            maxx = bounds_tensor[1].item()
+            miny = bounds_tensor[3].item()
+            maxy = bounds_tensor[4].item()
+            bboxes.append((minx, miny, maxx, maxy))
 
         with torch.inference_mode():
             predictions = model(images)
@@ -519,20 +506,14 @@ def run_instance_segmentation(
         images = batch["image"].to(device)
         predictions = model(images)
 
-        # torchgeo>=0.6 refers to the bounding box as "bounds" instead of "bbox"
-        if "bounds" in batch and batch["bounds"] is not None:
-            bboxes = batch["bounds"]
-        else:
-            bboxes = batch["bbox"]
-
-        # Convert instance predictions to polygons
-        for image, pred, bounds, crs in zip(images, predictions, bboxes, batch["crs"]):
+        crs = dataset.crs
+        for image, pred, bounds_tensor in zip(images, predictions, batch["bounds"]):
             _, h, w = image.shape
             transform = from_bounds(
-                west=bounds.minx,
-                south=bounds.miny,
-                east=bounds.maxx,
-                north=bounds.maxy,
+                west=bounds_tensor[0].item(),
+                south=bounds_tensor[3].item(),
+                east=bounds_tensor[1].item(),
+                north=bounds_tensor[4].item(),
                 height=h,
                 width=w,
             )

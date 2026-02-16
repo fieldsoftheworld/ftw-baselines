@@ -10,13 +10,13 @@ import rasterio
 import rasterio.features
 import shapely.geometry
 from affine import Affine
-from fiboa_cli.parquet import create_parquet, features_to_dataframe
 from pyproj import CRS, Transformer
 from rtree import index
 from shapely.ops import transform, unary_union
 from skimage.morphology import dilation, erosion
 from tqdm import tqdm
 
+from ftw_tools.inference.utils import convert_to_fiboa, features_to_dataframe
 from ftw_tools.settings import SUPPORTED_POLY_FORMATS_TXT
 
 
@@ -122,8 +122,8 @@ def merge_adjacent_polygons(features, ratio):
         u = unary_union([geoms[k] for k in idxs])
         props = {
             "id": ",".join([ids[k] for k in idxs if ids[k]]),
-            "area": float(u.area),
-            "perimeter": float(u.length),
+            "metrics:area": float(u.area),
+            "metrics:perimeter": float(u.length),
         }
         out.append({"geometry": shapely.geometry.mapping(u), "properties": props})
 
@@ -331,7 +331,11 @@ def polygonize(
     rows = []
     schema = {
         "geometry": "Polygon",
-        "properties": {"id": "str", "area": "float", "perimeter": "float"},
+        "properties": {
+            "id": "str",
+            "metrics:area": "float",
+            "metrics:perimeter": "float",
+        },
     }
     i = 1
     # read the input file as a mask
@@ -468,9 +472,8 @@ def polygonize(
                                         "geometry": shapely.geometry.mapping(g),
                                         "properties": {
                                             "id": str(i),
-                                            "area": g.area
-                                            * 0.0001,  # Add the area in hectares
-                                            "perimeter": g.length,  # Add the perimeter in meters
+                                            "metrics:area": g.area,  # area in m²
+                                            "metrics:perimeter": g.length,  # perimeter in m
                                         },
                                     }
                                 )
@@ -481,9 +484,8 @@ def polygonize(
                                     "geometry": shapely.geometry.mapping(geom),
                                     "properties": {
                                         "id": str(i),
-                                        "area": area
-                                        * 0.0001,  # Add the area in hectares
-                                        "perimeter": perimeter,  # Add the perimeter in meters
+                                        "metrics:area": area,  # area in m²
+                                        "metrics:perimeter": perimeter,  # perimeter in m
                                     },
                                 }
                             )
@@ -507,18 +509,17 @@ def polygonize(
                 print("WARNING: Unable to parse timestamp from TIFFTAG_DATETIME tag.")
                 timestamp = None
 
-        config = collection = {"fiboa_version": "0.2.0"}
-        columns = ["geometry", "determination_method"] + list(
+        columns = ["geometry", "determination:method"] + list(
             schema["properties"].keys()
         )
         gdf = features_to_dataframe(rows, columns)
         gdf.set_crs(original_crs, inplace=True, allow_override=True)
-        gdf["determination_method"] = "auto-imagery"
+        gdf["determination:method"] = "auto-imagery"
         if timestamp is not None:
-            gdf["determination_datetime"] = timestamp
-            columns.append("determination_datetime")
+            gdf["determination:datetime"] = timestamp
+            columns.append("determination:datetime")
 
-        create_parquet(gdf, columns, collection, out, config, compression="brotli")
+        convert_to_fiboa(gdf[columns], out, timestamp)
     else:
         print(
             "WARNING: The fiboa-compliant GeoParquet output format is recommended for field boundaries."
