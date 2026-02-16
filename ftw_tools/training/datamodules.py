@@ -51,6 +51,8 @@ class FTWDataModule(LightningDataModule):
         test_countries: list[str] = ["france"],
         temporal_options: str = "stacked",
         num_samples: int = -1,
+        percent_samples: float = -1.0,
+        seed: int = 42,
         random_shuffle: bool = False,
         resize_factor: Optional[float] = None,
         brightness_aug: bool = False,
@@ -91,6 +93,8 @@ class FTWDataModule(LightningDataModule):
         self.load_boundaries = kwargs.pop("load_boundaries", False)
         self.temporal_options = temporal_options
         self.num_samples = num_samples
+        self.percent_samples = percent_samples
+        self.seed = seed
         self.ignore_sample_fn = kwargs.pop("ignore_sample_fn", None)
         self.kwargs = kwargs
         self.preprocess_aug = preprocess_aug
@@ -107,6 +111,9 @@ class FTWDataModule(LightningDataModule):
         elif self.temporal_options == "rgb":
             self.mean = torch.tensor([0, 0, 0, 0, 0, 0])
             self.std = torch.tensor([3000, 3000, 3000, 3000, 3000, 3000])
+        elif self.temporal_options in ("window_a_rgb", "window_b_rgb"):
+            self.mean = torch.tensor([0, 0, 0])
+            self.std = torch.tensor([3000, 3000, 3000])
         else:
             raise ValueError(f"Unknown temporal option: {temporal_options}")
 
@@ -170,9 +177,12 @@ class FTWDataModule(LightningDataModule):
                 load_boundaries=self.load_boundaries,
                 temporal_options=self.temporal_options,
                 num_samples=self.num_samples,
+                percent_samples=self.percent_samples,
+                seed=self.seed,
                 ignore_sample_fn=self.ignore_sample_fn,
                 **self.kwargs,
             )
+            print(f"Train samples: {len(self.train_dataset)}")
         if stage in ["fit", "validate"]:
             self.val_dataset = FTW(
                 root=self.root,
@@ -180,8 +190,9 @@ class FTWDataModule(LightningDataModule):
                 split="val",
                 load_boundaries=self.load_boundaries,
                 temporal_options=self.temporal_options,
-                num_samples=self.num_samples,
+                **self.kwargs,
             )
+            print(f"Validation samples: {len(self.val_dataset)}")
         if stage == "test":
             self.test_dataset = FTW(
                 root=self.root,
@@ -189,8 +200,9 @@ class FTWDataModule(LightningDataModule):
                 split="test",
                 load_boundaries=self.load_boundaries,
                 temporal_options=self.temporal_options,
-                num_samples=self.num_samples,
+                **self.kwargs,
             )
+            print(f"Test samples: {len(self.test_dataset)}")
 
     def train_dataloader(self) -> Any:
         return DataLoader(

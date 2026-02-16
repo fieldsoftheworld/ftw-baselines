@@ -10,13 +10,13 @@ import rasterio
 import rasterio.features
 import shapely.geometry
 from affine import Affine
-from fiboa_cli.parquet import create_parquet, features_to_dataframe
 from pyproj import CRS, Transformer
 from rtree import index
 from shapely.ops import transform, unary_union
 from skimage.morphology import dilation, erosion
 from tqdm import tqdm
 
+from ftw_tools.inference.utils import convert_to_fiboa, features_to_dataframe
 from ftw_tools.settings import SUPPORTED_POLY_FORMATS_TXT
 
 
@@ -44,7 +44,7 @@ class UnionFind:
             self.rank[ra] += 1
 
 
-def merge_adjacent_polygons(features, ratio):
+def merge_adjacent_polygons(features, ratio, reproject_fn=None):
     """Merge polygons when they overlap or touch sufficiently.
 
     Uses an R-tree spatial index for O(N log N) performance instead of O(N²).
@@ -52,6 +52,9 @@ def merge_adjacent_polygons(features, ratio):
     Args:
         features: List of feature dicts with geometry and properties
         ratio: Minimum ratio of shared boundary to merge touching polygons
+        reproject_fn: Optional callable that reprojects a shapely geometry
+            to a meter-based CRS for accurate area/perimeter computation.
+            If None, metrics are computed in the input CRS units.
 
     Returns:
         List of merged features
@@ -120,10 +123,11 @@ def merge_adjacent_polygons(features, ratio):
     out = []
     for idxs in comps.values():
         u = unary_union([geoms[k] for k in idxs])
+        u_proj = reproject_fn(u) if reproject_fn is not None else u
         props = {
             "id": ",".join([ids[k] for k in idxs if ids[k]]),
-            "area": float(u.area),
-            "perimeter": float(u.length),
+            "metrics:area": float(u_proj.area),
+            "metrics:perimeter": float(u_proj.length),
         }
         out.append({"geometry": shapely.geometry.mapping(u), "properties": props})
 
@@ -331,7 +335,11 @@ def polygonize(
     rows = []
     schema = {
         "geometry": "Polygon",
-        "properties": {"id": "str", "area": "float", "perimeter": "float"},
+        "properties": {
+            "id": "str",
+            "metrics:area": "float",
+            "metrics:perimeter": "float",
+        },
     }
     i = 1
     # read the input file as a mask
@@ -463,14 +471,30 @@ def polygonize(
                         # explode MultiPolygons if needed
                         if isinstance(geom, shapely.geometry.MultiPolygon):
                             for g in geom.geoms:
+                                if is_meters:
+                                    g_proj = g
+                                else:
+                                    # Use the actual CRS of g: EPSG:4326 when is_geojson,
+                                    # otherwise the original CRS.
+                                    source_crs = (
+                                        CRS.from_epsg(4326)
+                                        if is_geojson
+                                        else original_crs
+                                    )
+                                    g_proj = shapely.geometry.shape(
+                                        fiona.transform.transform_geom(
+                                            source_crs,
+                                            equal_area_crs,
+                                            shapely.geometry.mapping(g),
+                                        )
+                                    )
                                 rows.append(
                                     {
                                         "geometry": shapely.geometry.mapping(g),
                                         "properties": {
                                             "id": str(i),
-                                            "area": g.area
-                                            * 0.0001,  # Add the area in hectares
-                                            "perimeter": g.length,  # Add the perimeter in meters
+                                            "metrics:area": g_proj.area,
+                                            "metrics:perimeter": g_proj.length,
                                         },
                                     }
                                 )
@@ -481,9 +505,8 @@ def polygonize(
                                     "geometry": shapely.geometry.mapping(geom),
                                     "properties": {
                                         "id": str(i),
-                                        "area": area
-                                        * 0.0001,  # Add the area in hectares
-                                        "perimeter": perimeter,  # Add the perimeter in meters
+                                        "metrics:area": area,  # area in m²
+                                        "metrics:perimeter": perimeter,  # perimeter in m
                                     },
                                 }
                             )
@@ -493,7 +516,21 @@ def polygonize(
 
     # Merge adjacent polygons
     if merge_adjacent is not None:
-        rows = merge_adjacent_polygons(rows, merge_adjacent)
+        if is_meters:
+            reproject_fn = None
+        else:
+            # Geometries stored in `rows` may already have been reprojected to EPSG:4326
+            # when writing GeoJSON, so choose the correct source CRS accordingly.
+            merge_source_crs = epsg4326 if is_geojson else original_crs
+
+            def reproject_fn(geom):
+                return shapely.geometry.shape(
+                    fiona.transform.transform_geom(
+                        merge_source_crs, equal_area_crs, shapely.geometry.mapping(geom)
+                    )
+                )
+
+        rows = merge_adjacent_polygons(rows, merge_adjacent, reproject_fn=reproject_fn)
 
     if format == "Parquet":
         timestamp = tags.get("TIFFTAG_DATETIME", None)
@@ -507,18 +544,17 @@ def polygonize(
                 print("WARNING: Unable to parse timestamp from TIFFTAG_DATETIME tag.")
                 timestamp = None
 
-        config = collection = {"fiboa_version": "0.2.0"}
-        columns = ["geometry", "determination_method"] + list(
+        columns = ["geometry", "determination:method"] + list(
             schema["properties"].keys()
         )
         gdf = features_to_dataframe(rows, columns)
         gdf.set_crs(original_crs, inplace=True, allow_override=True)
-        gdf["determination_method"] = "auto-imagery"
+        gdf["determination:method"] = "auto-imagery"
         if timestamp is not None:
-            gdf["determination_datetime"] = timestamp
-            columns.append("determination_datetime")
+            gdf["determination:datetime"] = timestamp
+            columns.append("determination:datetime")
 
-        create_parquet(gdf, columns, collection, out, config, compression="brotli")
+        convert_to_fiboa(gdf[columns], out, timestamp)
     else:
         print(
             "WARNING: The fiboa-compliant GeoParquet output format is recommended for field boundaries."

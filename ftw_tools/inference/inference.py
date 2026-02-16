@@ -27,10 +27,6 @@ from ftw_tools.inference.model_registry import MODEL_REGISTRY
 from ftw_tools.inference.models import load_model_from_checkpoint
 from ftw_tools.inference.utils import convert_to_fiboa, postprocess_instance_polygons
 
-TORCHGEO_06 = Version("0.6.0")
-TORCHGEO_08 = Version("0.8.0.dev0")
-TORCHGEO_CURRENT = parse(torchgeo.__version__)
-
 
 def default_preprocess(sample):
     sample["image"] = sample["image"] / 3000
@@ -128,8 +124,12 @@ def run(
     overwrite,
     mps_mode,
     save_scores,
+    compute_consensus: bool = False,
     preprocess_fn: Callable = default_preprocess,
 ):
+    if save_scores and compute_consensus:
+        raise ValueError("save_scores and compute_consensus are mutually exclusive.")
+
     device, transform, input_shape, patch_size, stride, padding = setup_inference(
         input, out, gpu, patch_size, padding, overwrite, mps_mode
     )
@@ -192,6 +192,14 @@ def run(
     else:
         out_channels = 1
     output_mask = np.zeros([out_channels, input_height, input_width], dtype=np.uint8)
+
+    if compute_consensus:
+        output_full = np.zeros([input_height, input_width], dtype=np.uint8)
+        output_placed = np.zeros([input_height, input_width], dtype=np.bool_)
+        output_disagreements = np.zeros([input_height, input_width], dtype=np.uint8)
+        overlap_agreements = 0
+        overlap_total = 0
+
     dl_enumerator = tqdm(dataloader)
 
     inference_geoms = []
@@ -204,22 +212,13 @@ def run(
             images = rearrange(images, "b (t c) h w -> b t c h w", t=2)
         images = images.to(device)
 
-        # torchgeo>=0.8 switched from BoundingBox to slices
-        # torchgeo>=0.6 refers to the bounding box as "bounds" instead of "bbox"
         bboxes = []
-        if TORCHGEO_CURRENT >= TORCHGEO_08:
-            for slices in batch["bounds"]:
-                minx = slices[0].start
-                maxx = slices[0].stop
-                miny = slices[1].start
-                maxy = slices[1].stop
-                bboxes.append((minx, miny, maxx, maxy))
-        elif TORCHGEO_CURRENT >= TORCHGEO_06:
-            for bbox in batch["bounds"]:
-                bboxes.append((bbox.minx, bbox.miny, bbox.maxx, bbox.maxy))
-        else:
-            for bbox in batch["bbox"]:
-                bboxes.append((bbox.minx, bbox.miny, bbox.maxx, bbox.maxy))
+        for bounds_tensor in batch["bounds"]:
+            minx = bounds_tensor[0].item()
+            maxx = bounds_tensor[1].item()
+            miny = bounds_tensor[3].item()
+            maxy = bounds_tensor[4].item()
+            bboxes.append((minx, miny, maxx, maxy))
 
         with torch.inference_mode():
             predictions = model(images)
@@ -288,6 +287,69 @@ def run(
             inp = predictions[i, :, src_top:src_bottom, src_left:src_right]
             output_mask[:, dst_top:dst_bottom, dst_left:dst_right] = inp
 
+            if compute_consensus:
+                # Track overlap consistency using full prediction (before padding trim)
+                # Get the full prediction region (without padding trimming)
+                full_dst_left = max(left, 0)
+                full_dst_top = max(top, 0)
+                full_dst_right = min(right, input_width)
+                full_dst_bottom = min(bottom, input_height)
+
+                # Source indices for full prediction
+                full_src_left = full_dst_left - left
+                full_src_top = full_dst_top - top
+                full_src_right = full_src_left + (full_dst_right - full_dst_left)
+                full_src_bottom = full_src_top + (full_dst_bottom - full_dst_top)
+
+                # Clamp source indices to prediction dimensions
+                full_src_left = max(0, min(full_src_left, w))
+                full_src_right = max(0, min(full_src_right, w))
+                full_src_top = max(0, min(full_src_top, h))
+                full_src_bottom = max(0, min(full_src_bottom, h))
+
+                if full_src_right > full_src_left and full_src_bottom > full_src_top:
+                    # Get current prediction for this region
+                    current_pred = predictions[
+                        i, 0, full_src_top:full_src_bottom, full_src_left:full_src_right
+                    ]
+
+                    # Check which pixels have already been placed
+                    placed_region = output_placed[
+                        full_dst_top:full_dst_bottom, full_dst_left:full_dst_right
+                    ]
+                    existing_pred = output_full[
+                        full_dst_top:full_dst_bottom, full_dst_left:full_dst_right
+                    ]
+
+                    # Compare predictions in overlapping areas
+                    overlap_mask = placed_region
+                    if np.any(overlap_mask):
+                        agreement_mask = (current_pred == existing_pred) & overlap_mask
+                        disagreement_mask = (
+                            current_pred != existing_pred
+                        ) & overlap_mask
+                        agreements = np.sum(agreement_mask)
+                        total = np.sum(overlap_mask)
+                        overlap_agreements += agreements
+                        overlap_total += total
+
+                        # Mark disagreement locations
+                        disagreement_region = output_disagreements[
+                            full_dst_top:full_dst_bottom, full_dst_left:full_dst_right
+                        ]
+                        output_disagreements[
+                            full_dst_top:full_dst_bottom, full_dst_left:full_dst_right
+                        ] = np.where(disagreement_mask, 1, disagreement_region)
+
+                    # Update output_full and output_placed for pixels not yet filled
+                    not_placed = ~placed_region
+                    output_full[
+                        full_dst_top:full_dst_bottom, full_dst_left:full_dst_right
+                    ] = np.where(not_placed, current_pred, existing_pred)
+                    output_placed[
+                        full_dst_top:full_dst_bottom, full_dst_left:full_dst_right
+                    ] = True
+
     # Some code to save prediction footprints
     # with fiona.open("inference_footprints.geojson", "w", driver="GeoJSON", crs=profile["crs"], schema={"geometry": "Polygon", "properties": {}}) as dst:
     #     for geom in inference_geoms:
@@ -326,6 +388,25 @@ def run(
             dst.write_colormap(1, {1: (255, 0, 0), 2: (0, 255, 0)})
             dst.colorinterp = [ColorInterp.palette]
             dst.write(output_mask[0], 1)
+
+    if compute_consensus:
+        # Save disagreements as a separate GeoTIFF
+        disagreements_out = out.replace(".tif", "_disagreements.tif")
+        disagreements_profile = profile.copy()
+        disagreements_profile.update({"count": 1, "dtype": "uint8", "nodata": None})
+        with rasterio.open(disagreements_out, "w", **disagreements_profile) as dst:
+            dst.update_tags(**tags)
+            dst.write(output_disagreements, 1)
+        print(f"Saved disagreements map to {disagreements_out}")
+
+        # Report overlap consistency
+        if overlap_total > 0:
+            overlap_fraction = overlap_agreements / overlap_total
+            print(
+                f"Overlap consistency: {overlap_agreements}/{overlap_total} = {overlap_fraction:.4f}"
+            )
+        else:
+            print("No overlapping regions found.")
 
     print(f"Finished inference and saved output to {out} in {time.time() - tic:.2f}s")
 
@@ -423,20 +504,14 @@ def run_instance_segmentation(
         images = batch["image"].to(device)
         predictions = model(images)
 
-        # torchgeo>=0.6 refers to the bounding box as "bounds" instead of "bbox"
-        if "bounds" in batch and batch["bounds"] is not None:
-            bboxes = batch["bounds"]
-        else:
-            bboxes = batch["bbox"]
-
-        # Convert instance predictions to polygons
-        for image, pred, bounds, crs in zip(images, predictions, bboxes, batch["crs"]):
+        crs = dataset.crs
+        for image, pred, bounds_tensor in zip(images, predictions, batch["bounds"]):
             _, h, w = image.shape
             transform = from_bounds(
-                west=bounds.minx,
-                south=bounds.miny,
-                east=bounds.maxx,
-                north=bounds.maxy,
+                west=bounds_tensor[0].item(),
+                south=bounds_tensor[3].item(),
+                east=bounds_tensor[1].item(),
+                north=bounds_tensor[4].item(),
                 height=h,
                 width=w,
             )
