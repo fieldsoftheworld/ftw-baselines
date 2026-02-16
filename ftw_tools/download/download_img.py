@@ -124,7 +124,7 @@ def scene_selection(
     cloud_cover_max: int = 20,
     buffer_days: int = 14,
     s2_collection: str = "c1",
-    nodata_max: Optional[int] = None,
+    nodata_max: Optional[int] = 50,
     verbose: bool = False,
 ) -> Tuple[str, str]:
     """
