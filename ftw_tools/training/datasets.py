@@ -33,6 +33,8 @@ class FTW(NonGeoDataset):
         temporal_options: str = "stacked",
         swap_order: bool = False,
         num_samples: int = -1,
+        percent_samples: float = -1.0,
+        seed: int = 42,
         ignore_sample_fn: Optional[str] = None,
         verbose: bool = True,
     ) -> None:
@@ -48,9 +50,15 @@ class FTW(NonGeoDataset):
             checksum: if True, check the MD5 of the downloaded files (may be slow)
             load_boundaries: if True, load the 3 class masks with boundaries
             load_edges: if True, load the edge masks
-            temporal_options : for ablation study, valid option are (stacked, windowA,
-                windowB, median, rgb, random_window)
+            temporal_options : for ablation study, must be one of the values in
+                ``TEMPORAL_OPTIONS`` (e.g. "stacked", "windowA", "windowB", "median",
+                "rgb", "random_window", "window_a_rgb", "window_b_rgb")
             swap_order: if True, swap the order of temporal data (i.e. use window A first)
+            num_samples: number of samples to use (-1 for all). Only applies to train split.
+                Mutually exclusive with percent_samples.
+            percent_samples: percentage of samples to use (0-100, -1 for all). Only applies
+                to train split. Mutually exclusive with num_samples.
+            seed: random seed for reproducible subsampling
             ignore_sample_fn: path to a filename with a list of samples to ignore
         Raises:
             AssertionError: if ``countries`` argument is invalid
@@ -73,12 +81,21 @@ class FTW(NonGeoDataset):
 
         self.countries = countries
         assert split in self.valid_splits
+        self.split = split
         self.transforms = transforms
         self.checksum = checksum
         self.load_boundaries = load_boundaries
         self.load_edges = load_edges
         self.temporal_options = temporal_options
         self.num_samples = num_samples
+        self.percent_samples = percent_samples
+        self.seed = seed
+
+        if num_samples != -1 and percent_samples != -1.0:
+            raise ValueError(
+                "num_samples and percent_samples are mutually exclusive. "
+                "Please specify only one."
+            )
 
         if swap_order:
             if temporal_options not in ("stacked", "rgb"):
@@ -180,15 +197,25 @@ class FTW(NonGeoDataset):
                     file_record["edge"] = str(edge_fn)
                 all_filenames.append(file_record)
 
-        if self.num_samples == -1:  # select all samples
+        # Only subsample training data; val/test always use all samples
+        if self.split != "train" or (
+            self.num_samples == -1 and self.percent_samples == -1.0
+        ):
             self.filenames = all_filenames
         else:
-            self.filenames = random.sample(
-                all_filenames, min(self.num_samples, len(all_filenames))
-            )
+            # Use fixed seed for reproducible subsampling
+            rng = random.Random(self.seed)
+            if self.percent_samples != -1.0:
+                n_select = max(
+                    1, int(len(all_filenames) * self.percent_samples / 100.0)
+                )
+            else:
+                n_select = self.num_samples
+            n_select = min(n_select, len(all_filenames))
+            self.filenames = rng.sample(all_filenames, n_select)
 
         if verbose:
-            print(f"Selecting: {len(self.filenames)} samples")
+            print(f"Selecting: {len(self.filenames)} samples (split={self.split})")
 
     def _checksum(self) -> bool:
         """Check the checksum of the dataset.
@@ -281,17 +308,35 @@ class FTW(NonGeoDataset):
         filenames = self.filenames[index]
 
         images = []
-        if self.temporal_options in ("stacked", "median", "windowB", "rgb"):
+        if self.temporal_options in (
+            "stacked",
+            "median",
+            "windowB",
+            "rgb",
+            "window_b_rgb",
+        ):
             with rasterio.open(filenames["window_b"]) as f:
                 window_b_img = f.read()
-                if self.temporal_options == "rgb":  # select 3 channels only
+                if self.temporal_options in (
+                    "rgb",
+                    "window_b_rgb",
+                ):  # select 3 channels only
                     window_b_img = window_b_img[:3]
                 images.append(window_b_img)
 
-        if self.temporal_options in ("stacked", "median", "windowA", "rgb"):
+        if self.temporal_options in (
+            "stacked",
+            "median",
+            "windowA",
+            "rgb",
+            "window_a_rgb",
+        ):
             with rasterio.open(filenames["window_a"]) as f:
                 window_a_img = f.read()
-                if self.temporal_options == "rgb":  # select 3 channels only
+                if self.temporal_options in (
+                    "rgb",
+                    "window_a_rgb",
+                ):  # select 3 channels only
                     window_a_img = window_a_img[:3]
                 images.append(window_a_img)
 
