@@ -8,6 +8,16 @@ from vecorel_cli.encoding.geoparquet import GeoParquet
 from vecorel_cli.vecorel.collection import Collection
 
 
+def _to_polygons_only(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Explode multi-geometries and keep only valid Polygons."""
+    # GeometryCollection -> MultiPolygon -> Polygon (thus two attempts at exploding)
+    gdf = gdf.explode(index_parts=False, ignore_index=True)
+    gdf = gdf.explode(index_parts=False, ignore_index=True)
+    gdf = gdf[gdf.geometry.geom_type == "Polygon"].reset_index(drop=True)
+    gdf = gdf[gdf.geometry.is_valid & ~gdf.geometry.is_empty]
+    return gdf
+
+
 def merge_polygons(
     polygons: gpd.GeoDataFrame,
     iou_thresh: float = 0.2,
@@ -84,11 +94,7 @@ def merge_polygons(
     merged["geometry"] = merged.geometry.apply(shapely.make_valid)
 
     # Convert merged multipolygons or geometry collections to polygons
-    merged = merged.explode(index_parts=False, ignore_index=True)
-    merged = merged.explode(index_parts=False, ignore_index=True)
-    merged = merged[merged.geometry.geom_type == "Polygon"].reset_index(drop=True)
-    merged = merged[merged.geometry.is_valid & ~merged.geometry.is_empty]
-    return merged
+    return _to_polygons_only(merged)
 
 
 def postprocess_instance_polygons(

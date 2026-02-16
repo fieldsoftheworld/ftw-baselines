@@ -770,6 +770,13 @@ def inference_download(
     show_default=True,
     help="Save segmentation softmax scores (rescaled to [0,255]) instead of classes (argmax of scores)",
 )
+@click.option(
+    "--compute_consensus",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Compute corner consensus scores during inference",
+)
 def inference_run(
     input: str,
     model: str,
@@ -783,6 +790,7 @@ def inference_run(
     overwrite: bool,
     mps_mode: bool,
     save_scores: bool,
+    compute_consensus: bool,
 ):
     from ftw_tools.inference.inference import run
 
@@ -799,6 +807,7 @@ def inference_run(
         overwrite,
         mps_mode,
         save_scores,
+        compute_consensus,
     )
 
 

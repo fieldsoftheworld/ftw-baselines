@@ -75,7 +75,16 @@ FULL_DATA_COUNTRIES = [
     "vietnam",
 ]
 
-TEMPORAL_OPTIONS = ["stacked", "windowA", "windowB", "median", "rgb", "random_window"]
+TEMPORAL_OPTIONS = [
+    "stacked",
+    "windowA",
+    "windowB",
+    "median",
+    "rgb",
+    "random_window",
+    "window_a_rgb",
+    "window_b_rgb",
+]
 
 LULC_COLLECTIONS = ["io-lulc-annual-v02", "esa-worldcover"]
 
