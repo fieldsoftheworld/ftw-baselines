@@ -474,9 +474,12 @@ def polygonize(
                                 if is_meters:
                                     g_proj = g
                                 else:
+                                    # Use the actual CRS of g: EPSG:4326 when is_geojson,
+                                    # otherwise the original CRS.
+                                    source_crs = CRS.from_epsg(4326) if is_geojson else original_crs
                                     g_proj = shapely.geometry.shape(
                                         fiona.transform.transform_geom(
-                                            original_crs,
+                                            source_crs,
                                             equal_area_crs,
                                             shapely.geometry.mapping(g),
                                         )
@@ -512,11 +515,16 @@ def polygonize(
         if is_meters:
             reproject_fn = None
         else:
+            # Geometries stored in `rows` may already have been reprojected to EPSG:4326
+            # when writing GeoJSON, so choose the correct source CRS accordingly.
+            merge_source_crs = epsg4326 if is_geojson else original_crs
 
             def reproject_fn(geom):
                 return shapely.geometry.shape(
                     fiona.transform.transform_geom(
-                        original_crs, equal_area_crs, shapely.geometry.mapping(geom)
+                        merge_source_crs,
+                        equal_area_crs,
+                        shapely.geometry.mapping(geom),
                     )
                 )
 
