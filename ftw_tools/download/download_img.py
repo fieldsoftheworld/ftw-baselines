@@ -284,10 +284,12 @@ def query_stac(
     # entire MGRS tile (~100km x 100km). When the user's bbox is at the edge of a
     # tile, the clipped area can be mostly nodata even though the whole-scene
     # percentage is low. Compute actual bbox coverage from each item's footprint.
+    bbox_nodata_cache = {}
     if nodata_max is not None:
         filtered_items = []
         for item in items:
             bbox_nodata = _compute_bbox_nodata_percentage(item.geometry, bbox)
+            bbox_nodata_cache[item.id] = bbox_nodata
             if bbox_nodata <= nodata_max:
                 filtered_items.append(item)
             elif verbose:
@@ -343,16 +345,11 @@ def query_stac(
 
     if verbose:
         nodata_str = ""
-        if parsed_selected["nodata_percentage"] is not None and isinstance(
-            parsed_selected["nodata_percentage"], (int, float)
-        ):
+        if parsed_selected["nodata_percentage"] is not None:
             scene_coverage = 100 - parsed_selected["nodata_percentage"]
             nodata_str = f"\n    Scene-level area coverage: {scene_coverage:.1f}%"
-        if nodata_max is not None:
-            bbox_nodata = _compute_bbox_nodata_percentage(
-                least_cloudy_item.geometry, bbox
-            )
-            nodata_str += f"\n    Bbox-level nodata: {bbox_nodata:.1f}%"
+        if least_cloudy_item.id in bbox_nodata_cache:
+            nodata_str += f"\n    Bbox-level nodata: {bbox_nodata_cache[least_cloudy_item.id]:.1f}%"
         print(
             f"  SELECTED: {parsed_selected['id']} from {parsed_selected['date']}\n"
             f"    Cloud cover: {parsed_selected['cloud_cover']:.2f}% (lowest among {len(items)} candidates){nodata_str}\n"
