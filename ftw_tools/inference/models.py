@@ -9,10 +9,8 @@ import shapely.ops
 import torch
 import torch.nn as nn
 import torchvision.transforms.v2 as T
-import ultralytics
 from torch import Tensor
 from torchgeo.models import FCN, FCSiamConc, FCSiamDiff
-from ultralytics.engine.results import Results
 
 # torchvision.ops.nms is not supported on MPS yet
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
@@ -152,7 +150,9 @@ class DelineateAnything:
         self.iou_threshold = iou_threshold
         self.conf_threshold = conf_threshold
         self.device = device
-        self.model = ultralytics.YOLO(self.checkpoints[model]).to(device)
+        from ultralytics import YOLO
+
+        self.model = YOLO(self.checkpoints[model]).to(device)
         self.model.eval()
         self.model.fuse()
         self.transforms = nn.Sequential(
@@ -166,7 +166,9 @@ class DelineateAnything:
 
     @staticmethod
     def polygonize(
-        result: Results, transform: rasterio.Affine, crs=rasterio.CRS
+        result: "ultralytics.engine.results.Results",
+        transform: rasterio.Affine,
+        crs=rasterio.CRS,
     ) -> gpd.GeoDataFrame | None:
         """Convert the model predictions to a GeoDataFrame of georeferenced polygons.
 
@@ -203,7 +205,9 @@ class DelineateAnything:
         df.drop(["name", "class", "box", "segments"], axis=1, inplace=True)
         return gpd.GeoDataFrame(df, geometry=df["geometry"], crs=crs)
 
-    def __call__(self, image: torch.Tensor) -> list[Results]:
+    def __call__(
+        self, image: torch.Tensor
+    ) -> list["ultralytics.engine.results.Results"]:
         """Forward pass through the model.
 
         Args:
