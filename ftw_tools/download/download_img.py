@@ -268,22 +268,14 @@ def query_stac(
         print("  Available scenes:")
         for item in items:
             parsed_item = _parse_stac_item(item)
-            nodata_str = ""
-            if parsed_item["nodata_percentage"] is not None and isinstance(
-                parsed_item["nodata_percentage"], (int, float)
-            ):
-                area_coverage = 100 - parsed_item["nodata_percentage"]
-                nodata_str = f", area coverage: {area_coverage:.1f}%"
             print(
                 f"\t- {parsed_item['id']}: {parsed_item['date']}, "
                 f"MGRS: {parsed_item['mgrs_tile']}, "
-                f"cloud cover: {parsed_item['cloud_cover']:.2f}%{nodata_str}"
+                f"cloud cover: {parsed_item['cloud_cover']:.2f}%"
             )
 
-    # Filter by bbox-level nodata: the STAC s2:nodata_pixel_percentage is for the
-    # entire MGRS tile (~100km x 100km). When the user's bbox is at the edge of a
-    # tile, the clipped area can be mostly nodata even though the whole-scene
-    # percentage is low. Compute actual bbox coverage from each item's footprint.
+    # Filter by bbox-level nodata: compute actual bbox coverage from each item's
+    # data footprint. This catches cases where the bbox is at the edge of a tile.
     bbox_nodata_cache = {}
     if nodata_max is not None:
         filtered_items = []
@@ -345,11 +337,8 @@ def query_stac(
 
     if verbose:
         nodata_str = ""
-        if parsed_selected["nodata_percentage"] is not None:
-            scene_coverage = 100 - parsed_selected["nodata_percentage"]
-            nodata_str = f"\n    Scene-level area coverage: {scene_coverage:.1f}%"
         if least_cloudy_item.id in bbox_nodata_cache:
-            nodata_str += f"\n    Bbox-level nodata: {bbox_nodata_cache[least_cloudy_item.id]:.1f}%"
+            nodata_str = f"\n    Bbox-level nodata: {bbox_nodata_cache[least_cloudy_item.id]:.1f}%"
         print(
             f"  SELECTED: {parsed_selected['id']} from {parsed_selected['date']}\n"
             f"    Cloud cover: {parsed_selected['cloud_cover']:.2f}% (lowest among {len(items)} candidates){nodata_str}\n"
@@ -480,10 +469,6 @@ def _query_earthsearch(
     # Build query filters
     query_filters = {"eo:cloud_cover": {"lt": cloud_cover_max}}
 
-    # Add nodata filter if specified (EarthSearch supports this property)
-    if nodata_max is not None:
-        query_filters["s2:nodata_pixel_percentage"] = {"lt": nodata_max}
-
     search = catalog.search(
         collections=[collection_name],
         bbox=bbox,
@@ -530,10 +515,6 @@ def _query_microsoft_pc(
     # Build query filters
     query_filters = {"eo:cloud_cover": {"lt": cloud_cover_max}}
 
-    # Add nodata filter if specified (MSPC supports this property)
-    if nodata_max is not None:
-        query_filters["s2:nodata_pixel_percentage"] = {"lt": nodata_max}
-
     search = catalog.search(
         collections=[collection_name],
         bbox=bbox,
@@ -556,7 +537,6 @@ def _parse_stac_item(item: pystac.Item) -> dict:
         - date: Item date
         - mgrs_tile: MGRS tile code
         - cloud_cover: Cloud cover percentage
-        - nodata_percentage: Nodata pixel percentage (if available)
         - item: Original STAC item object
     """
     cloud_cover = eo.ext(item).cloud_cover
@@ -564,14 +544,12 @@ def _parse_stac_item(item: pystac.Item) -> dict:
     mgrs_tile = item.properties.get("grid:code") or item.properties.get(
         "s2:mgrs_tile", "Unknown"
     )
-    nodata_percentage = item.properties.get("s2:nodata_pixel_percentage")
 
     return {
         "id": item.id,
         "date": date_str,
         "mgrs_tile": mgrs_tile,
         "cloud_cover": cloud_cover,
-        "nodata_percentage": nodata_percentage,
         "item": item,
     }
 

@@ -150,10 +150,4 @@ def test_parse_stac_item_includes_nodata():
     assert "date" in parsed
     assert "mgrs_tile" in parsed
     assert "cloud_cover" in parsed
-    assert "nodata_percentage" in parsed
     assert "item" in parsed
-
-    # nodata_percentage may be None if not available in the item
-    assert parsed["nodata_percentage"] is None or isinstance(
-        parsed["nodata_percentage"], (int, float)
-    )
