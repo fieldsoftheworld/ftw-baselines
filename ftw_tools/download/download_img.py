@@ -2,7 +2,7 @@ import logging
 import os
 import time
 import urllib.parse
-from typing import Tuple
+from typing import Optional, Tuple
 from urllib.parse import urlparse
 
 import dask.diagnostics.progress
@@ -124,6 +124,7 @@ def scene_selection(
     cloud_cover_max: int = 20,
     buffer_days: int = 14,
     s2_collection: str = "c1",
+    nodata_max: Optional[int] = 50,
     verbose: bool = False,
 ) -> Tuple[str, str]:
     """
@@ -139,6 +140,9 @@ def scene_selection(
             decreasing cloud cover and selecting a date near the crop calendar indicated date.
             Defaults to 14.
         s2_collection (str, optional): Sentinel-2 collection to use (only applies to EarthSearch). Defaults to "c1".
+        nodata_max (int, optional): Maximum allowed nodata pixel percentage. If specified, scenes with higher
+            nodata percentages will be filtered out. Supported for both MSPC and EarthSearch backends.
+        verbose (bool, optional): Whether to print verbose output. Defaults to False.
 
     Returns:
         tuple: Sentinel2 image ids to be used as input into the 2 image crop model
@@ -154,12 +158,15 @@ def scene_selection(
     )  # to account for southern hemisphere harvest
 
     if verbose:
+        nodata_filter_text = (
+            f", nodata_max={nodata_max}%" if nodata_max is not None else ""
+        )
         print(
             f"\n=== SCENE SELECTION ===\n"
             f"Crop calendar dates: Start={start_dt.date()} (day {start_day}), End={end_dt.date()} (day {end_day})\n"
             f"STAC Host: {stac_host}\n"
             f"S2 Collection: {s2_collection} ({'EarthSearch only' if stac_host == 'earthsearch' else 'ignored for MSPC'})\n"
-            f"Search parameters: cloud_cover_max={cloud_cover_max}%, buffer_days=±{buffer_days}\n"
+            f"Search parameters: cloud_cover_max={cloud_cover_max}%, buffer_days=±{buffer_days}{nodata_filter_text}\n"
             f"Bounding box: {bbox}\n",
             # search for +/- number of days the crop calendar indicated start and end days
             f"Searching for EARLY SEASON scene around {start_dt.date()} (crop calendar start)",
@@ -172,6 +179,7 @@ def scene_selection(
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
         s2_collection=s2_collection,
+        nodata_max=nodata_max,
         verbose=verbose,
     )
     if verbose:
@@ -185,6 +193,7 @@ def scene_selection(
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
         s2_collection=s2_collection,
+        nodata_max=nodata_max,
         verbose=verbose,
     )
 
@@ -198,6 +207,7 @@ def query_stac(
     cloud_cover_max: int = 20,
     buffer_days=14,
     s2_collection: str = "c1",
+    nodata_max: Optional[int] = None,
     verbose: bool = False,
 ) -> str:
     """
@@ -212,6 +222,8 @@ def query_stac(
         buffer_days: Number of days to buffer the date for querying.
         stac_host: The STAC host to use ('mspc' or 'earthsearch').
         s2_collection: Sentinel-2 collection to use (only applies to EarthSearch).
+        nodata_max: Maximum allowed nodata pixel percentage (supported by both MSPC and EarthSearch).
+        verbose: Whether to print verbose output.
 
     Returns:
         Sentinel-2 image S3 URL.
@@ -225,6 +237,7 @@ def query_stac(
             cloud_cover_max=cloud_cover_max,
             buffer_days=buffer_days,
             s2_collection=s2_collection,
+            nodata_max=nodata_max,
             verbose=verbose,
         )
     elif stac_host == "mspc":
@@ -233,6 +246,7 @@ def query_stac(
             date=date,
             cloud_cover_max=cloud_cover_max,
             buffer_days=buffer_days,
+            nodata_max=nodata_max,
             verbose=verbose,
         )
     else:
@@ -250,7 +264,7 @@ def query_stac(
         )
 
     # Log all found scenes with their details using uniform parsing
-    if verbose and len(items) > 0:
+    if verbose:
         print("  Available scenes:")
         for item in items:
             parsed_item = _parse_stac_item(item)
@@ -259,6 +273,40 @@ def query_stac(
                 f"MGRS: {parsed_item['mgrs_tile']}, "
                 f"cloud cover: {parsed_item['cloud_cover']:.2f}%"
             )
+
+    # Filter by bbox-level nodata: compute actual bbox coverage from each item's
+    # data footprint. This catches cases where the bbox is at the edge of a tile.
+    bbox_nodata_cache = {}
+    if nodata_max is not None:
+        filtered_items = []
+        for item in items:
+            bbox_nodata = _compute_bbox_nodata_percentage(item.geometry, bbox)
+            bbox_nodata_cache[item.id] = bbox_nodata
+            if bbox_nodata <= nodata_max:
+                filtered_items.append(item)
+            elif verbose:
+                parsed_item = _parse_stac_item(item)
+                print(
+                    f"\t  Filtered out {parsed_item['id']}: "
+                    f"bbox nodata {bbox_nodata:.1f}% exceeds {nodata_max}%"
+                )
+
+        if verbose and len(filtered_items) < len(items):
+            print(
+                f"  Bbox nodata filter: {len(items)} -> {len(filtered_items)} scenes "
+                f"(removed {len(items) - len(filtered_items)})"
+            )
+
+        if len(filtered_items) == 0:
+            raise ValueError(
+                f"All {len(items)} candidate scenes were filtered out because "
+                f"the bounding box nodata percentage exceeds {nodata_max}%. "
+                f"The bounding box may be at the edge of a Sentinel-2 MGRS tile. "
+                f"Consider using a different bounding box or relaxing the "
+                f"--nodata_max threshold."
+            )
+
+        items = filtered_items
 
     # Check if AOI is approximately greater than 100 km x 100 km and spans multiple Sentinel 2 MGRS tiles
     if len(items) > 1 and (
@@ -288,9 +336,12 @@ def query_stac(
     )
 
     if verbose:
+        nodata_str = ""
+        if least_cloudy_item.id in bbox_nodata_cache:
+            nodata_str = f"\n    Bbox-level nodata: {bbox_nodata_cache[least_cloudy_item.id]:.1f}%"
         print(
             f"  SELECTED: {parsed_selected['id']} from {parsed_selected['date']}\n"
-            f"    Cloud cover: {parsed_selected['cloud_cover']:.2f}% (lowest among {len(items)} candidates)\n"
+            f"    Cloud cover: {parsed_selected['cloud_cover']:.2f}% (lowest among {len(items)} candidates){nodata_str}\n"
             f"    STAC URL: {least_cloudy_item.get_self_href()}"
         )
 
@@ -386,6 +437,7 @@ def _query_earthsearch(
     cloud_cover_max: int,
     buffer_days: int,
     s2_collection: str,
+    nodata_max: Optional[int] = None,
     verbose: bool = False,
 ) -> tuple[pystac.ItemCollection, str]:
     """Query EarthSearch for Sentinel-2 imagery.
@@ -396,6 +448,7 @@ def _query_earthsearch(
         cloud_cover_max: Maximum allowed cloud cover percentage.
         buffer_days: Number of days to buffer around the center date.
         s2_collection: Sentinel-2 collection identifier to use.
+        nodata_max: Maximum allowed nodata pixel percentage.
         verbose: Whether to print verbose output.
 
     Returns:
@@ -412,11 +465,15 @@ def _query_earthsearch(
         )
 
     catalog = pystac_client.Client.open(host)
+
+    # Build query filters
+    query_filters = {"eo:cloud_cover": {"lt": cloud_cover_max}}
+
     search = catalog.search(
         collections=[collection_name],
         bbox=bbox,
         datetime=date_range,
-        query={"eo:cloud_cover": {"lt": cloud_cover_max}},
+        query=query_filters,
     )
 
     return search.item_collection(), date_range
@@ -427,6 +484,7 @@ def _query_microsoft_pc(
     date: pd.Timestamp,
     cloud_cover_max: int,
     buffer_days: int,
+    nodata_max: Optional[int] = None,
     verbose: bool = False,
 ) -> tuple[pystac.ItemCollection, str]:
     """Query Microsoft Planetary Computer for Sentinel-2 imagery.
@@ -436,6 +494,7 @@ def _query_microsoft_pc(
         date: Center date for the query.
         cloud_cover_max: Maximum allowed cloud cover percentage.
         buffer_days: Number of days to buffer around the center date.
+        nodata_max: Maximum allowed nodata pixel percentage.
         verbose: Whether to print verbose output.
 
     Returns:
@@ -452,11 +511,15 @@ def _query_microsoft_pc(
         )
 
     catalog = pystac_client.Client.open(host)
+
+    # Build query filters
+    query_filters = {"eo:cloud_cover": {"lt": cloud_cover_max}}
+
     search = catalog.search(
         collections=[collection_name],
         bbox=bbox,
         datetime=date_range,
-        query={"eo:cloud_cover": {"lt": cloud_cover_max}},
+        query=query_filters,
     )
 
     return search.item_collection(), date_range
@@ -489,6 +552,56 @@ def _parse_stac_item(item: pystac.Item) -> dict:
         "cloud_cover": cloud_cover,
         "item": item,
     }
+
+
+def _compute_bbox_nodata_percentage(item_geometry: dict, bbox: list[float]) -> float:
+    """Estimate the nodata percentage within a bounding box from the item's data footprint.
+
+    For Sentinel-2, item.geometry represents the data footprint polygon.
+    Areas of the bbox outside this footprint are nodata. This computes
+    the percentage of the bbox NOT covered by the item's data footprint.
+
+    Args:
+        item_geometry: GeoJSON geometry dict from item.geometry (the data footprint).
+        bbox: Bounding box in [minx, miny, maxx, maxy] format (EPSG:4326).
+
+    Returns:
+        Estimated nodata percentage (0-100) within the bbox.
+    """
+    if item_geometry is None:
+        return 100.0
+
+    try:
+        footprint = shape(item_geometry)
+        bbox_polygon = box(*bbox)
+    except Exception:
+        logger.warning("Failed to parse item geometry, assuming 100%% nodata in bbox")
+        return 100.0
+
+    if not footprint.is_valid or footprint.is_empty:
+        return 100.0
+
+    if not bbox_polygon.is_valid or bbox_polygon.is_empty:
+        raise ValueError("Bounding box polygon is invalid or empty.")
+
+    # Project to equal-area CRS for accurate area calculation (matches pattern at line 286)
+    bbox_gdf = gpd.GeoDataFrame(geometry=[bbox_polygon], crs="EPSG:4326").to_crs(
+        "EPSG:6933"
+    )
+    footprint_gdf = gpd.GeoDataFrame(geometry=[footprint], crs="EPSG:4326").to_crs(
+        "EPSG:6933"
+    )
+
+    bbox_projected = bbox_gdf.geometry.iloc[0]
+    footprint_projected = footprint_gdf.geometry.iloc[0]
+
+    bbox_area = bbox_projected.area
+    if bbox_area == 0:
+        raise ValueError("Bounding box has zero area after projection.")
+
+    intersection = bbox_projected.intersection(footprint_projected)
+    nodata_pct = (1.0 - intersection.area / bbox_area) * 100.0
+    return max(0.0, min(100.0, nodata_pct))
 
 
 def create_input(

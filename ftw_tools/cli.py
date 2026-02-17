@@ -123,6 +123,20 @@ def common_buffer_days_option():
     )
 
 
+def common_nodata_max_option():
+    """Common nodata max option for inference commands."""
+    return click.option(
+        "--nodata_max",
+        "-ndx",
+        type=click.IntRange(min=0, max=100),
+        default=50,
+        show_default=True,
+        help="Maximum percentage of nodata pixels allowed in the Sentinel-2 scene. "
+        "Scenes with higher nodata percentages (lower area coverage) will be filtered out. "
+        "Supported for both Microsoft Planetary Computer and EarthSearch backends.",
+    )
+
+
 def common_stac_host_option():
     """Common STAC host option for inference commands."""
     return click.option(
@@ -519,6 +533,7 @@ def inference():
 )
 @common_stac_host_option()
 @common_s2_collection_option()
+@common_nodata_max_option()
 @common_verbose_option()
 def ftw_inference_all(
     out,
@@ -538,6 +553,7 @@ def ftw_inference_all(
     save_scores,
     stac_host,
     s2_collection,
+    nodata_max,
     verbose,
 ):
     """Run all inference commands from crop calendar scene selection, then download, inference and polygonize."""
@@ -561,6 +577,7 @@ def ftw_inference_all(
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
         s2_collection=s2_collection,
+        nodata_max=nodata_max,
         verbose=verbose,
     )
 
@@ -614,9 +631,18 @@ def ftw_inference_all(
 )
 @common_stac_host_option()
 @common_s2_collection_option()
+@common_nodata_max_option()
 @common_verbose_option()
 def scene_selection(
-    year, bbox, cloud_cover_max, buffer_days, out, stac_host, s2_collection, verbose
+    year,
+    bbox,
+    cloud_cover_max,
+    buffer_days,
+    out,
+    stac_host,
+    s2_collection,
+    nodata_max,
+    verbose,
 ):
     """Download Sentinel-2 scenes for inference."""
     from ftw_tools.download.download_img import scene_selection
@@ -628,6 +654,7 @@ def scene_selection(
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
         s2_collection=s2_collection,
+        nodata_max=nodata_max,
         verbose=verbose,
     )
     if out:
