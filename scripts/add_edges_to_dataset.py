@@ -65,7 +65,7 @@ if __name__ == "__main__":
     for country in ALL_COUNTRIES:
         os.makedirs(f"data/ftw/{country}/label_masks/edges", exist_ok=True)
 
-        for split in ["val", "test"]:
+        for split in ["train", "val", "test"]:
             print(f"Processing {country} - {split}...")
             ds = FTW(
                 root="data/ftw", countries=country, split=split, load_boundaries=True
