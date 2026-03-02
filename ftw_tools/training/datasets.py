@@ -51,7 +51,7 @@ class FTW(NonGeoDataset):
             load_boundaries: if True, load the 3 class masks with boundaries
             load_edges: if True, load the edge masks
             temporal_options : for ablation study, valid option are (stacked, windowA,
-                windowB, median, rgb, random_window)
+                windowB, median, rgb, random_window, window_a_rgb, window_b_rgb)
             swap_order: if True, swap the order of temporal data (i.e. use window A first)
             num_samples: number of samples to use (-1 for all). Only applies to train split.
                 Mutually exclusive with percent_samples.

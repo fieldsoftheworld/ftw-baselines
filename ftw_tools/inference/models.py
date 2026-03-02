@@ -127,6 +127,9 @@ class DelineateAnything:
         max_detections: int = 100,
         iou_threshold: float = 0.3,
         conf_threshold: float = 0.05,
+        percentile_low: float | None = 0.01,
+        percentile_high: float | None = 0.99,
+        norm_constant: float | None = None,
         device: str = "cuda" if torch.cuda.is_available() else "cpu",
     ) -> None:
         """Initialize the DelineateAnything model.
@@ -138,9 +141,26 @@ class DelineateAnything:
             max_detections: Maximum number of detections per image.
             iou_threshold: Intersection over Union threshold for filtering predictions.
             conf_threshold: Confidence threshold for filtering predictions.
+            percentile_low: Lower percentile for per-channel normalization (default: 0.01).
+                Mutually exclusive with norm_constant.
+            percentile_high: Upper percentile for per-channel normalization (default: 0.99).
+                Mutually exclusive with norm_constant.
+            norm_constant: If provided, divide by this value and clip to [0, 1] instead of
+                using percentile normalization. Mutually exclusive with percentile_low/percentile_high.
             device: Device to run the model on, either "cuda" or "cpu".
+
+        Raises:
+            ValueError: If both norm_constant and percentile options are specified.
         """
         super().__init__()
+
+        # Validate mutually exclusive normalization options
+        if norm_constant is not None and (percentile_low is not None or percentile_high is not None):
+            raise ValueError(
+                "norm_constant is mutually exclusive with percentile_low/percentile_high. "
+                "Set percentile_low=None and percentile_high=None when using norm_constant."
+            )
+
         self.patch_size = (
             (patch_size, patch_size) if isinstance(patch_size, int) else patch_size
         )
@@ -151,18 +171,58 @@ class DelineateAnything:
         self.max_detections = max_detections
         self.iou_threshold = iou_threshold
         self.conf_threshold = conf_threshold
+        self.percentile_low = percentile_low
+        self.percentile_high = percentile_high
+        self.norm_constant = norm_constant
         self.device = device
         self.model = ultralytics.YOLO(self.checkpoints[model]).to(device)
         self.model.eval()
         self.model.fuse()
         self.transforms = nn.Sequential(
-            T.Lambda(lambda x: x.unsqueeze(dim=0) if x.ndim == 3 else x),
-            T.Lambda(lambda x: x[:, :3, ...]),
-            T.Lambda(lambda x: x / 3000.0),
-            T.Lambda(lambda x: x.clip(0.0, 1.0)),
             T.Resize(self.image_size, interpolation=T.InterpolationMode.BILINEAR),
             T.ConvertImageDtype(torch.float32),
         ).to(device)
+
+    def _normalize(self, x: torch.Tensor) -> torch.Tensor:
+        """Apply normalization based on configured method.
+
+        Uses either constant normalization (if norm_constant is set) or
+        per-channel percentile normalization (if percentile_low/high are set).
+
+        Args:
+            x: Input tensor of shape (B, C, H, W).
+
+        Returns:
+            Normalized tensor clipped to [0, 1].
+        """
+        if self.norm_constant is not None:
+            # Simple constant normalization: divide and clip
+            return (x / self.norm_constant).clip(0.0, 1.0)
+
+        # Per-channel percentile normalization
+        # At this point percentile_low and percentile_high are guaranteed to be non-None
+        assert self.percentile_low is not None and self.percentile_high is not None
+
+        # x shape: (B, C, H, W)
+        B, C, H, W = x.shape
+        # Flatten spatial dimensions for percentile computation
+        x_flat = x.view(B, C, -1)  # (B, C, H*W)
+
+        # Compute percentiles per channel per batch
+        p_low = torch.quantile(x_flat.float(), self.percentile_low, dim=2, keepdim=True)  # (B, C, 1)
+        p_high = torch.quantile(x_flat.float(), self.percentile_high, dim=2, keepdim=True)  # (B, C, 1)
+
+        # Reshape for broadcasting
+        p_low = p_low.view(B, C, 1, 1)
+        p_high = p_high.view(B, C, 1, 1)
+
+        # Avoid division by zero
+        denom = p_high - p_low
+        denom = torch.where(denom == 0, torch.ones_like(denom), denom)
+
+        # Normalize and clip
+        x_norm = (x - p_low) / denom
+        return x_norm.clip(0.0, 1.0)
 
     @staticmethod
     def polygonize(
@@ -207,12 +267,24 @@ class DelineateAnything:
         """Forward pass through the model.
 
         Args:
-            image: The input image tensor, expected to be in the format (B, C, H, W).
+            image: The input image tensor, expected to be in the format (B, C, H, W) or (C, H, W).
 
         Returns:
             A list of results containing the model predictions.
         """
-        image = self.transforms(image.to(self.device))
+        # Add batch dimension if needed
+        if image.ndim == 3:
+            image = image.unsqueeze(0)
+
+        # Select first 3 channels (RGB)
+        image = image[:, :3, ...]
+
+        # Apply normalization (constant or percentile-based)
+        image = self._normalize(image.to(self.device))
+
+        # Apply remaining transforms (resize, dtype conversion)
+        image = self.transforms(image)
+
         results = self.model.predict(
             image,
             conf=self.conf_threshold,

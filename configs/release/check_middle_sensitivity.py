@@ -86,6 +86,7 @@ def main(args: argparse.Namespace):
 
         for batch in tqdm(dl, desc=f"Processing {country} batches", leave=False):
             images = batch["image"]
+            masks = batch["mask"]
             if model_type in ["fcsiamdiff", "fcsiamconc", "fcsiamavg"]:
                 images = rearrange(images, "b (t c) h w -> b t c h w", t=2)
 
@@ -141,6 +142,16 @@ def main(args: argparse.Namespace):
                 )
                 consensus_score = consensus.mean()
 
+                # Extract central region from ground truth mask
+                gt_central = masks[i, padding : padding + overlap_size, padding : padding + overlap_size].numpy()
+                
+                # Compute accuracy for each corner's prediction
+                acc1 = (hard_output[0] == gt_central).mean()
+                acc2 = (hard_output[1] == gt_central).mean()
+                acc3 = (hard_output[2] == gt_central).mean()
+                acc4 = (hard_output[3] == gt_central).mean()
+                mean_accuracy = (acc1 + acc2 + acc3 + acc4) / 4
+
                 # Store result for this patch
                 all_results.append(
                     {
@@ -148,6 +159,11 @@ def main(args: argparse.Namespace):
                         "country": country,
                         "patch_idx": patch_idx,
                         "consensus_score": consensus_score,
+                        "accuracy_corner1": acc1,
+                        "accuracy_corner2": acc2,
+                        "accuracy_corner3": acc3,
+                        "accuracy_corner4": acc4,
+                        "mean_accuracy": mean_accuracy,
                         "split": args.split,
                     }
                 )
@@ -167,10 +183,13 @@ def main(args: argparse.Namespace):
     print(f"Min consensus: {df['consensus_score'].min():.4f}")
     print(f"Max consensus: {df['consensus_score'].max():.4f}")
     print(f"Median consensus: {df['consensus_score'].median():.4f}")
+    print(
+        f"Mean accuracy: {df['mean_accuracy'].mean():.4f} +/- {df['mean_accuracy'].std():.4f}"
+    )
 
     print("\nPer-country statistics:")
     country_stats = (
-        df.groupby("country")["consensus_score"].agg(["count", "mean", "std"]).round(4)
+        df.groupby("country")[["consensus_score", "mean_accuracy"]].agg(["count", "mean", "std"]).round(4)
     )
     print(country_stats)
 
