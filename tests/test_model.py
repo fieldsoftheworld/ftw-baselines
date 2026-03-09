@@ -3,7 +3,7 @@ import torch
 import yaml
 from click.testing import CliRunner
 
-from ftw_tools.cli import data_download, model_fit, model_test
+from ftw_tools.cli import data_download, model_fit, model_list, model_show, model_test
 
 CONFIG_FILE = "tests/data-files/min_config.yaml"
 
@@ -151,6 +151,64 @@ def test_model_test(shared_data_dir, trained_model_checkpoint, caplog):
     assert "Created dataloader" in result.output
     assert "Object level recall" in result.output
     assert (results_dir / "results.csv").exists()
+
+
+def test_model_list_output():
+    runner = CliRunner()
+    result = runner.invoke(model_list)
+
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
+    assert "Released FTW models" in result.output
+    assert "FTW_PRUE_EFNET_B5 [default]" in result.output
+    assert "DelineateAnything" in result.output
+    assert "Tip: run `ftw model show <name>` for details." in result.output
+    assert "FTW_v1_2_Class_CCBY" not in result.output
+
+
+def test_model_list_all_includes_legacy():
+    runner = CliRunner()
+    result = runner.invoke(model_list, ["--all"])
+
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
+    assert "FTW_v1_2_Class_CCBY [legacy]" in result.output
+
+
+def test_model_show_output():
+    runner = CliRunner()
+    result = runner.invoke(model_show, ["FTW_PRUE_EFNET_B5"])
+
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
+    assert "FTW_PRUE_EFNET_B5" in result.output
+    assert "Task: semantic segmentation" in result.output
+    assert "Inputs: 2 windows" in result.output
+    assert "Default: yes" in result.output
+    assert "ftw inference run INPUT --model FTW_PRUE_EFNET_B5" in result.output
+
+
+def test_model_show_case_insensitive():
+    runner = CliRunner()
+    result = runner.invoke(model_show, ["delineateanything-s"])
+
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
+    assert "DelineateAnything-S" in result.output
+    assert "Task: instance segmentation" in result.output
+    assert "Output: direct polygons" in result.output
+
+
+def test_model_show_unknown_model():
+    runner = CliRunner()
+    result = runner.invoke(model_show, ["not-a-model"])
+
+    assert result.exit_code != 0
+    assert "Unknown model 'not-a-model'" in result.output
 
 
 @pytest.mark.parametrize(
