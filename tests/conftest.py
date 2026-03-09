@@ -11,7 +11,8 @@ matplotlib.interactive(False)
 def pytest_sessionfinish(session, exitstatus):
     """Attempt to clean up background workers that may keep pytest alive. Only applies to macosx silicon with python >= 3.12."""
     if (
-        sys.platform == "darwin"
+        not hasattr(session.config, "workerinput")
+        and sys.platform == "darwin"
         and sys.version_info.major == 3
         and sys.version_info.minor >= 12
     ):

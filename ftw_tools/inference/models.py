@@ -192,9 +192,11 @@ class DelineateAnything:
             return None
 
         df["geometry"] = df["segments"].apply(
-            lambda x: shapely.geometry.Polygon(zip(x["x"], x["y"]))
-            if len(x["x"]) >= 3
-            else None
+            lambda x: (
+                shapely.geometry.Polygon(zip(x["x"], x["y"]))
+                if len(x["x"]) >= 3
+                else None
+            )
         )
         df.dropna(subset=["geometry"], inplace=True)
         df.reset_index(drop=True, inplace=True)

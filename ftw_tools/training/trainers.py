@@ -201,9 +201,9 @@ class CustomSemanticSegmentationTask(BaseTask):
             self.ce_loss = nn.CrossEntropyLoss(
                 ignore_index=ignore_value, weight=class_weights
             )
-            self.criterion = lambda y_pred, y_true: self.ce_loss(
-                y_pred, y_true
-            ) + self.dice_loss(y_pred, y_true)
+            self.criterion = lambda y_pred, y_true: (
+                self.ce_loss(y_pred, y_true) + self.dice_loss(y_pred, y_true)
+            )
 
         elif loss == "logcoshdice":
             self.criterion = logCoshDice(
