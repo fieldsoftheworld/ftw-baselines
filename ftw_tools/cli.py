@@ -8,6 +8,14 @@ import click
 # torchvision.ops.nms is not supported on MPS yet
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
+from ftw_tools.cli_models import (
+    inputs_label,
+    output_label,
+    resolve_model_name,
+    task_label,
+    visible_models,
+    wrap_description,
+)
 from ftw_tools.inference.model_registry import MODEL_REGISTRY
 from ftw_tools.settings import (
     ALL_COUNTRIES,
@@ -239,6 +247,71 @@ def data_unpack(input):
 def model():
     """Training and testing FTW models."""
     pass
+
+
+@model.command("list", help="List released FTW models.")
+@click.option(
+    "--all",
+    "include_legacy",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Include legacy and historical models.",
+)
+def model_list(include_legacy):
+    models = visible_models(include_legacy=include_legacy)
+    if not models:
+        click.echo("No models found.")
+        return
+
+    click.echo("Released FTW models\n")
+    for name, spec in models:
+        badges = []
+        if spec.default:
+            badges.append("default")
+        if spec.legacy:
+            badges.append("legacy")
+        badge_text = f" [{', '.join(badges)}]" if badges else ""
+        click.echo(f"- {name}{badge_text}")
+        click.echo(f"  {spec.title}")
+        click.echo(
+            f"  {task_label(spec)} | {inputs_label(spec)} | {output_label(spec)} | {spec.license}"
+        )
+
+    click.echo("\nTip: run `ftw model show <name>` for details.")
+
+
+@model.command("show", help="Show details for a released FTW model.")
+@click.argument("name")
+def model_show(name):
+    model_name = resolve_model_name(name)
+    spec = MODEL_REGISTRY[model_name]
+
+    click.echo(model_name)
+    click.echo(spec.title)
+    click.echo(f"Version: {spec.version}")
+    click.echo(f"License: {spec.license}")
+    click.echo(f"Task: {task_label(spec)}")
+    click.echo(f"Inputs: {inputs_label(spec)}")
+    click.echo(f"Output: {output_label(spec)}")
+    click.echo(f"Default: {'yes' if spec.default else 'no'}")
+    click.echo(f"Legacy: {'yes' if spec.legacy else 'no'}")
+    click.echo("\nDescription:")
+    click.echo(wrap_description(spec.description))
+    click.echo("\nDownload:")
+    click.echo(f"  {spec.url}")
+    click.echo("\nNext commands:")
+    if spec.instance_segmentation:
+        click.echo(
+            f"  ftw inference run-instance-segmentation INPUT --model {model_name}"
+        )
+        click.echo(
+            f"  ftw inference instance-segmentation-all STAC_ITEM --model {model_name} --out_dir output"
+        )
+    else:
+        click.echo(f"  ftw inference run INPUT --model {model_name}")
+        if spec.requires_polygonize:
+            click.echo("  ftw inference polygonize inference_output.tif")
 
 
 @model.command("fit", help="Fit the model")
