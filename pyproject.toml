@@ -29,6 +29,7 @@ dependencies = [
   "click>=8.2.1,<9",
   "dask[distributed]>=2025.5.1",
   "fiboa-cli>=0.21,<0.22",
+  "fsspec[http]>=2025.7,<2026",
   "geopandas>=1,<2",
   "kornia>=0.8.2,<0.9",
   "lightning>=2,<2.6",
@@ -52,7 +53,6 @@ dependencies = [
   "torchgeo>=0.9,<1",
   "torchvision>=0.17,<0.26",
   "tqdm>=4.65,<5",
-  "wget",
 ]
 optional-dependencies.all = [ "ftw-tools[delineate-anything,dev]" ]
 optional-dependencies.delineate-anything = [ "ultralytics>=8.3.187,<9" ]

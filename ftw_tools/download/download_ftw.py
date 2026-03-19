@@ -4,9 +4,9 @@ import os
 import shutil
 import time
 
-import wget
 from tqdm import tqdm
 
+from ftw_tools.download.io import copy_url_to_file
 from ftw_tools.settings import ALL_COUNTRIES
 
 
@@ -91,12 +91,10 @@ def download(out, clean_download, countries):
         :return: True if download was successful, False otherwise
         """
         try:
-            # Use wget to download the file with a custom progress bar
-            wget.download(
-                url,
-                local_file_path,
-                bar=custom_progress_bar(os.path.basename(local_file_path)),
-            )
+            progress = custom_progress_bar(os.path.basename(local_file_path))
+            progress(0, 1)
+            copy_url_to_file(url, local_file_path)
+            print()
             logger.info(f"Downloaded {url} to {local_file_path}")
             print(f"\nDownloaded {local_file_path}")
             return True

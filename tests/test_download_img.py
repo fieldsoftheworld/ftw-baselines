@@ -118,11 +118,11 @@ def test_query_stac_large_aoi_earthsearch(large_aoi):
 @pytest.mark.integration
 def test_query_stac_with_nodata_filter_mspc():
     """Test that nodata_max parameter is accepted and used in queries"""
-    # This test verifies the parameter is accepted - actual filtering is done by the STAC API
+    # Use a date window that currently resolves on MSPC and assert the query still works
+    # when bbox-level nodata filtering is enabled.
     bbox = [13.0, 48.0, 13.2, 48.2]
-    date = pd.Timestamp("2024-06-01")
+    date = pd.Timestamp("2021-09-25")
 
-    # Query with nodata filter should not raise an error
     result = query_stac(
         bbox=bbox,
         stac_host="mspc",
@@ -132,9 +132,11 @@ def test_query_stac_with_nodata_filter_mspc():
         nodata_max=50,  # Filter out scenes with >50% nodata
     )
 
-    # Should return a valid STAC item URL
     assert result is not None
     assert isinstance(result, str)
+    assert result.startswith(
+        "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/"
+    )
 
 
 @pytest.mark.integration
