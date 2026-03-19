@@ -210,6 +210,13 @@ Options:
                                   cover and selecting a date near the crop
                                   calendar indicated date.  [default: 14;
                                   x>=0]
+  -ndx, --nodata_max INTEGER RANGE
+                                  Maximum percentage of nodata pixels allowed
+                                  in the Sentinel-2 scene. Scenes with higher
+                                  nodata percentages (lower area coverage)
+                                  will be filtered out. Supported for both
+                                  Microsoft Planetary Computer and EarthSearch
+                                  backends.  [0<=x<=100]
   -f, --overwrite                 Overwrites the outputs if they exist
   -r, --resize_factor INTEGER RANGE
                                   Resize factor to use for inference.
@@ -261,6 +268,23 @@ ftw inference all \
     --resize_factor=2 \
     --overwrite
 ```
+
+To filter out scenes with low area coverage (high nodata percentage), add the `--nodata_max` parameter:
+
+```bash
+ftw inference all \
+    --bbox=13.0,48.0,13.2,48.2 \
+    --year=2024 \
+    --out=/path/to/output \
+    --cloud_cover_max=20 \
+    --nodata_max=50 \
+    --buffer_days=14 \
+    --model=FTW_3_Class_FULL_multiWindow \
+    --resize_factor=2 \
+    --overwrite
+```
+
+This will exclude any scenes where more than 50% of pixels are nodata (i.e., only scenes with >50% area coverage will be selected).
 
 This will create the following files in the output directory:
 
