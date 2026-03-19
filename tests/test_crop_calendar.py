@@ -112,11 +112,11 @@ def test_custom_cache_directory():
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-@patch("ftw_tools.download.crop_calendar.wget.download")
+@patch("ftw_tools.download.crop_calendar.download_url_to_path")
 @pytest.mark.integration
-def test_download_crop_calendar_files_failure(mock_wget, temp_cache_dir):
+def test_download_crop_calendar_files_failure(mock_download, temp_cache_dir):
     """Test handling of download failure."""
-    mock_wget.side_effect = Exception("Network error")
+    mock_download.side_effect = Exception("Network error")
 
     with pytest.raises(Exception, match="Network error"):
         download_crop_calendar_files()
