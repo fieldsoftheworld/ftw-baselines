@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from ftw_tools.download.http import download_url_to_path
+from ftw_tools.download.io import copy_url_to_file
 from ftw_tools.settings import CROP_CALENDAR_BASE_URL, CROP_CALENDAR_FILES
 
 
@@ -61,6 +61,6 @@ def download_crop_calendar_files(force: bool = False) -> None:
         if file_path.exists():
             file_path.unlink()
 
-        download_url_to_path(url, file_path.resolve())
+        copy_url_to_file(url, file_path.resolve())
 
     print(f"Files cached at {cache_dir}")

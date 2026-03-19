@@ -112,7 +112,7 @@ def test_custom_cache_directory():
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-@patch("ftw_tools.download.crop_calendar.download_url_to_path")
+@patch("ftw_tools.download.crop_calendar.copy_url_to_file")
 @pytest.mark.integration
 def test_download_crop_calendar_files_failure(mock_download, temp_cache_dir):
     """Test handling of download failure."""

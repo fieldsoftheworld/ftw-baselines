@@ -6,7 +6,7 @@ import time
 
 from tqdm import tqdm
 
-from ftw_tools.download.http import download_url_to_path
+from ftw_tools.download.io import copy_url_to_file
 from ftw_tools.settings import ALL_COUNTRIES
 
 
@@ -91,11 +91,10 @@ def download(out, clean_download, countries):
         :return: True if download was successful, False otherwise
         """
         try:
-            download_url_to_path(
-                url,
-                local_file_path,
-                progress_cb=custom_progress_bar(os.path.basename(local_file_path)),
-            )
+            progress = custom_progress_bar(os.path.basename(local_file_path))
+            progress(0, 1)
+            copy_url_to_file(url, local_file_path)
+            print()
             logger.info(f"Downloaded {url} to {local_file_path}")
             print(f"\nDownloaded {local_file_path}")
             return True
