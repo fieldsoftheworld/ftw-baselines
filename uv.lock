@@ -1109,7 +1109,7 @@ http = [
 
 [[package]]
 name = "ftw-tools"
-version = "2.0.0b4"
+version = "2.0.0b5"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -1171,7 +1171,7 @@ requires-dist = [
     { name = "click", specifier = ">=8.2.1,<9" },
     { name = "dask", extras = ["distributed"], specifier = ">=2025.5.1" },
     { name = "fiboa-cli", specifier = ">=0.21,<0.22" },
-    { name = "fsspec", extras = ["http"], specifier = ">=2025.7.0,<2026" },
+    { name = "fsspec", extras = ["http"], specifier = ">=2025.7,<2026" },
     { name = "ftw-tools", extras = ["delineate-anything", "dev"], marker = "extra == 'all'" },
     { name = "geopandas", specifier = ">=1,<2" },
     { name = "hatchling", marker = "extra == 'dev'" },

@@ -4,14 +4,14 @@ requires = [ "hatchling" ]
 
 [project]
 name = "ftw-tools"
-version = "2.0.0b4"
+version = "2.0.0b5"
 description = "Fields of The World (FTW) Command Line Interface (CLI) for data management, ML processing, and more."
 readme = "README.md"
 license = "MIT"
 license-files = [ "LICENSE" ]
 authors = [
   { name = "Hannah Kerner", email = "hkerner@asu.edu" },
-  { name = "Matthias Mohr", email = "matthias@mohr.ws" },
+  { name = "Matthias Mohr", email = "m.mohr@moregeo.it" },
   { name = "Caleb Robinson", email = "Caleb.Robinson@microsoft.com" },
   { name = "Aninda Ghosh", email = "aghosh57@asu.edu" },
   { name = "Chris Holmes", email = "cholmes@tgengine.org" },
