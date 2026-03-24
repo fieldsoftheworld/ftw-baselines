@@ -2,6 +2,20 @@
 build-backend = "hatchling.build"
 requires = [ "hatchling" ]
 
+[tool.hatch.build]
+exclude = [
+  ".github/",
+  ".gitignore",
+  ".pre-commit-config.yaml",
+  "assets/",
+  "configs/",
+  "EXPERIMENTS.md",
+  "notebooks/",
+  "scripts/",
+  "tests/",
+  "uv.lock",
+]
+
 [project]
 name = "ftw-tools"
 version = "2.0.0b5"
