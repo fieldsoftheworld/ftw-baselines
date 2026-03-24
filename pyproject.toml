@@ -10,12 +10,15 @@ readme = "README.md"
 license = "MIT"
 license-files = [ "LICENSE" ]
 authors = [
-  { name = "Hannah Kerner", email = "hkerner@asu.edu" },
-  { name = "Matthias Mohr", email = "m.mohr@moregeo.it" },
-  { name = "Caleb Robinson", email = "Caleb.Robinson@microsoft.com" },
-  { name = "Aninda Ghosh", email = "aghosh57@asu.edu" },
+  { name = "Hannah Kerner" },
+  { name = "Matthias Mohr" },
+  { name = "Caleb Robinson" },
+  { name = "Aninda Ghosh" },
   { name = "Chris Holmes", email = "cholmes@tgengine.org" },
-  { name = "Snehal Chaudhari", email = "sschaud5@asu.edu" },
+  { name = "Snehal Chaudhari" },
+  { name = "Isaac Corley" },
+  { name = "Jeff Albrecht" },
+  { name = "Martha Morrissey" }
 ]
 requires-python = ">=3.12,<3.15"
 classifiers = [
