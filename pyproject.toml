@@ -2,20 +2,6 @@
 build-backend = "hatchling.build"
 requires = [ "hatchling" ]
 
-[tool.hatch.build]
-exclude = [
-  ".github/",
-  ".gitignore",
-  ".pre-commit-config.yaml",
-  "assets/",
-  "configs/",
-  "EXPERIMENTS.md",
-  "notebooks/",
-  "scripts/",
-  "tests/",
-  "uv.lock",
-]
-
 [project]
 name = "ftw-tools"
 version = "2.0.0b5"
@@ -87,6 +73,20 @@ urls.Homepage = "https://fieldsofthe.world/"
 urls.Issues = "https://github.com/fieldsoftheworld/ftw-baselines/issues"
 urls.Repository = "https://github.com/fieldsoftheworld/ftw-baselines.git"
 scripts.ftw = "ftw_tools.cli:ftw"
+
+[tool.hatch]
+build.exclude = [
+  ".github/",
+  ".gitignore",
+  ".pre-commit-config.yaml",
+  "assets/",
+  "configs/",
+  "EXPERIMENTS.md",
+  "notebooks/",
+  "scripts/",
+  "tests/",
+  "uv.lock",
+]
 
 [tool.ruff]
 extend-exclude = [ "*.ipynb" ]
