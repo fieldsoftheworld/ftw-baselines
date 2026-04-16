@@ -14,6 +14,7 @@ Usage:
 import warnings
 
 import wandb
+from ftw_tools.training import eval as ftw_eval
 
 warnings.filterwarnings(
     "ignore",
@@ -22,7 +23,6 @@ warnings.filterwarnings(
     module="torch",
 )
 
-from ftw_tools.training import eval as ftw_eval
 
 BASE_CONFIG = "configs/dwei/3_class/full-ftw.yaml"
 
