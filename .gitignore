@@ -24,6 +24,7 @@ ftw_tools.egg-info/
 .DS_Store
 /outputs
 /wandb
+tea_debug.log
 
 # Python virtual environments
 venv/

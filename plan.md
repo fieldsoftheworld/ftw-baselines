@@ -33,10 +33,7 @@ ftw model fit --config configs/dwei/3_class/full-ftw.yaml
 - Checkpoint saved to: `logs/FTW-Release-Full-3-class/lightning_logs/version_0/checkpoints/last.ckpt`
 - WandB project: `ftw-baselines`, run name: `3class-unet-efficientnetb3-austria`
 
-**Validation** runs automatically after each epoch. Metrics logged to WandB:
-- `val/loss`, `val/iou_macro`, `val/precision_macro`, `val/recall_macro`
-- `val/object_precision`, `val/object_recall`, `val/object_f1`
-- `val/predictions` — RGB / GT / Prediction image panels (4 samples per epoch)
+**Validation** runs automatically after each epoch. See the WandB panel summary below for everything logged.
 
 Resume from checkpoint:
 ```bash
@@ -56,9 +53,9 @@ wandb sweep configs/dwei/wandb_sweep.yaml
 wandb agent <entity>/ftw-baselines/<sweep-id>
 ```
 
-Sweep config: `configs/dwei/wandb_sweep.yaml`
-Wrapper script: `scripts/ftw_model_fit.py`
-Swept parameters: `lr` (log-uniform 1e-4..1e-2), `loss` (ce/focal/jaccard), `backbone` (efficientnet-b3/resnet50)
+Sweep config: `configs/dwei/wandb_sweep.yaml`  
+Wrapper script: `scripts/ftw_model_fit.py`  
+Swept parameters: `lr` (log-uniform 1e-4..1e-2), `loss` (ce/logcoshdice/focal), `backbone` (resnet50/efficientnet-b5), `omega` (boundary class weight, values [0.60, 0.75, 0.85] → `class_weights = [0.05, 0.95-ω, ω]`)
 
 ---
 
@@ -149,14 +146,58 @@ Outputs saved to `outputs/sample_predictions.png` and `outputs/full_scene_result
 
 ---
 
+## WandB Panel Summary
+
+| Key | What it shows | Frequency |
+|-----|---------------|-----------|
+| `train/loss` | Training loss | step + epoch |
+| `train/lr` | Learning rate | epoch |
+| `train/grad_norm` | L2 gradient norm — catches exploding/vanishing gradients | step |
+| `val/loss` | Validation loss (monitored for checkpointing) | epoch |
+| `val/iou_macro` | Mean IoU across all classes | epoch |
+| `val/precision_macro` | Mean precision across all classes | epoch |
+| `val/recall_macro` | Mean recall across all classes | epoch |
+| `val/pixel_f1/field` | Pixel-level F1 for the crop/field class | epoch |
+| `iou/background` | Per-class IoU — background | epoch |
+| `iou/field` | Per-class IoU — crop interior | epoch |
+| `iou/boundary` | Per-class IoU — boundary (key metric for thin boundaries) | epoch |
+| `precision/background` · `precision/field` · `precision/boundary` | Per-class precision | epoch |
+| `recall/background` · `recall/field` · `recall/boundary` | Per-class recall | epoch |
+| `val/object_precision` | Object-level precision (polygon IoU ≥ 0.5) | epoch |
+| `val/object_recall` | Object-level recall | epoch |
+| `val/object_f1` | Object-level F1 | epoch |
+| `val/corner_consensus` | Corner-crop consistency (model stability at patch edges) | epoch |
+| `val/predictions` | 8 sample patches: RGB \| GT \| Pred \| Overlay (batches 0–1) | epoch |
+| `val/easy_samples` | 4 lowest-loss val patches | epoch |
+| `val/hard_samples` | 4 highest-loss val patches | epoch |
+| `val/confidence_distribution` | Histogram of softmax max-scores (model certainty) | epoch |
+
+Run config (logged once at startup via `wandb.config`): `backbone`, `loss`, `lr`, `class_weights`, `num_classes`, `in_channels`.
+
+---
+
+## Dev Run
+
+Use `configs/dwei/dev.yaml` (128 samples, 3 epochs, `limit_train_batches: 16`) for fast iteration on logging:
+
+```bash
+bash scripts/dev_run.sh
+```
+
+Logs to `logs/FTW-Dev/`, WandB tag `dev`. Switch to the full config when logging looks right.
+
+---
+
 ## File Map
 
 | Path | Purpose |
 |------|---------|
-| `configs/dwei/3_class/full-ftw.yaml` | Training config (model, data, WandB logger) |
-| `configs/dwei/wandb_sweep.yaml` | WandB hyperparameter sweep definition |
+| `configs/dwei/dev.yaml` | Dev config (128 samples, 3 epochs, WandB tag `dev`) |
+| `configs/dwei/3_class/full-ftw.yaml` | Full training config (model, data, WandB logger) |
+| `configs/dwei/wandb_sweep.yaml` | WandB sweep definition (lr, loss, backbone, omega) |
+| `scripts/dev_run.sh` | Dev train → test pipeline |
 | `scripts/ftw_model_fit.py` | Sweep agent entry point |
-| `ftw_tools/training/trainers.py` | Trainer with WandB image logging in `validation_step` |
+| `ftw_tools/training/trainers.py` | Trainer — all WandB logging logic lives here |
 | `notebooks/visualize_results.ipynb` | Result visualization notebook |
 | `outputs/test_metrics.csv` | Test metrics (generated at runtime) |
 | `outputs/austria_pred.tif` | Full-scene prediction raster (generated at runtime) |
@@ -166,10 +207,17 @@ Outputs saved to `outputs/sample_predictions.png` and `outputs/full_scene_result
 
 ## Verification Checklist
 
-- [ ] `ftw model fit` completes without errors; `last.ckpt` appears in `logs/`
-- [ ] WandB run appears at wandb.ai under project `ftw-baselines`
-- [ ] `val/predictions` media panel shows RGB/GT/Pred images in WandB
-- [ ] `ftw model test` writes `outputs/test_metrics.csv` with non-zero metrics
+- [ ] `bash scripts/dev_run.sh` completes; `last.ckpt` saved under `logs/FTW-Dev/`
+- [ ] WandB run (tag: `dev`) appears under project `ftw-baselines`
+- [ ] `val/predictions` shows 4-panel figures (RGB \| GT \| Pred \| Overlay) in Media
+- [ ] `val/easy_samples` and `val/hard_samples` appear with loss captions
+- [ ] `val/confidence_distribution` renders as a histogram
+- [ ] `train/grad_norm` appears as a step-level chart
+- [ ] `iou/background` and `iou/boundary` are non-zero scalars in Charts
+- [ ] `val/pixel_f1/field` is logged
+- [ ] WandB run config shows `backbone`, `loss`, `lr`, `class_weights`
+- [ ] `ftw model test` writes `outputs/dev_metrics.csv` with non-zero metrics
+- [ ] Full run: `ftw model fit --config configs/dwei/3_class/full-ftw.yaml` trains to completion
 - [ ] `outputs/austria_pred.tif` is a valid single-band raster
 - [ ] `geopandas.read_parquet("outputs/austria_fields.parquet").plot()` renders polygons
 - [ ] Notebook runs end-to-end without errors

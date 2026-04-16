@@ -37,7 +37,22 @@ uv run python -c "import torch; print('CUDA:', torch.cuda.is_available())"
 ftw data download --countries=Austria
 ```
 
-### 2. Train
+### 2. Dev run (iterate on logging first)
+
+Before committing to a full training run, use the dev script to
+1. debug your environment setup,
+2. design and validate your WandB logging on a small subset,
+
+
+```bash
+bash scripts/dev_run.sh
+```
+
+This trains with `configs/dwei/dev.yaml`, then immediately runs `ftw model test` and writes results to `outputs/dev_metrics.csv`. WandB runs are tagged `dev` so they're easy to filter out from real runs.
+
+Adjust `configs/dwei/dev.yaml` (`limit_train_batches`, `limit_val_batches`, `max_epochs`) based on needs. 
+
+### 3. Train
 
 Edit `configs/dwei/3_class/full-ftw.yaml` to set your model, data, and training options, then:
 
@@ -106,8 +121,10 @@ Shows RGB composites, ground-truth masks, predictions, polygon overlays, and fie
 
 | Path | Purpose |
 |------|---------|
-| `configs/dwei/3_class/full-ftw.yaml` | Training config |
+| `configs/dwei/dev.yaml` | Dev config (128 samples, 3 epochs) |
+| `configs/dwei/3_class/full-ftw.yaml` | Full training config |
 | `configs/dwei/wandb_sweep.yaml` | WandB sweep definition |
+| `scripts/dev_run.sh` | Dev train → test pipeline |
 | `scripts/ftw_model_fit.py` | Sweep agent entry point |
 | `notebooks/visualize_results.ipynb` | Result visualization |
 | `plan.md` | Full workflow reference with command options |

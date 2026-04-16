@@ -9,6 +9,7 @@ import numpy as np
 import segmentation_models_pytorch as smp
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torchvision.models as models
 from einops import rearrange
 from matplotlib.figure import Figure
@@ -312,6 +313,9 @@ class CustomSemanticSegmentationTask(BaseTask):
         # consensus accumulators
         self.val_consensus_sum = 0.0
         self.val_consensus_count = 0
+        # worst/best sample buffers (reset each val epoch)
+        self._val_sample_buffer: list = []
+        self._val_conf_buffer: list = []
 
     def configure_models(self) -> None:
         """Initialize the model.
@@ -426,15 +430,46 @@ class CustomSemanticSegmentationTask(BaseTask):
             # values is shape [C]
             for i, v in enumerate(values):
                 cname = self.class_names[i]
-                if cname == "field":
-                    self.log(
-                        f"{name}/{cname}",
-                        v,
-                        on_step=False,
-                        on_epoch=True,
-                        prog_bar=False,
-                        sync_dist=True,
-                    )
+                if cname == "unknown":
+                    continue  # ignore class — skip
+                self.log(
+                    f"{name}/{cname}",
+                    v,
+                    on_step=False,
+                    on_epoch=True,
+                    prog_bar=False,
+                    sync_dist=True,
+                )
+
+    def _make_sample_figure(self, image: Any, gt: Any, pred: Any) -> "Figure":
+        """Return a 4-panel figure: RGB | Ground Truth | Prediction | Overlay."""
+        rgb = image[:3].float()
+        rgb = (rgb - rgb.min()) / (rgb.max() - rgb.min() + 1e-8)
+        rgb_np = rgb.permute(1, 2, 0).numpy()
+        gt_np = gt.numpy() if isinstance(gt, Tensor) else gt
+        pred_np = pred.numpy() if isinstance(pred, Tensor) else pred
+
+        cmap = plt.get_cmap("tab10")
+        fig, axes = plt.subplots(1, 4, figsize=(16, 4))
+        axes[0].imshow(rgb_np)
+        axes[0].set_title("RGB (Window A)")
+        axes[0].axis("off")
+        axes[1].imshow(gt_np, cmap=cmap, vmin=0, vmax=3, interpolation="nearest")
+        axes[1].set_title("Ground Truth")
+        axes[1].axis("off")
+        axes[2].imshow(pred_np, cmap=cmap, vmin=0, vmax=3, interpolation="nearest")
+        axes[2].set_title("Prediction")
+        axes[2].axis("off")
+        # Overlay: semi-transparent predicted mask on RGB
+        axes[3].imshow(rgb_np)
+        overlay = np.zeros((*pred_np.shape, 4), dtype=np.float32)
+        overlay[pred_np == 1] = [0.3, 0.8, 0.3, 0.4]  # crop: green
+        overlay[pred_np == 2] = [0.9, 0.2, 0.2, 0.7]  # boundary: red
+        axes[3].imshow(overlay)
+        axes[3].set_title("Overlay")
+        axes[3].axis("off")
+        plt.tight_layout()
+        return fig
 
     def training_step(
         self, batch: Any, batch_idx: int, dataloader_idx: int = 0
@@ -534,6 +569,26 @@ class CustomSemanticSegmentationTask(BaseTask):
         self.val_metrics.update(y_hat, y)
         self.val_agg.update(y_hat, y)
 
+        # --- Per-sample loss buffer for worst/best sample logging ---
+        if len(self._val_sample_buffer) < 256:
+            ignore = self.hparams.get("ignore_index") or -100
+            per_sample_loss = F.cross_entropy(
+                y_hat.detach(), y.detach(), ignore_index=ignore, reduction="none"
+            ).mean(dim=[1, 2])  # (B,)
+            for i in range(x.shape[0]):
+                if len(self._val_sample_buffer) < 256:
+                    self._val_sample_buffer.append({
+                        "loss": per_sample_loss[i].item(),
+                        "image": x[i].detach().cpu(),
+                        "gt": y[i].detach().cpu(),
+                        "pred": y_hat[i].argmax(dim=0).detach().cpu(),
+                    })
+
+        # --- Confidence buffer (first 4 batches only) ---
+        if batch_idx < 4:
+            probs = y_hat.softmax(dim=1).max(dim=1).values  # (B, H, W)
+            self._val_conf_buffer.append(probs.detach().cpu().flatten())
+
         if (
             batch_idx < 10
             and hasattr(self.trainer, "datamodule")
@@ -568,8 +623,8 @@ class CustomSemanticSegmentationTask(BaseTask):
                         )
                 plt.close()
 
-        # WandB image logging — log up to 4 samples on the first batch each epoch
-        if batch_idx == 0 and len(x.shape) == 4:
+        # WandB image logging — 8 samples across first 2 batches, 4-panel figures
+        if batch_idx < 2 and len(x.shape) == 4:
             try:
                 from lightning.pytorch.loggers import WandbLogger as _WandbLogger
                 import wandb as _wandb
@@ -579,36 +634,13 @@ class CustomSemanticSegmentationTask(BaseTask):
                         n_samples = min(4, x.shape[0])
                         wandb_images = []
                         for sample_idx in range(n_samples):
-                            img = x[sample_idx].detach().cpu().float()
-                            # Bands 0,1,2 as RGB (window A of Sentinel-2 stack)
-                            rgb = img[:3]
-                            rgb = (rgb - rgb.min()) / (rgb.max() - rgb.min() + 1e-8)
-                            rgb_np = rgb.permute(1, 2, 0).numpy()
-
-                            pred_np = y_hat[sample_idx].argmax(dim=0).detach().cpu().numpy()
-                            gt_np = y[sample_idx].detach().cpu().numpy()
-
-                            fig, axes = plt.subplots(1, 3, figsize=(12, 4))
-                            axes[0].imshow(rgb_np)
-                            axes[0].set_title("RGB (Window A)")
-                            axes[0].axis("off")
-
-                            cmap = plt.get_cmap("tab10")
-                            axes[1].imshow(
-                                gt_np, cmap=cmap, vmin=0, vmax=3, interpolation="nearest"
+                            fig = self._make_sample_figure(
+                                x[sample_idx].detach().cpu(),
+                                y[sample_idx].detach().cpu(),
+                                y_hat[sample_idx].argmax(dim=0).detach().cpu(),
                             )
-                            axes[1].set_title("Ground Truth")
-                            axes[1].axis("off")
-
-                            axes[2].imshow(
-                                pred_np, cmap=cmap, vmin=0, vmax=3, interpolation="nearest"
-                            )
-                            axes[2].set_title("Prediction")
-                            axes[2].axis("off")
-
-                            plt.tight_layout()
                             wandb_images.append(
-                                _wandb.Image(fig, caption=f"sample_{sample_idx}")
+                                _wandb.Image(fig, caption=f"batch{batch_idx}_s{sample_idx}")
                             )
                             plt.close(fig)
 
@@ -656,6 +688,32 @@ class CustomSemanticSegmentationTask(BaseTask):
             "optimizer": optimizer,
             "lr_scheduler": {"scheduler": scheduler, "monitor": self.monitor},
         }
+
+    def on_train_start(self) -> None:
+        """Log key hyperparameters to wandb.config at the start of training."""
+        try:
+            from lightning.pytorch.loggers import WandbLogger as _WandbLogger
+            for logger in self.loggers:
+                if isinstance(logger, _WandbLogger):
+                    logger.experiment.config.update(
+                        {
+                            "backbone": self.hparams["backbone"],
+                            "loss": self.hparams["loss"],
+                            "lr": self.hparams["lr"],
+                            "class_weights": self.hparams.get("class_weights"),
+                            "num_classes": self.hparams["num_classes"],
+                            "in_channels": self.hparams["in_channels"],
+                        },
+                        allow_val_change=True,
+                    )
+                    break
+        except ImportError:
+            pass
+
+    def on_before_optimizer_step(self, optimizer) -> None:
+        """Log gradient L2 norm each training step."""
+        grad_norm = torch.nn.utils.clip_grad_norm_(self.parameters(), float("inf"))
+        self.log("train/grad_norm", grad_norm, on_step=True, on_epoch=False, prog_bar=False)
 
     def on_train_epoch_start(self) -> None:
         lr = self.optimizers().param_groups[0]["lr"]
@@ -708,10 +766,68 @@ class CustomSemanticSegmentationTask(BaseTask):
         self._log_per_class(per_class, "val")
         self.val_metrics.reset()
 
+        # Pixel-level F1 for the field class
+        key_p = [k for k in per_class if "precision" in k.lower()][0]
+        key_r = [k for k in per_class if "recall" in k.lower()][0]
+        p_field = per_class[key_p][1]
+        r_field = per_class[key_r][1]
+        f1_field = 2 * p_field * r_field / (p_field + r_field + 1e-8)
+        self.log("val/pixel_f1/field", f1_field, on_step=False, on_epoch=True, sync_dist=True)
+
         # log aggregates (single scalars)
         agg = self.val_agg.compute()
         self.log_dict(agg, on_step=False, on_epoch=True, sync_dist=True)
         self.val_agg.reset()
+
+        # --- Worst / best sample logging ---
+        if self._val_sample_buffer:
+            try:
+                from lightning.pytorch.loggers import WandbLogger as _WandbLogger
+                import wandb as _wandb
+
+                buf = sorted(self._val_sample_buffer, key=lambda s: s["loss"])
+                groups = {
+                    "val/easy_samples": buf[:4],
+                    "val/hard_samples": buf[-4:],
+                }
+                for key, samples in groups.items():
+                    wandb_images = []
+                    for s in samples:
+                        fig = self._make_sample_figure(s["image"], s["gt"], s["pred"])
+                        wandb_images.append(
+                            _wandb.Image(fig, caption=f"loss={s['loss']:.3f}")
+                        )
+                        plt.close(fig)
+                    for logger in self.loggers:
+                        if isinstance(logger, _WandbLogger):
+                            logger.experiment.log(
+                                {key: wandb_images}, step=self.global_step
+                            )
+                            break
+            except ImportError:
+                pass
+            finally:
+                self._val_sample_buffer = []
+
+        # --- Prediction confidence histogram ---
+        if self._val_conf_buffer:
+            try:
+                from lightning.pytorch.loggers import WandbLogger as _WandbLogger
+                import wandb as _wandb
+                import torch
+
+                scores = torch.cat(self._val_conf_buffer).numpy()
+                for logger in self.loggers:
+                    if isinstance(logger, _WandbLogger):
+                        logger.experiment.log(
+                            {"val/confidence_distribution": _wandb.Histogram(scores)},
+                            step=self.global_step,
+                        )
+                        break
+            except ImportError:
+                pass
+            finally:
+                self._val_conf_buffer = []
 
     def on_test_epoch_end(self):
         per_class = self.test_metrics.compute()
