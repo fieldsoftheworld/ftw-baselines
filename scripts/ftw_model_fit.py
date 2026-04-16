@@ -11,7 +11,16 @@ Usage:
     wandb agent <entity>/<project>/<sweep-id>
 """
 
+import warnings
+
 import wandb
+
+warnings.filterwarnings(
+    "ignore",
+    message="Default grid_sample and affine_grid behavior has changed",
+    category=UserWarning,
+    module="torch",
+)
 
 from ftw_tools.training import eval as ftw_eval
 

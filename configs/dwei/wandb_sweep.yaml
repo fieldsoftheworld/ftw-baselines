@@ -20,10 +20,10 @@ parameters:
     values:
       - ce
       - logcoshdice
-      - focal
+      # - focal
   backbone:
     values:
       - resnet50
       - efficientnet-b5
-  omega:
-    values: [0.60, 0.75, 0.85]
+  # omega:
+  #   values: [0.60, 0.75, 0.85]
