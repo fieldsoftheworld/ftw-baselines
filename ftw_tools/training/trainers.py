@@ -568,6 +568,58 @@ class CustomSemanticSegmentationTask(BaseTask):
                         )
                 plt.close()
 
+        # WandB image logging — log up to 4 samples on the first batch each epoch
+        if batch_idx == 0 and len(x.shape) == 4:
+            try:
+                from lightning.pytorch.loggers import WandbLogger as _WandbLogger
+                import wandb as _wandb
+
+                for logger in self.loggers:
+                    if isinstance(logger, _WandbLogger):
+                        n_samples = min(4, x.shape[0])
+                        wandb_images = []
+                        for sample_idx in range(n_samples):
+                            img = x[sample_idx].detach().cpu().float()
+                            # Bands 0,1,2 as RGB (window A of Sentinel-2 stack)
+                            rgb = img[:3]
+                            rgb = (rgb - rgb.min()) / (rgb.max() - rgb.min() + 1e-8)
+                            rgb_np = rgb.permute(1, 2, 0).numpy()
+
+                            pred_np = y_hat[sample_idx].argmax(dim=0).detach().cpu().numpy()
+                            gt_np = y[sample_idx].detach().cpu().numpy()
+
+                            fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+                            axes[0].imshow(rgb_np)
+                            axes[0].set_title("RGB (Window A)")
+                            axes[0].axis("off")
+
+                            cmap = plt.get_cmap("tab10")
+                            axes[1].imshow(
+                                gt_np, cmap=cmap, vmin=0, vmax=3, interpolation="nearest"
+                            )
+                            axes[1].set_title("Ground Truth")
+                            axes[1].axis("off")
+
+                            axes[2].imshow(
+                                pred_np, cmap=cmap, vmin=0, vmax=3, interpolation="nearest"
+                            )
+                            axes[2].set_title("Prediction")
+                            axes[2].axis("off")
+
+                            plt.tight_layout()
+                            wandb_images.append(
+                                _wandb.Image(fig, caption=f"sample_{sample_idx}")
+                            )
+                            plt.close(fig)
+
+                        logger.experiment.log(
+                            {"val/predictions": wandb_images},
+                            step=self.global_step,
+                        )
+                        break
+            except ImportError:
+                pass
+
     def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Compute the test loss and additional metrics.
 
@@ -607,7 +659,8 @@ class CustomSemanticSegmentationTask(BaseTask):
 
     def on_train_epoch_start(self) -> None:
         lr = self.optimizers().param_groups[0]["lr"]
-        self.logger.experiment.add_scalar("lr", lr, self.current_epoch)
+        # Use self.log() so all loggers (TensorBoard, WandB, etc.) receive the LR value
+        self.log("train/lr", lr, on_step=False, on_epoch=True, prog_bar=False)
 
     def on_train_epoch_end(self):
         computed = self.train_metrics.compute()

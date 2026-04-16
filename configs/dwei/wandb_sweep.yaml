@@ -1,0 +1,19 @@
+program: scripts/ftw_model_fit.py
+method: bayes
+metric:
+  name: val/loss
+  goal: minimize
+parameters:
+  lr:
+    distribution: log_uniform_values
+    min: 1e-4
+    max: 1e-2
+  loss:
+    values:
+      - ce
+      - focal
+      - jaccard
+  backbone:
+    values:
+      - efficientnet-b3
+      - resnet50

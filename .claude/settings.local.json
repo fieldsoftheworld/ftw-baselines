@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/redone-pc/.config/**)",
+      "Read(//c/Users/redone-pc/AppData/Roaming/Claude/**)",
+      "Read(//c/Users/redone-pc/AppData/Local/**)",
+      "Bash(python -m json.tool)",
+      "Bash(cat ~/.claude/ide/*.json)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(k,'=',v\\) for k,v in d.items\\(\\) if 'terminal' in k.lower\\(\\) or 'shell' in k.lower\\(\\)]\")"
+    ]
+  }
+}
