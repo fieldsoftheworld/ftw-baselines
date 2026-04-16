@@ -22,6 +22,8 @@ ftw_tools.egg-info/
 /.ruff_cache/
 /.pixi/
 .DS_Store
+/outputs
+/wandb
 
 # Python virtual environments
 venv/

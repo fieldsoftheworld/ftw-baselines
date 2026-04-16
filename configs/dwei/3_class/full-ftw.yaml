@@ -1,6 +1,6 @@
 trainer:
-  max_epochs: 2
-  log_every_n_steps: 1
+  max_epochs: 100
+  log_every_n_steps: 5
   accelerator: gpu
   default_root_dir: logs/FTW-Release-Full-3-class
   devices:

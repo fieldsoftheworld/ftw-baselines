@@ -31,6 +31,11 @@ def train():
         overrides += ["--model.init_args.loss", cfg.loss]
     if hasattr(cfg, "backbone"):
         overrides += ["--model.init_args.backbone", cfg.backbone]
+    if hasattr(cfg, "omega"):
+        # class_weights = [background, interior, boundary] = [0.05, 0.95-ω, ω]
+        omega = cfg.omega
+        weights = [0.05, round(0.95 - omega, 2), round(omega, 2)]
+        overrides += ["--model.init_args.class_weights", str(weights)]
 
     ftw_eval.fit(config=BASE_CONFIG, ckpt_path=None, cli_args=overrides)
 

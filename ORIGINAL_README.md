@@ -31,6 +31,9 @@ This repository provides the codebase for working with the [FTW dataset](https:/
   - [Download the FTW Baseline Dataset](#download-the-ftw-baseline-dataset)
   - [Visualize the FTW Baseline Dataset](#visualize-the-ftw-baseline-dataset)
 - [CC-BY vs. the full model](#cc-by-vs-the-full-model)
+- [Training your own model](#training-your-own-model)
+  - [Backbones](#backbones)
+  - [Loss functions](#loss-functions)
 - [Experimentation](#experimentation)
 - [Notes](#notes)
 - [Upcoming features](#upcoming-features)
@@ -721,6 +724,45 @@ We have also made FTW model checkpoints available that are pretrained only on CC
 
 ![3 Class IoU](/assets/3%20Class%20IoU%20Comparison.png)
 ![2 Class IoU](/assets/2%20Class%20IoU%20Comparison.png)
+
+## Training your own model
+
+```bash
+ftw model fit --config configs/dwei/3_class/full-ftw.yaml
+```
+
+Edit the YAML to set `model.init_args.backbone` and `model.init_args.loss` before training.
+
+### Backbones
+
+The `backbone` value is passed as `encoder_name` to [segmentation-models-pytorch](https://smp.readthedocs.io/en/latest/encoders.html). Any smp encoder is valid; the ones used in FTW releases:
+
+| Value | Speed / Accuracy |
+|---|---|
+| `efficientnet-b3` | Fastest, least accurate |
+| `efficientnet-b5` | Balanced (v3 default) |
+| `efficientnet-b7` | Slowest, most accurate |
+| `resnet50` | Good general baseline |
+
+### Loss functions
+
+| Value | Description |
+|---|---|
+| `ce` | Cross-entropy (supports `class_weights`) |
+| `pixel_weighted_ce` | CE with spatial weighting around boundaries |
+| `jaccard` | Jaccard / IoU loss |
+| `focal` | Focal loss (normalized) |
+| `tversky` | Tversky loss |
+| `dice` | Dice loss |
+| `ce+dice` | Equal mix of CE and Dice |
+| `logcoshdice` | log-cosh Dice |
+| `logcoshdice+ce` | Equal mix of log-cosh Dice and CE |
+| `ftnmt` | Fractal Tanimoto with Multi-scale Thought |
+| `ce+ftnmt` | Weighted mix of CE and FTNMT |
+| `localtversky` | Locally-weighted Tversky focal loss |
+| `tversky_ce` | Tversky focal + CE combined |
+
+`ce` (with class weights) and `logcoshdice` are used in the FTW release configs.
 
 ## Experimentation
 

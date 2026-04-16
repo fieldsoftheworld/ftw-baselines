@@ -1,4 +1,12 @@
 program: scripts/ftw_model_fit.py
+project: ftw-baselines
+command:
+  - ${env}
+  - uv
+  - run
+  - python
+  - ${program}
+  - ${args}
 method: bayes
 metric:
   name: val/loss
@@ -11,9 +19,11 @@ parameters:
   loss:
     values:
       - ce
+      - logcoshdice
       - focal
-      - jaccard
   backbone:
     values:
-      - efficientnet-b3
       - resnet50
+      - efficientnet-b5
+  omega:
+    values: [0.60, 0.75, 0.85]
