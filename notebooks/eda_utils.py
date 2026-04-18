@@ -290,22 +290,31 @@ def collect_gfm_features(
     instance_dir: Path,
     df_chips: pd.DataFrame,
     prefix: str = 'clay_',
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, dict[str, np.ndarray]]:
     """Load mean-pooled GFM embeddings per chip and concatenate across windows.
-    Returns (X, splits, n_fields) aligned to `aoi_ids`. Embeddings on disk are float16;
-    means accumulate in float32 for numerical stability.
+    Returns (X, attrs) where attrs has keys:
+      'split', 'n_fields', 'mean_field_size', 'has_field'.
+    Embeddings on disk are float16; means accumulate in float32.
     """
     aoi_ids = list(aoi_ids)
     if not aoi_ids:
-        return np.empty((0, 0), np.float32), np.array([], dtype=object), np.array([], dtype=np.int64)
+        empty = np.array([], dtype=np.float32)
+        return np.empty((0, 0), np.float32), {
+            'split': np.array([], dtype=object),
+            'n_fields': empty.astype(np.int64),
+            'mean_field_size': empty,
+            'has_field': empty.astype(bool),
+        }
 
     split_lookup = df_chips.set_index('aoi_id')['split']
-    splits = np.empty(len(aoi_ids), dtype=object)
-    n_fields = np.empty(len(aoi_ids), dtype=np.int64)
+    n = len(aoi_ids)
+    splits = np.empty(n, dtype=object)
+    n_fields = np.zeros(n, dtype=np.int64)
+    mean_field_size = np.zeros(n, dtype=np.float32)
 
     first = aoi_ids[0]
     per_window_dim = np.load(window_dirs[next(iter(window_dirs))] / f'{prefix}{first}.npz')['embedding'].shape[1]
-    X = np.empty((len(aoi_ids), per_window_dim * len(window_dirs)), dtype=np.float32)
+    X = np.empty((n, per_window_dim * len(window_dirs)), dtype=np.float32)
 
     for i, aoi_id in enumerate(tqdm(aoi_ids, desc='Loading GFM features')):
         for j, win in enumerate(window_dirs):
@@ -313,9 +322,19 @@ def collect_gfm_features(
             X[i, j * per_window_dim:(j + 1) * per_window_dim] = arr.mean(axis=0, dtype=np.float32)
         splits[i] = split_lookup.get(aoi_id, 'unknown')
         inst_path = instance_dir / f'{aoi_id}.tif'
-        n_fields[i] = count_fields(inst_path) if inst_path.exists() else 0
+        if inst_path.exists():
+            inst = read_mask(inst_path)
+            unique_ids, counts = np.unique(inst, return_counts=True)
+            field_counts = counts[unique_ids != 0]
+            n_fields[i] = len(field_counts)
+            mean_field_size[i] = float(field_counts.mean()) if len(field_counts) else 0.0
 
-    return X, splits, n_fields
+    return X, {
+        'split': splits,
+        'n_fields': n_fields,
+        'mean_field_size': mean_field_size,
+        'has_field': n_fields > 0,
+    }
 
 
 def fit_pca(X: np.ndarray, n_components: int = 2) -> tuple[PCA, np.ndarray]:
