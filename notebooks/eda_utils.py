@@ -263,6 +263,16 @@ def report_dataset_stats(
     print('=' * 72)
     print('*: This makes a dense object segmentation task.')
 
+    # Accumulate 3-class pixel counts for pie chart
+    semantic_3class_dir = folders.get('semantic_3class')
+    px_bg = px_interior = px_boundary = 0
+    if semantic_3class_dir is not None:
+        for chip_id in sorted(ids):
+            mask = read_mask(semantic_3class_dir / f'{chip_id}.tif')
+            px_bg += int((mask == 0).sum())
+            px_interior += int((mask == 1).sum())
+            px_boundary += int((mask == 2).sum())
+
     if not field_sizes:
         return
     arr = np.asarray(field_sizes, dtype=np.int64)
@@ -273,14 +283,32 @@ def report_dataset_stats(
     print(f'{n_small} small and {n_large} large fields removed.')
     trimmed = arr[(arr >= lo) & (arr <= hi)]
 
-    plt.figure(figsize=(10, 5))
-    plt.hist(trimmed, bins=50, color=SPLIT_COLORS['train'], edgecolor='white', alpha=0.9)
-    plt.xscale('log')
-    plt.xlabel('Field size (pixels, log scale)')
-    plt.ylabel('Number of fields')
-    plt.title('Distribution of Field Sizes (Instance Masks)')
-    plt.grid(axis='y', alpha=0.25)
-    plt.tight_layout()
+    has_pie = semantic_3class_dir is not None and (px_bg + px_interior + px_boundary) > 0
+    fig, axes = plt.subplots(1, 2 if has_pie else 1, figsize=(18 if has_pie else 10, 5))
+    ax_hist = axes[0] if has_pie else axes
+
+    ax_hist.hist(trimmed, bins=50, color=SPLIT_COLORS['train'], edgecolor='white', alpha=0.9)
+    ax_hist.set_xscale('log')
+    ax_hist.set_xlabel('Field size (pixels, log scale)')
+    ax_hist.set_ylabel('Number of fields')
+    ax_hist.set_title('Distribution of Field Sizes (Instance Masks)')
+    ax_hist.grid(axis='y', alpha=0.25)
+
+    if has_pie:
+        pie_values = [px_bg, px_interior, px_boundary]
+        pie_labels = ['Background', 'Interior', 'Boundary']
+        pie_colors = ['#d9d9d9', '#41ab5d', '#e6550d']
+        axes[1].pie(
+            pie_values,
+            labels=pie_labels,
+            colors=pie_colors,
+            autopct='%1.1f%%',
+            startangle=90,
+            wedgeprops={'edgecolor': 'white', 'linewidth': 1.2},
+        )
+        axes[1].set_title('Pixel Class Distribution\n(3-class semantic masks)')
+
+    fig.tight_layout()
     plt.show()
 
 

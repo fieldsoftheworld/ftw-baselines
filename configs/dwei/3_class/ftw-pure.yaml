@@ -1,0 +1,58 @@
+trainer:
+  max_epochs: 10
+  log_every_n_steps: 100
+  accelerator: gpu
+  default_root_dir: logs/FTW-Release-Full-3-class
+  devices:
+    - 0
+  logger:
+    class_path: lightning.pytorch.loggers.WandbLogger
+    init_args:
+      project: ftw-baselines
+      name: 3class-austria-base-sweep
+      log_model: false
+      tags:
+        - 3class
+        - austria
+        - baseline
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        monitor: val_loss
+        mode: min
+        save_top_k: 0
+        save_last: true
+        filename: "{epoch}-{val_loss:.2f}"
+model:
+  class_path: ftw_tools.training.trainers.CustomSemanticSegmentationTask
+  init_args:
+    class_weights: [0.05, 0.2, 0.75]
+    loss: "logcoshdice"
+    model: "unet"
+    backbone: "efficientnet-b7"
+    weights: true
+    patch_weights: false
+    in_channels: 8
+    num_classes: 3
+    num_filters: 64
+    ignore_index: 3
+    lr: 1e-3
+    patience: 10
+data:
+  class_path: ftw_tools.training.datamodules.FTWDataModule
+  init_args:
+    batch_size: 4
+    num_workers: 4
+    train_countries:
+      - austria
+    val_countries:
+      - austria
+    test_countries:
+      - austria
+    random_shuffle: true
+    brightness_aug: true
+    resize_factor: 2
+  dict_kwargs:
+    root: data/ftw
+    load_boundaries: true
+seed_everything: 7
