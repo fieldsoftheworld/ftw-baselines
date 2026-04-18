@@ -1,5 +1,5 @@
 trainer:
-  max_epochs: 10
+  max_epochs: 50
   log_every_n_steps: 100
   accelerator: gpu
   default_root_dir: logs/FTW-Release-Full-3-class
@@ -18,11 +18,11 @@ trainer:
   callbacks:
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
-        monitor: val_loss
-        mode: min
-        save_top_k: 0
+        monitor: val/iou_macro
+        mode: max
+        save_top_k: 1
         save_last: true
-        filename: "{epoch}-{val_loss:.2f}"
+        filename: "best"
 model:
   class_path: ftw_tools.training.trainers.CustomSemanticSegmentationTask
   init_args:
@@ -36,7 +36,7 @@ model:
     num_classes: 3
     num_filters: 64
     ignore_index: 3
-    lr: 1e-3
+    lr: 2e-4
     patience: 10
 data:
   class_path: ftw_tools.training.datamodules.FTWDataModule

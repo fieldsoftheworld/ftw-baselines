@@ -693,6 +693,7 @@ class CustomSemanticSegmentationTask(BaseTask):
         """Log key hyperparameters to wandb.config at the start of training."""
         try:
             from lightning.pytorch.loggers import WandbLogger as _WandbLogger
+            from lightning.pytorch.callbacks import ModelCheckpoint
             for logger in self.loggers:
                 if isinstance(logger, _WandbLogger):
                     logger.experiment.config.update(
@@ -706,6 +707,11 @@ class CustomSemanticSegmentationTask(BaseTask):
                         },
                         allow_val_change=True,
                     )
+                    run_id = logger.experiment.id
+                    ckpt_dir = f"wandb/{run_id}/checkpoints"
+                    for cb in self.trainer.callbacks:
+                        if isinstance(cb, ModelCheckpoint):
+                            cb.dirpath = ckpt_dir
                     break
         except ImportError:
             pass
