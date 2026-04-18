@@ -12,10 +12,8 @@ import rasterio
 import shapely.geometry
 import torch
 import torch.nn.functional as F
-import torchgeo
 from einops import rearrange
 from kornia.constants import Resample
-from packaging.version import Version, parse
 from rasterio.enums import ColorInterp
 from rasterio.transform import from_bounds
 from torch.utils.data import DataLoader

@@ -34,3 +34,4 @@ ENV/
 *.pyc
 *.pyo
 *.egg-info/
+source_coop_download/

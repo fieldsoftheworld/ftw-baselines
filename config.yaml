@@ -100,19 +100,19 @@ model:
   class_path: ftw_tools.training.trainers.CustomSemanticSegmentationTask
   init_args:
     model: unet
-    backbone: efficientnet-b3
+    backbone: efficientnet-b5
     weights: true
     in_channels: 8
     num_classes: 3
     num_filters: 64
-    loss: ce
+    loss: logcoshdice
     class_weights:
     - 0.04
     - 0.08
     - 0.88
     ignore_index: 3
     pixel_weight_scale: null
-    lr: 0.001
+    lr: 0.009349475187959543
     patience: 10
     patch_weights: false
     freeze_backbone: false

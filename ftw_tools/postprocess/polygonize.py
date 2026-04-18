@@ -3,7 +3,6 @@ import os
 import re
 import time
 
-import geopandas as gpd
 import numpy as np
 import rasterio
 import rasterio.features

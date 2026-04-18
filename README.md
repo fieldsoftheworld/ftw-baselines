@@ -31,6 +31,12 @@ uv run python -c "import torch; print('CUDA:', torch.cuda.is_available())"
 
 ## Workflow
 
+### 0. Activate environment
+
+```bash
+source .venv/Scripts/activate   # Windows (Git Bash)
+```
+
 ### 1. Download data
 
 ```bash

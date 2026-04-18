@@ -6,7 +6,10 @@
       "Read(//c/Users/redone-pc/AppData/Local/**)",
       "Bash(python -m json.tool)",
       "Bash(cat ~/.claude/ide/*.json)",
-      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(k,'=',v\\) for k,v in d.items\\(\\) if 'terminal' in k.lower\\(\\) or 'shell' in k.lower\\(\\)]\")"
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(k,'=',v\\) for k,v in d.items\\(\\) if 'terminal' in k.lower\\(\\) or 'shell' in k.lower\\(\\)]\")",
+      "Bash(uv run *)",
+      "Bash(curl -s https://data.source.coop/mvrl/ftw-inference-gfm/precomputed_feats/clay/austria/)",
+      "Bash(curl *)"
     ]
   }
 }
