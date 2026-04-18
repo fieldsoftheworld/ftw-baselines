@@ -293,7 +293,7 @@ def collect_gfm_features(
 ) -> tuple[np.ndarray, dict[str, np.ndarray]]:
     """Load mean-pooled GFM embeddings per chip and concatenate across windows.
     Returns (X, attrs) where attrs has keys:
-      'split', 'n_fields', 'mean_field_size', 'has_field'.
+      'split', 'grid_name', 'n_fields', 'mean_field_size', 'total_field_size', 'has_field'.
     Embeddings on disk are float16; means accumulate in float32.
     """
     aoi_ids = list(aoi_ids)
@@ -301,16 +301,20 @@ def collect_gfm_features(
         empty = np.array([], dtype=np.float32)
         return np.empty((0, 0), np.float32), {
             'split': np.array([], dtype=object),
+            'grid_name': np.array([], dtype=object),
             'n_fields': empty.astype(np.int64),
             'mean_field_size': empty,
+            'total_field_size': empty,
             'has_field': empty.astype(bool),
         }
 
     split_lookup = df_chips.set_index('aoi_id')['split']
     n = len(aoi_ids)
     splits = np.empty(n, dtype=object)
+    grid_names = np.empty(n, dtype=object)
     n_fields = np.zeros(n, dtype=np.int64)
     mean_field_size = np.zeros(n, dtype=np.float32)
+    total_field_size = np.zeros(n, dtype=np.float32)
 
     first = aoi_ids[0]
     per_window_dim = np.load(window_dirs[next(iter(window_dirs))] / f'{prefix}{first}.npz')['embedding'].shape[1]
@@ -321,18 +325,23 @@ def collect_gfm_features(
             arr = np.load(window_dirs[win] / f'{prefix}{aoi_id}.npz')['embedding']
             X[i, j * per_window_dim:(j + 1) * per_window_dim] = arr.mean(axis=0, dtype=np.float32)
         splits[i] = split_lookup.get(aoi_id, 'unknown')
+        grid_names[i] = aoi_id.split('_')[0]
         inst_path = instance_dir / f'{aoi_id}.tif'
         if inst_path.exists():
             inst = read_mask(inst_path)
             unique_ids, counts = np.unique(inst, return_counts=True)
             field_counts = counts[unique_ids != 0]
             n_fields[i] = len(field_counts)
-            mean_field_size[i] = float(field_counts.mean()) if len(field_counts) else 0.0
+            if len(field_counts):
+                mean_field_size[i] = float(field_counts.mean())
+                total_field_size[i] = float(field_counts.sum())
 
     return X, {
         'split': splits,
+        'grid_name': grid_names,
         'n_fields': n_fields,
         'mean_field_size': mean_field_size,
+        'total_field_size': total_field_size,
         'has_field': n_fields > 0,
     }
 
