@@ -130,6 +130,11 @@ class FTWDataModule(LightningDataModule):
         print(f"Val countries: {self.val_countries}")
         print(f"Test countries: {self.test_countries}")
         print(f"Number of samples: {self.num_samples}")
+        print(f"random_shuffle: {random_shuffle}")
+        print(f"brightness_aug: {brightness_aug}")
+        print(f"resize_aug: {resize_aug}")
+        print(f"preprocess_aug: {preprocess_aug}")
+        print(f"resize_factor: {resize_factor}")
 
         augs = [
             # If preprocess_aug enabled, replace fixed normalization with random divisor lambda.

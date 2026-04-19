@@ -44,6 +44,7 @@ data:
     batch_size: 4
     num_workers: 2
     num_samples: 128       # limit training split to 128 samples
+    random_shuffle: true
     train_countries:
       - austria
     val_countries:
@@ -53,4 +54,7 @@ data:
   dict_kwargs:
     root: data/ftw
     load_boundaries: true
+    brightness_aug: true
+    resize_aug: true
+    # preprocess_aug: true
 seed_everything: 7
