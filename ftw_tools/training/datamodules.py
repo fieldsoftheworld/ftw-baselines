@@ -1,5 +1,6 @@
 """FTW datamodule."""
 
+import warnings
 from typing import Any, Optional
 
 import kornia
@@ -12,6 +13,13 @@ from torch import Tensor
 from torch.utils.data import DataLoader, Subset
 
 from ftw_tools.training.datasets import FTW
+
+warnings.filterwarnings(
+    "ignore",
+    message="Default grid_sample and affine_grid behavior has changed",
+    category=UserWarning,
+    module=r"torch\.nn\.functional",
+)
 
 
 def preprocess(sample):

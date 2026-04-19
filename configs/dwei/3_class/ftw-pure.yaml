@@ -1,5 +1,5 @@
 trainer:
-  max_epochs: 50
+  max_epochs: 100
   log_every_n_steps: 100
   accelerator: gpu
   default_root_dir: logs/FTW-Release-Full-3-class
@@ -51,7 +51,7 @@ data:
       - austria
     random_shuffle: true
     brightness_aug: true
-    resize_factor: 2
+    resize_aug: true
   dict_kwargs:
     root: data/ftw
     load_boundaries: true
