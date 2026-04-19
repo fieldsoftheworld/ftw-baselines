@@ -9,12 +9,12 @@ trainer:
     class_path: lightning.pytorch.loggers.WandbLogger
     init_args:
       project: ftw-baselines
-      name: 3class-austria-base-sweep
+      name: ftw-pure-0418
       log_model: false
       tags:
         - 3class
         - austria
-        - baseline
+        - pure-efnet7
   callbacks:
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
@@ -22,7 +22,7 @@ trainer:
         mode: max
         save_top_k: 1
         save_last: true
-        filename: "best"
+        filename: "{epoch}-{val//iou:.3f}"
 model:
   class_path: ftw_tools.training.trainers.CustomSemanticSegmentationTask
   init_args:
@@ -37,22 +37,22 @@ model:
     num_filters: 64
     ignore_index: 3
     lr: 2e-4
-    patience: 10
+    patience: 100
 data:
   class_path: ftw_tools.training.datamodules.FTWDataModule
   init_args:
     batch_size: 4
     num_workers: 4
+    random_shuffle: true
     train_countries:
       - austria
     val_countries:
       - austria
     test_countries:
       - austria
-    random_shuffle: true
-    brightness_aug: true
-    resize_aug: true
   dict_kwargs:
     root: data/ftw
     load_boundaries: true
+    brightness_aug: true
+    resize_aug: true
 seed_everything: 7
