@@ -62,7 +62,7 @@ trainer:
       save_on_train_epoch_end: null
       enable_version_counter: true
   fast_dev_run: false
-  max_epochs: 3
+  max_epochs: 2
   min_epochs: null
   max_steps: -1
   min_steps: null
@@ -135,8 +135,8 @@ data:
     seed: 42
     random_shuffle: true
     resize_factor: null
-    brightness_aug: true
-    preprocess_aug: false
+    brightness_aug: false
+    preprocess_aug: true
     resize_aug: true
     load_boundaries: true
     transforms: null

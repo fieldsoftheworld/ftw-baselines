@@ -54,7 +54,7 @@ data:
   dict_kwargs:
     root: data/ftw
     load_boundaries: true
-    brightness_aug: true
+    # brightness_aug: true
     resize_aug: true
-    # preprocess_aug: true
+    preprocess_aug: true
 seed_everything: 7
