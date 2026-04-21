@@ -127,8 +127,9 @@ def run(
     compute_consensus: bool = False,
     preprocess_fn: Callable = default_preprocess,
 ):
-    if save_scores and compute_consensus:
-        raise ValueError("save_scores and compute_consensus are mutually exclusive.")
+    assert not (save_scores and compute_consensus), (
+        "save_scores and compute_consensus are mutually exclusive."
+    )
 
     device, transform, input_shape, patch_size, stride, padding = setup_inference(
         input, out, gpu, patch_size, padding, overwrite, mps_mode
