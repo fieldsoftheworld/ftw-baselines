@@ -9,7 +9,13 @@
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(k,'=',v\\) for k,v in d.items\\(\\) if 'terminal' in k.lower\\(\\) or 'shell' in k.lower\\(\\)]\")",
       "Bash(uv run *)",
       "Bash(curl -s https://data.source.coop/mvrl/ftw-inference-gfm/precomputed_feats/clay/austria/)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(\"C:/Users/redone-pc/Desktop/ftw-baselines/.venv/Scripts/python.exe\" -c \"import json; nb=json.load\\(open\\(r'C:/Users/redone-pc/Desktop/ftw-baselines/notebooks/visualize_results.ipynb'\\)\\); [print\\(f'=== cell[{i}] type={c[\\\\\"cell_type\\\\\"]} id={c.get\\(\\\\\"id\\\\\",\\\\\"\\\\\"\\)} ==='\\); print\\(''.join\\(c['source']\\)\\); print\\(\\) for i,c in enumerate\\(nb['cells']\\)]\")",
+      "Bash(\"../.venv/Scripts/python.exe\" _dump.py)",
+      "Bash(\"../.venv/Scripts/python.exe\" -c \"import json; nb=json.load\\(open\\('visualize_results.ipynb'\\)\\); print\\(json.dumps\\(nb.get\\('metadata', {}\\), indent=2\\)\\); print\\('nbformat:', nb.get\\('nbformat'\\), 'minor:', nb.get\\('nbformat_minor'\\)\\)\")",
+      "Bash(\"../.venv/Scripts/python.exe\" _rewrite.py)",
+      "Bash(.venv/Scripts/python.exe -c ' *)",
+      "Bash(.venv/Scripts/ftw.exe inference *)"
     ]
   }
 }

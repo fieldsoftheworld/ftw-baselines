@@ -135,8 +135,8 @@ data:
     seed: 42
     random_shuffle: true
     resize_factor: null
-    brightness_aug: false
-    preprocess_aug: true
+    brightness_aug: true
+    preprocess_aug: false
     resize_aug: true
     load_boundaries: true
     transforms: null

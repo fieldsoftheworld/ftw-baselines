@@ -9,7 +9,7 @@ trainer:
     class_path: lightning.pytorch.loggers.WandbLogger
     init_args:
       project: ftw-baselines
-      name: ftw-pure-0418
+      name: ftw-pure-0420
       log_model: false
       tags:
         - 3class
@@ -53,7 +53,7 @@ data:
   dict_kwargs:
     root: data/ftw
     load_boundaries: true
-    # brightness_aug: true
+    brightness_aug: true
     resize_aug: true
-    preprocess_aug: true
+    # preprocess_aug: true
 seed_everything: 7

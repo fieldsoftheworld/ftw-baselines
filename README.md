@@ -51,7 +51,7 @@ Before committing to a full training run, use the dev script to
 
 
 ```bash
-bash scripts/dev_run.sh
+uv run scripts/dev_run.py >> outputs/dev/stdout.log
 ```
 
 This trains with `configs/dwei/dev.yaml`, then immediately runs `ftw model test` and writes results to `outputs/dev_metrics.csv`. WandB runs are tagged `dev` so they're easy to filter out from real runs.
@@ -75,14 +75,22 @@ ftw model fit --config configs/dwei/3_class/full-ftw.yaml \
   --ckpt_path logs/FTW-Release-Full-3-class/.../last.ckpt
 ```
 
-### 3. Hyperparameter sweep (optional)
+#### Hyperparameter sweep (optional)
 
 ```bash
 wandb sweep configs/dwei/wandb_sweep.yaml
 wandb agent <entity>/ftw-baselines/<sweep-id>
 ```
 
-### 4. Test & evaluate
+### 4. Visualize Results
+
+Run the three CLI steps below manually, or open `notebooks/visualize_results.ipynb` which walks through all of them end-to-end and renders RGB composites, ground-truth masks, predictions, polygon overlays, and field-size statistics.
+
+```bash
+jupyter notebook notebooks/visualize_results.ipynb
+```
+
+#### 4.1 Test
 
 ```bash
 mkdir -p outputs
@@ -96,7 +104,7 @@ ftw model test \
 
 Outputs pixel-level IoU / precision / recall and object-level precision / recall / F1 with 95% bootstrap CIs.
 
-### 5. Inference on a full scene
+#### 4.2 Inference
 
 ```bash
 ftw inference run \
@@ -105,21 +113,13 @@ ftw inference run \
   --output outputs/austria_pred.tif
 ```
 
-### 6. Polygonize
+#### 4.3 Polygonize
 
 ```bash
 ftw inference polygonize outputs/austria_pred.tif \
   --output outputs/austria_fields.parquet \
   --simplify 15 --min_size 500
 ```
-
-### 7. Visualize results
-
-```bash
-jupyter notebook notebooks/visualize_results.ipynb
-```
-
-Shows RGB composites, ground-truth masks, predictions, polygon overlays, and field-size statistics.
 
 ---
 
