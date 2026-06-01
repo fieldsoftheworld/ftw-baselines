@@ -12,10 +12,8 @@ import rasterio
 import shapely.geometry
 import torch
 import torch.nn.functional as F
-import torchgeo
 from einops import rearrange
 from kornia.constants import Resample
-from packaging.version import Version, parse
 from rasterio.enums import ColorInterp
 from rasterio.transform import from_bounds
 from torch.utils.data import DataLoader
@@ -112,21 +110,44 @@ def setup_inference(input, out, gpu, patch_size, padding, overwrite, mps_mode):
 
 
 def run(
-    input,
-    model,
-    out,
-    resize_factor,
-    gpu,
-    patch_size,
-    batch_size,
-    num_workers,
-    padding,
-    overwrite,
-    mps_mode,
-    save_scores,
+    input: str,
+    model: str,
+    out: str | None,
+    resize_factor: int,
+    gpu: int,
+    patch_size: int | None,
+    batch_size: int,
+    num_workers: int,
+    padding: int | None,
+    overwrite: bool,
+    mps_mode: bool,
+    save_scores: bool,
     compute_consensus: bool = False,
+    nan_fill_value: float = 0.0,
     preprocess_fn: Callable = default_preprocess,
-):
+) -> None:
+    """Run semantic segmentation inference on a raster image.
+
+    Args:
+        input: Path to the input .tif or .vrt file.
+        model: Model name from the registry or path to a .ckpt file.
+        out: Output GeoTIFF path. Defaults to ``inference.<input>``.
+        resize_factor: Upsampling factor applied before the model.
+        gpu: GPU index to use; -1 for CPU.
+        patch_size: Patch size in pixels. Auto-selected if None.
+        batch_size: Number of patches per batch.
+        num_workers: DataLoader worker count.
+        padding: Pixels to discard from each patch edge. Auto-selected if None.
+        overwrite: Overwrite output if it already exists.
+        mps_mode: Use Apple MPS backend.
+        save_scores: Save per-class softmax scores instead of argmax labels.
+        compute_consensus: Track overlap disagreements across patches.
+        nan_fill_value: Replacement value for NaN/nodata pixels. Defaults to 0.0.
+        preprocess_fn: Transform applied to each sample before inference.
+
+    Returns:
+        None
+    """
     if save_scores and compute_consensus:
         raise ValueError("save_scores and compute_consensus are mutually exclusive.")
 
@@ -206,6 +227,8 @@ def run(
 
     for batch in dl_enumerator:
         images = batch["image"]
+        # Replace NaN/nodata values with nan_fill_value to prevent invalid inputs from reaching the model
+        images = torch.nan_to_num(images, nan=nan_fill_value)
         images = up_sample(images)
 
         if model_type in ["fcsiamdiff", "fcsiamconc", "fcsiamavg"]:
@@ -433,6 +456,7 @@ def run_instance_segmentation(
     close_interiors: bool = True,
     overlap_iou_threshold: float = 0.3,
     overlap_contain_threshold: float = 0.8,
+    nan_fill_value: float = 0.0,
 ):
     """Run instance segmentation inference on an image.
 
@@ -501,7 +525,10 @@ def run_instance_segmentation(
     # Run inference
     polygons = []
     for batch in tqdm(dataloader, total=len(dataloader)):
-        images = batch["image"].to(device)
+        images = batch["image"]
+        # Replace NaN/nodata values with nan_fill_value to prevent invalid inputs from reaching the model
+        images = torch.nan_to_num(images, nan=nan_fill_value)
+        images = images.to(device)
         predictions = model(images)
 
         crs = dataset.crs

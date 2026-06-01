@@ -877,6 +877,13 @@ def inference_download(
     show_default=True,
     help="Compute corner consensus scores during inference",
 )
+@click.option(
+    "--nan_fill_value",
+    type=float,
+    default=0.0,
+    show_default=True,
+    help="Value used to replace NaN/nodata pixels before inference.",
+)
 def inference_run(
     input: str,
     model: str,
@@ -891,6 +898,7 @@ def inference_run(
     mps_mode: bool,
     save_scores: bool,
     compute_consensus: bool,
+    nan_fill_value: float,
 ):
     from ftw_tools.inference.inference import run
 
@@ -908,6 +916,7 @@ def inference_run(
         mps_mode,
         save_scores,
         compute_consensus,
+        nan_fill_value,
     )
 
 
@@ -1061,6 +1070,13 @@ def inference_run(
     show_default=True,
     help="Overlap containment threshold for merging polygons.",
 )
+@click.option(
+    "--nan_fill_value",
+    type=float,
+    default=0.0,
+    show_default=True,
+    help="Value used to replace NaN/nodata pixels before inference.",
+)
 def inference_run_instance_segmentation(
     input,
     model,
@@ -1082,6 +1098,7 @@ def inference_run_instance_segmentation(
     close_interiors,
     overlap_iou_threshold,
     overlap_contain_threshold,
+    nan_fill_value,
 ):
     from ftw_tools.inference.inference import run_instance_segmentation
 
@@ -1106,6 +1123,7 @@ def inference_run_instance_segmentation(
         close_interiors=close_interiors,
         overlap_iou_threshold=overlap_iou_threshold,
         overlap_contain_threshold=overlap_contain_threshold,
+        nan_fill_value=nan_fill_value,
     )
 
 
