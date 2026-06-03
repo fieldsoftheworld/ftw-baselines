@@ -382,6 +382,9 @@ Options:
   -mps, --mps_mode                Run inference in MPS mode (Apple GPUs).
   --save_scores                   Save segmentation softmax scores (rescaled to [0,255])
                                   instead of classes (argmax of scores)
+  --compute_consensus             Compute corner consensus scores during inference
+  --nan_fill_value FLOAT          Value used to replace NaN/nodata pixels before
+                                  inference.  [default: 0.0]
   --help                          Show this message and exit.
 ```
 
@@ -638,6 +641,8 @@ Options:
   -cot, --overlap_contain_threshold FLOAT RANGE
                                   Overlap containment threshold for merging
                                   polygons.  [default: 0.8; 0.0<=x<=1.0]
+  --nan_fill_value FLOAT          Value used to replace NaN/nodata pixels before
+                                  inference.  [default: 0.0]
   --help                          Show this message and exit.
 ```
 
