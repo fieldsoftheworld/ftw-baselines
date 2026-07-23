@@ -437,7 +437,7 @@ def run(
 @torch.inference_mode()
 def run_instance_segmentation(
     input: str,
-    model: Literal["DelineateAnything-S", "DelineateAnything"],
+    model: Literal["DelineateAnything-S", "DelineateAnything", "DelineateAnythingV2"],
     out: str,
     gpu: int | None = None,
     num_workers: int = 4,
@@ -483,15 +483,19 @@ def run_instance_segmentation(
         overlap_contain_threshold: Merge polygons with contain greater than this threshold.
 
     Raises:
-        AssertionError: If the model is not DelineateAnything or DelineateAnything-S.
+        AssertionError: If the model is not DelineateAnything, DelineateAnything-S, or DelineateAnythingV2.
 
     Returns:
         None
     """
     from ftw_tools.inference.models import DelineateAnything
 
-    assert model in ["DelineateAnything", "DelineateAnything-S"], (
-        "Model must be either DelineateAnything or DelineateAnything-S."
+    assert model in [
+        "DelineateAnything",
+        "DelineateAnything-S",
+        "DelineateAnythingV2",
+    ], (
+        "Model must be one of DelineateAnything, DelineateAnything-S, or DelineateAnythingV2."
     )
 
     padding = padding if padding is not None else patch_size // 4

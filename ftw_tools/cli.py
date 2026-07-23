@@ -928,7 +928,9 @@ def inference_run(
 @click.option(
     "--model",
     "-m",
-    type=click.Choice(["DelineateAnything", "DelineateAnything-S"]),
+    type=click.Choice(
+        ["DelineateAnything", "DelineateAnything-S", "DelineateAnythingV2"]
+    ),
     default="DelineateAnything",
     show_default=True,
     help="The model to use for inference.",
@@ -1157,7 +1159,9 @@ def inference_run_instance_segmentation(
 @click.option(
     "--model",
     "-m",
-    type=click.Choice(["DelineateAnything", "DelineateAnything-S"]),
+    type=click.Choice(
+        ["DelineateAnything", "DelineateAnything-S", "DelineateAnythingV2"]
+    ),
     default="DelineateAnything",
     show_default=True,
     help="The model to use for inference.",
