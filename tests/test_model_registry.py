@@ -72,3 +72,20 @@ def test_all_registry_values_are_model_specs():
 def test_model_names_are_unique():
     keys = list(MODEL_REGISTRY.keys())
     assert len(keys) == len(set(keys)), "Duplicate model names found"
+
+
+@pytest.mark.parametrize(
+    ("model_name", "backbone"),
+    [("FTP_PRUE_EFNET_B3", "b3"), ("FTP_PRUE_EFNET_B7", "b7")],
+)
+def test_ftp_models(model_name: str, backbone: str):
+    spec = MODEL_REGISTRY[model_name]
+
+    assert spec.url == (
+        f"https://hf.co/taylor-geospatial/ftp-{backbone}/resolve/main/"
+        f"ftp-{backbone}.ckpt"
+    )
+    assert spec.license == "CC-BY-NC-4.0"
+    assert spec.requires_window is True
+    assert spec.requires_polygonize is True
+    assert spec.instance_segmentation is False
