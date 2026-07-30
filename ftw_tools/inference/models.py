@@ -113,13 +113,14 @@ class DelineateAnything:
     checkpoints = {
         "DelineateAnything-S": "https://hf.co/torchgeo/delineate-anything-s/resolve/69cd440b0c5bd450ced145e68294aa9393ddae05/delineate_anything_s_rgb_yolo11n-b879d643.pt",
         "DelineateAnything": "https://hf.co/torchgeo/delineate-anything/resolve/60bea7b2f81568d16d5c75e4b5b06289e1d7efaf/delineate_anything_rgb_yolo11x-88ede029.pt",
+        "DelineateAnythingV2": "https://hf.co/MykolaL/DelineateAnything/resolve/369d0b4c44cf9bec2bd3a27bc81810cadd2c963e/DelineateAnythingv2.pt",
     }
 
     def __init__(
         self,
         model: Literal[
-            "DelineateAnything-S", "DelineateAnything"
-        ] = "DelineateAnything-S",
+            "DelineateAnything-S", "DelineateAnything", "DelineateAnythingV2"
+        ] = "DelineateAnythingV2",
         patch_size: tuple[int, int] | int = 256,
         resize_factor: int = 2,
         max_detections: int = 100,
@@ -130,7 +131,7 @@ class DelineateAnything:
         """Initialize the DelineateAnything model.
 
         Args:
-            model: The model variant to use, either "DelineateAnything-S" or "DelineateAnything".
+            model: The model variant to use, one of "DelineateAnything-S", "DelineateAnything", or "DelineateAnythingV2".
             patch_size: The size of the input images. If an int is provided, it will be used for both width and height.
             resize_factor: The factor to resize the input images by.
             max_detections: Maximum number of detections per image.

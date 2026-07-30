@@ -513,12 +513,21 @@ And that's it! In 4 lines of code, you obtained an FTW model, downloaded S2 data
 
 #### 1. End-to-end inference (using `ftw inference instance-segmentation-all`)
 
-[Delineate Anything](https://lavreniuk.github.io/Delineate-Anything/) is a pretrained instance segmentation which can detect and segment out individual field boundaries directly to polygons without an intermediate predictions raster. It's trained on the [FBIS-22M](https://huggingface.co/datasets/MykolaL/FBIS-22M) which is a large-scale, multi-resolution dataset comprising 672,909 high-resolution satellite image patches (0.25 m – 10 m) and 22,926,427 instance masks of individual fields. The model comes in two variants: `DelineateAnything` and `DelineateAnything-S`. `DelineateAnything` is the full model and `DelineateAnything-S` is a smaller model that is faster to run (see table below for details). If you use this model in your research, please cite the [Delineate Anything paper](https://arxiv.org/abs/2504.02534).
+[Delineate Anything](https://lavreniuk.github.io/Delineate-Anything/) is a pretrained instance segmentation which can detect and segment out individual field boundaries directly to polygons without an intermediate predictions raster. It's trained on the [FBIS-22M](https://huggingface.co/datasets/MykolaL/FBIS-22M) which is a large-scale, multi-resolution dataset comprising 672,909 high-resolution satellite image patches (0.25 m – 10 m) and 22,926,427 instance masks of individual fields. The model comes in three variants: `DelineateAnything`, `DelineateAnything-S`, and `DelineateAnythingV2`. `DelineateAnything` is the full v1 model and `DelineateAnything-S` is a smaller v1 model that is faster to run (see table below for details). `DelineateAnythingV2` is a newer, improved version of the model published by the same authors on [Hugging Face](https://huggingface.co/MykolaL/DelineateAnything). If you use this model in your research, please cite the [Delineate Anything paper](https://arxiv.org/abs/2504.02534).
 
 | Method                   | mAP@0.5 | mAP@0.5:0.95 | Latency (ms) | Size    |
 | ------------------------ | ------- | ------------ | ------------ | ------- |
 | **Delineate Anything-S** | 0.632   | 0.383        | 16.8         | 17.6 MB |
 | **Delineate Anything**   | 0.720   | 0.477        | 25.0         | 125 MB  |
+
+Additional evaluation comparing `DelineateAnything` (v1) and `DelineateAnythingV2`:
+
+**Table 1: Quantitative performance on the independent 100-country benchmark.** (from [arXiv:2607.19069](https://arxiv.org/abs/2607.19069))
+
+| Method       | mAP@0.5 | mAP@0.5:0.95 | Precision | Recall |
+| ------------ | ------- | ------------ | --------- | ------ |
+| **DelAny**   | 0.275   | 0.103        | 0.345     | 0.454  |
+| **DelAny v2**| 0.559   | 0.278        | 0.639     | 0.525  |
 
 You can run Delineate Anything on a single scene using the `ftw inference instance-segmentation-all` command or optionally on an existing local file using `ftw inference run-instance-segmentation`. See below for examples.
 
@@ -565,9 +574,9 @@ Options:
                                   = Microsoft Planetary Computer, earthsearch
                                   = EarthSearch (Element84/AWS).  [default:
                                   mspc]
-  -m, --model [DelineateAnything|DelineateAnything-S]
+  -m, --model [DelineateAnything|DelineateAnything-S|DelineateAnythingV2]
                                   The model to use for inference.  [default:
-                                  DelineateAnything]
+                                  DelineateAnythingV2]
   --gpu INTEGER RANGE             GPU ID to use. If not provided, CPU will be
                                   used by default.  [x>=0]
   -r, --resize_factor INTEGER RANGE
