@@ -931,7 +931,7 @@ def inference_run(
     type=click.Choice(
         ["DelineateAnything", "DelineateAnything-S", "DelineateAnythingV2"]
     ),
-    default="DelineateAnything",
+    default="DelineateAnythingV2",
     show_default=True,
     help="The model to use for inference.",
 )
