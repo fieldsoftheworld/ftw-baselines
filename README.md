@@ -576,7 +576,7 @@ Options:
                                   mspc]
   -m, --model [DelineateAnything|DelineateAnything-S|DelineateAnythingV2]
                                   The model to use for inference.  [default:
-                                  DelineateAnything]
+                                  DelineateAnythingV2]
   --gpu INTEGER RANGE             GPU ID to use. If not provided, CPU will be
                                   used by default.  [x>=0]
   -r, --resize_factor INTEGER RANGE
