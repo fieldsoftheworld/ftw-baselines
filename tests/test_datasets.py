@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import geopandas as gpd
 import pytest
 from shapely.geometry import Point
@@ -52,7 +54,10 @@ def test_ftw_requires_only_selected_mask_type(tmp_path, load_boundaries, mask_di
         verbose=False,
     )
     assert len(dataset) == 1
-    assert dataset.filenames[0]["mask"].endswith(f"{mask_dirname}/{aoi_id}.tif")
+    assert Path(dataset.filenames[0]["mask"]).parts[-2:] == (
+        mask_dirname,
+        f"{aoi_id}.tif",
+    )
 
 
 def test_ftw_skips_sample_missing_selected_mask_type(tmp_path):
