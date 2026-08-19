@@ -8,6 +8,14 @@ import click
 # torchvision.ops.nms is not supported on MPS yet
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
+from ftw_tools.cli_models import (
+    inputs_label,
+    output_label,
+    resolve_model_name,
+    task_label,
+    visible_models,
+    wrap_description,
+)
 from ftw_tools.inference.model_registry import MODEL_REGISTRY
 from ftw_tools.settings import (
     ALL_COUNTRIES,
@@ -120,6 +128,20 @@ def common_buffer_days_option():
         show_default=True,
         help="Number of days to buffer the date for querying to help balance decreasing cloud cover "
         "and selecting a date near the crop calendar indicated date.",
+    )
+
+
+def common_nodata_max_option():
+    """Common nodata max option for inference commands."""
+    return click.option(
+        "--nodata_max",
+        "-ndx",
+        type=click.IntRange(min=0, max=100),
+        default=50,
+        show_default=True,
+        help="Maximum percentage of nodata pixels allowed in the Sentinel-2 scene. "
+        "Scenes with higher nodata percentages (lower area coverage) will be filtered out. "
+        "Supported for both Microsoft Planetary Computer and EarthSearch backends.",
     )
 
 
@@ -239,6 +261,71 @@ def data_unpack(input):
 def model():
     """Training and testing FTW models."""
     pass
+
+
+@model.command("list", help="List released FTW models.")
+@click.option(
+    "--all",
+    "include_legacy",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Include legacy and historical models.",
+)
+def model_list(include_legacy):
+    models = visible_models(include_legacy=include_legacy)
+    if not models:
+        click.echo("No models found.")
+        return
+
+    click.echo("Released FTW models\n")
+    for name, spec in models:
+        badges = []
+        if spec.default:
+            badges.append("default")
+        if spec.legacy:
+            badges.append("legacy")
+        badge_text = f" [{', '.join(badges)}]" if badges else ""
+        click.echo(f"- {name}{badge_text}")
+        click.echo(f"  {spec.title}")
+        click.echo(
+            f"  {task_label(spec)} | {inputs_label(spec)} | {output_label(spec)} | {spec.license}"
+        )
+
+    click.echo("\nTip: run `ftw model show <name>` for details.")
+
+
+@model.command("show", help="Show details for a released FTW model.")
+@click.argument("name")
+def model_show(name):
+    model_name = resolve_model_name(name)
+    spec = MODEL_REGISTRY[model_name]
+
+    click.echo(model_name)
+    click.echo(spec.title)
+    click.echo(f"Version: {spec.version}")
+    click.echo(f"License: {spec.license}")
+    click.echo(f"Task: {task_label(spec)}")
+    click.echo(f"Inputs: {inputs_label(spec)}")
+    click.echo(f"Output: {output_label(spec)}")
+    click.echo(f"Default: {'yes' if spec.default else 'no'}")
+    click.echo(f"Legacy: {'yes' if spec.legacy else 'no'}")
+    click.echo("\nDescription:")
+    click.echo(wrap_description(spec.description))
+    click.echo("\nDownload:")
+    click.echo(f"  {spec.url}")
+    click.echo("\nNext commands:")
+    if spec.instance_segmentation:
+        click.echo(
+            f"  ftw inference run-instance-segmentation INPUT --model {model_name}"
+        )
+        click.echo(
+            f"  ftw inference instance-segmentation-all STAC_ITEM --model {model_name} --out_dir output"
+        )
+    else:
+        click.echo(f"  ftw inference run INPUT --model {model_name}")
+        if spec.requires_polygonize:
+            click.echo("  ftw inference polygonize inference_output.tif")
 
 
 @model.command("fit", help="Fit the model")
@@ -519,6 +606,7 @@ def inference():
 )
 @common_stac_host_option()
 @common_s2_collection_option()
+@common_nodata_max_option()
 @common_verbose_option()
 def ftw_inference_all(
     out,
@@ -538,6 +626,7 @@ def ftw_inference_all(
     save_scores,
     stac_host,
     s2_collection,
+    nodata_max,
     verbose,
 ):
     """Run all inference commands from crop calendar scene selection, then download, inference and polygonize."""
@@ -561,6 +650,7 @@ def ftw_inference_all(
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
         s2_collection=s2_collection,
+        nodata_max=nodata_max,
         verbose=verbose,
     )
 
@@ -614,9 +704,18 @@ def ftw_inference_all(
 )
 @common_stac_host_option()
 @common_s2_collection_option()
+@common_nodata_max_option()
 @common_verbose_option()
 def scene_selection(
-    year, bbox, cloud_cover_max, buffer_days, out, stac_host, s2_collection, verbose
+    year,
+    bbox,
+    cloud_cover_max,
+    buffer_days,
+    out,
+    stac_host,
+    s2_collection,
+    nodata_max,
+    verbose,
 ):
     """Download Sentinel-2 scenes for inference."""
     from ftw_tools.download.download_img import scene_selection
@@ -628,6 +727,7 @@ def scene_selection(
         cloud_cover_max=cloud_cover_max,
         buffer_days=buffer_days,
         s2_collection=s2_collection,
+        nodata_max=nodata_max,
         verbose=verbose,
     )
     if out:
@@ -777,6 +877,13 @@ def inference_download(
     show_default=True,
     help="Compute corner consensus scores during inference",
 )
+@click.option(
+    "--nan_fill_value",
+    type=float,
+    default=0.0,
+    show_default=True,
+    help="Value used to replace NaN/nodata pixels before inference.",
+)
 def inference_run(
     input: str,
     model: str,
@@ -791,6 +898,7 @@ def inference_run(
     mps_mode: bool,
     save_scores: bool,
     compute_consensus: bool,
+    nan_fill_value: float,
 ):
     from ftw_tools.inference.inference import run
 
@@ -808,6 +916,7 @@ def inference_run(
         mps_mode,
         save_scores,
         compute_consensus,
+        nan_fill_value,
     )
 
 
@@ -819,8 +928,10 @@ def inference_run(
 @click.option(
     "--model",
     "-m",
-    type=click.Choice(["DelineateAnything", "DelineateAnything-S"]),
-    default="DelineateAnything",
+    type=click.Choice(
+        ["DelineateAnything", "DelineateAnything-S", "DelineateAnythingV2"]
+    ),
+    default="DelineateAnythingV2",
     show_default=True,
     help="The model to use for inference.",
 )
@@ -961,6 +1072,13 @@ def inference_run(
     show_default=True,
     help="Overlap containment threshold for merging polygons.",
 )
+@click.option(
+    "--nan_fill_value",
+    type=float,
+    default=0.0,
+    show_default=True,
+    help="Value used to replace NaN/nodata pixels before inference.",
+)
 def inference_run_instance_segmentation(
     input,
     model,
@@ -982,6 +1100,7 @@ def inference_run_instance_segmentation(
     close_interiors,
     overlap_iou_threshold,
     overlap_contain_threshold,
+    nan_fill_value,
 ):
     from ftw_tools.inference.inference import run_instance_segmentation
 
@@ -1006,6 +1125,7 @@ def inference_run_instance_segmentation(
         close_interiors=close_interiors,
         overlap_iou_threshold=overlap_iou_threshold,
         overlap_contain_threshold=overlap_contain_threshold,
+        nan_fill_value=nan_fill_value,
     )
 
 
@@ -1039,7 +1159,9 @@ def inference_run_instance_segmentation(
 @click.option(
     "--model",
     "-m",
-    type=click.Choice(["DelineateAnything", "DelineateAnything-S"]),
+    type=click.Choice(
+        ["DelineateAnything", "DelineateAnything-S", "DelineateAnythingV2"]
+    ),
     default="DelineateAnything",
     show_default=True,
     help="The model to use for inference.",

@@ -446,7 +446,15 @@ def polygonize(
                                 join_style=shapely.geometry.JOIN_STYLE.mitre,
                             )
                         if close_interiors:
-                            geom = shapely.geometry.Polygon(geom.exterior)
+                            if isinstance(geom, shapely.geometry.MultiPolygon):
+                                geom = shapely.geometry.MultiPolygon(
+                                    [
+                                        shapely.geometry.Polygon(g.exterior)
+                                        for g in geom.geoms
+                                    ]
+                                )
+                            else:
+                                geom = shapely.geometry.Polygon(geom.exterior)
                         if simplify > 0:
                             geom = geom.simplify(simplify)
 

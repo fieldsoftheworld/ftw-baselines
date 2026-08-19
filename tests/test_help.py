@@ -7,6 +7,8 @@ from ftw_tools.cli import (
     inference_polygonize,
     inference_run,
     model_fit,
+    model_list,
+    model_show,
     model_test,
 )
 
@@ -75,3 +77,21 @@ def test_model_test():
         f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
     )
     assert "Usage: test [OPTIONS]" in result.output
+
+
+def test_model_list():
+    runner = CliRunner()
+    result = runner.invoke(model_list, ["--help"])
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
+    assert "Usage: list [OPTIONS]" in result.output
+
+
+def test_model_show():
+    runner = CliRunner()
+    result = runner.invoke(model_show, ["--help"])
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
+    assert "Usage: show [OPTIONS] NAME" in result.output

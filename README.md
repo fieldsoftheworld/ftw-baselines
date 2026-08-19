@@ -101,7 +101,7 @@ For development work with testing and linting tools:
 ```bash
 
 # Run tests
-uv run pytest tests/
+uv run pytest tests/  # uses xdist via default -n auto
 
 # Set up pre-commit hooks (only run this once)
 uv run pre-commit install
@@ -168,21 +168,15 @@ The following commands show the steps for using the FTW CLI to obtain the FTW mo
 
 #### 1. Decide which model you want to use
 
-In order to use `ftw inference` cli command you need to select one of the existing pre-trained models.
-The pre-trained models with descriptions are in the releases portion of the repo, see [here](https://github.com/fieldsoftheworld/ftw-baselines/releases) for more details.
+In order to use `ftw inference` you need to select one of the released models.
+The easiest way to browse them from the CLI is:
 
-The string representations of the models released are defined in `ftw_tools/inference/model_registry.py` and include:
-* FTW_v1_2_Class_CCBY
-* FTW_v1_2_Class_FULL
-* FTW_v1_3_Class_CCBY
-* FTW_v1_3_Class_FULL
-* FTW_v2_3_Class_FULL_singleWindow_v2
-* FTW_v2_3_Class_FULL_multiWindow
-* FTW_PRUE_EFNET_B3
-* FTW_PRUE_EFNET_B5
-* FTW_PRUE_EFNET_B7
-* DelineateAnything
-* DelineateAnything-S
+```bash
+ftw model list
+ftw model show FTW_PRUE_EFNET_B5
+```
+
+The full registry is defined in `ftw_tools/inference/model_registry.py`, and release assets are available [here](https://github.com/fieldsoftheworld/ftw-baselines/releases).
 
 **Note**: If you want more control ie provide specific Sentinel2 scenes to work with follow steps 3-6 to run each part of the inference pipeline sequentially. There is the option to run step 2 `all` which links together the distinct inference steps. If you decide to run step 2 you will get extracted field boundaries as polygons and don't need to proceed with steps 3-6.
 
@@ -216,6 +210,13 @@ Options:
                                   cover and selecting a date near the crop
                                   calendar indicated date.  [default: 14;
                                   x>=0]
+  -ndx, --nodata_max INTEGER RANGE
+                                  Maximum percentage of nodata pixels allowed
+                                  in the Sentinel-2 scene. Scenes with higher
+                                  nodata percentages (lower area coverage)
+                                  will be filtered out. Supported for both
+                                  Microsoft Planetary Computer and EarthSearch
+                                  backends.  [0<=x<=100]
   -f, --overwrite                 Overwrites the outputs if they exist
   -r, --resize_factor INTEGER RANGE
                                   Resize factor to use for inference.
@@ -267,6 +268,23 @@ ftw inference all \
     --resize_factor=2 \
     --overwrite
 ```
+
+To filter out scenes with low area coverage (high nodata percentage), add the `--nodata_max` parameter:
+
+```bash
+ftw inference all \
+    --bbox=13.0,48.0,13.2,48.2 \
+    --year=2024 \
+    --out=/path/to/output \
+    --cloud_cover_max=20 \
+    --nodata_max=50 \
+    --buffer_days=14 \
+    --model=FTW_3_Class_FULL_multiWindow \
+    --resize_factor=2 \
+    --overwrite
+```
+
+This will exclude any scenes where more than 50% of pixels are nodata (i.e., only scenes with >50% area coverage will be selected).
 
 This will create the following files in the output directory:
 
@@ -364,6 +382,9 @@ Options:
   -mps, --mps_mode                Run inference in MPS mode (Apple GPUs).
   --save_scores                   Save segmentation softmax scores (rescaled to [0,255])
                                   instead of classes (argmax of scores)
+  --compute_consensus             Compute corner consensus scores during inference
+  --nan_fill_value FLOAT          Value used to replace NaN/nodata pixels before
+                                  inference.  [default: 0.0]
   --help                          Show this message and exit.
 ```
 
@@ -492,12 +513,21 @@ And that's it! In 4 lines of code, you obtained an FTW model, downloaded S2 data
 
 #### 1. End-to-end inference (using `ftw inference instance-segmentation-all`)
 
-[Delineate Anything](https://lavreniuk.github.io/Delineate-Anything/) is a pretrained instance segmentation which can detect and segment out individual field boundaries directly to polygons without an intermediate predictions raster. It's trained on the [FBIS-22M](https://huggingface.co/datasets/MykolaL/FBIS-22M) which is a large-scale, multi-resolution dataset comprising 672,909 high-resolution satellite image patches (0.25 m – 10 m) and 22,926,427 instance masks of individual fields. The model comes in two variants: `DelineateAnything` and `DelineateAnything-S`. `DelineateAnything` is the full model and `DelineateAnything-S` is a smaller model that is faster to run (see table below for details). If you use this model in your research, please cite the [Delineate Anything paper](https://arxiv.org/abs/2504.02534).
+[Delineate Anything](https://lavreniuk.github.io/Delineate-Anything/) is a pretrained instance segmentation which can detect and segment out individual field boundaries directly to polygons without an intermediate predictions raster. It's trained on the [FBIS-22M](https://huggingface.co/datasets/MykolaL/FBIS-22M) which is a large-scale, multi-resolution dataset comprising 672,909 high-resolution satellite image patches (0.25 m – 10 m) and 22,926,427 instance masks of individual fields. The model comes in three variants: `DelineateAnything`, `DelineateAnything-S`, and `DelineateAnythingV2`. `DelineateAnything` is the full v1 model and `DelineateAnything-S` is a smaller v1 model that is faster to run (see table below for details). `DelineateAnythingV2` is a newer, improved version of the model published by the same authors on [Hugging Face](https://huggingface.co/MykolaL/DelineateAnything). If you use this model in your research, please cite the [Delineate Anything paper](https://arxiv.org/abs/2504.02534).
 
 | Method                   | mAP@0.5 | mAP@0.5:0.95 | Latency (ms) | Size    |
 | ------------------------ | ------- | ------------ | ------------ | ------- |
 | **Delineate Anything-S** | 0.632   | 0.383        | 16.8         | 17.6 MB |
 | **Delineate Anything**   | 0.720   | 0.477        | 25.0         | 125 MB  |
+
+Additional evaluation comparing `DelineateAnything` (v1) and `DelineateAnythingV2`:
+
+**Table 1: Quantitative performance on the independent 100-country benchmark.** (from [arXiv:2607.19069](https://arxiv.org/abs/2607.19069))
+
+| Method       | mAP@0.5 | mAP@0.5:0.95 | Precision | Recall |
+| ------------ | ------- | ------------ | --------- | ------ |
+| **DelAny**   | 0.275   | 0.103        | 0.345     | 0.454  |
+| **DelAny v2**| 0.559   | 0.278        | 0.639     | 0.525  |
 
 You can run Delineate Anything on a single scene using the `ftw inference instance-segmentation-all` command or optionally on an existing local file using `ftw inference run-instance-segmentation`. See below for examples.
 
@@ -544,9 +574,9 @@ Options:
                                   = Microsoft Planetary Computer, earthsearch
                                   = EarthSearch (Element84/AWS).  [default:
                                   mspc]
-  -m, --model [DelineateAnything|DelineateAnything-S]
+  -m, --model [DelineateAnything|DelineateAnything-S|DelineateAnythingV2]
                                   The model to use for inference.  [default:
-                                  DelineateAnything]
+                                  DelineateAnythingV2]
   --gpu INTEGER RANGE             GPU ID to use. If not provided, CPU will be
                                   used by default.  [x>=0]
   -r, --resize_factor INTEGER RANGE
@@ -620,6 +650,8 @@ Options:
   -cot, --overlap_contain_threshold FLOAT RANGE
                                   Overlap containment threshold for merging
                                   polygons.  [default: 0.8; 0.0<=x<=1.0]
+  --nan_fill_value FLOAT          Value used to replace NaN/nodata pixels before
+                                  inference.  [default: 0.0]
   --help                          Show this message and exit.
 ```
 

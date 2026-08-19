@@ -117,6 +117,16 @@ MODEL_REGISTRY = {
         requires_polygonize=False,
         instance_segmentation=True,
     ),
+    "DelineateAnythingV2": ModelSpec(
+        title="DelineateAnything v2: Standard",
+        url="https://hf.co/MykolaL/DelineateAnything/resolve/main/DelineateAnythingv2.pt",
+        description="An improved single-shot model trained on Field Boundary Instance Segmentation - 22M dataset (FBIS-22M), based on a YOLOv11 backbone. This is the second version of the DelineateAnything model, offering better accuracy than v1. Requires a single time window - automatic selection will get one at the beginning of the grow season, but other times can be tried.",
+        license="AGPL-3",
+        version="v2",
+        requires_window=False,
+        requires_polygonize=False,
+        instance_segmentation=True,
+    ),
     "FTW_PRUE_EFNET_B3": ModelSpec(
         title="FTW v3: Standard, B3",
         url=f"{RELEASE_URL}v3/prue_efnet3_checkpoint.ckpt",

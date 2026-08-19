@@ -169,12 +169,11 @@ class FTW(NonGeoDataset):
                     os.path.join(country_root, "label_masks/edges", f"{idx}.tif")
                 )
 
-                # Skip the image AOI's which does not have all four corresponding files
+                mask_fn = masks_3c_fn if self.load_boundaries else masks_2c_fn
+
+                # Skip AOIs missing either image or the selected mask type.
                 if not (
-                    window_b_fn.exists()
-                    and window_a_fn.exists()
-                    and masks_2c_fn.exists()
-                    and masks_3c_fn.exists()
+                    window_b_fn.exists() and window_a_fn.exists() and mask_fn.exists()
                 ):
                     continue
 
@@ -182,11 +181,6 @@ class FTW(NonGeoDataset):
                     raise ValueError(
                         "ERROR: Missing edge files! Run ./scripts/add_edges_to_dataset.py"
                     )
-
-                if self.load_boundaries:
-                    mask_fn = masks_3c_fn
-                else:
-                    mask_fn = masks_2c_fn
 
                 file_record = {
                     "window_b": str(window_b_fn),
