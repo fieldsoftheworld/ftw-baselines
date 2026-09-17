@@ -18,6 +18,19 @@ def unpack(input):
     clean_and_create_ftw_folder(ftw_folder_path)
     unpack_zip_files(input, ftw_folder_path)
 
+    from ftw_tools.data_validation import (
+        countries_in_dataset,
+        format_validation_report,
+        validate_dataset,
+    )
+
+    countries = countries_in_dataset(ftw_folder_path)
+    if countries:
+        report = validate_dataset(ftw_folder_path, countries, check_checksums=False)
+        print(format_validation_report(report))
+        if not report.valid:
+            raise RuntimeError("Unpacked FTW dataset failed validation")
+
 
 def clean_and_create_ftw_folder(ftw_folder_path):
     """

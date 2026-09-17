@@ -269,7 +269,11 @@ def data_unpack(input):
 )
 def data_validate(input, countries):
     """Validate dataset structure, samples, splits, and available checksums."""
-    from ftw_tools.data_validation import parse_countries, validate_dataset
+    from ftw_tools.data_validation import (
+        format_validation_report,
+        parse_countries,
+        validate_dataset,
+    )
 
     try:
         selected_countries = parse_countries(countries, input)
@@ -277,34 +281,8 @@ def data_validate(input, countries):
         raise click.BadParameter(str(error), param_hint="--countries") from error
 
     report = validate_dataset(input, selected_countries)
-    click.echo(f"Validating FTW dataset at {report.root}")
-    for country in report.countries:
-        status = "OK" if country.valid else "FAILED"
-        counts = ", ".join(
-            f"{split}={count}" for split, count in country.split_counts.items()
-        )
-        click.echo(f"\n{country.country}: {status}")
-        click.echo(f"  samples: {counts}")
-        click.echo(f"  checksum manifests checked: {country.checksum_files_checked}")
-        for label, paths in country.missing_files.items():
-            click.echo(f"  missing {label} files: {len(paths)}")
-            for path in paths[:5]:
-                click.echo(f"    - {path}")
-            if len(paths) > 5:
-                click.echo(f"    - ... and {len(paths) - 5} more")
-        for error in country.errors:
-            click.echo(f"  error: {error}")
-
-    for error in report.errors:
-        click.echo(f"error: {error}")
-
-    totals = ", ".join(
-        f"{split}={count}" for split, count in report.split_counts.items()
-    )
-    if report.valid:
-        click.echo(f"\nValidation passed ({totals}).")
-    else:
-        click.echo(f"\nValidation failed ({totals}).", err=True)
+    click.echo(format_validation_report(report))
+    if not report.valid:
         raise click.exceptions.Exit(1)
 
 

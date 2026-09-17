@@ -7,7 +7,7 @@ from typing import Sequence
 import geopandas as gpd
 
 from ftw_tools.settings import ALL_COUNTRIES
-from ftw_tools.utils import checksum_errors
+from ftw_tools.utils import checksum_errors, compute_md5, load_archive_checksums
 
 VALID_SPLITS = ("train", "val", "test")
 MASK_DIRECTORIES = ("semantic_2class", "semantic_3class")
@@ -58,9 +58,17 @@ class DatasetValidationResult:
     @property
     def split_counts(self) -> dict[str, int]:
         """Aggregate split counts across all selected countries."""
+        extra_splits = sorted(
+            {
+                split
+                for result in self.countries
+                for split in result.split_counts
+                if split not in VALID_SPLITS
+            }
+        )
         return {
-            split: sum(result.split_counts[split] for result in self.countries)
-            for split in VALID_SPLITS
+            split: sum(result.split_counts.get(split, 0) for result in self.countries)
+            for split in (*VALID_SPLITS, *extra_splits)
         }
 
 
@@ -179,13 +187,31 @@ def _validate_country(
         _validate_samples(chips_path, required_directories, result)
 
     if check_checksums:
+        available_checksum_files = []
         for checksum_name in CHECKSUM_FILES:
             checksum_path = country_root / checksum_name
             if checksum_path.is_file():
+                available_checksum_files.append(checksum_path)
                 result.checksum_files_checked += 1
                 result.errors.extend(checksum_errors(str(checksum_path), str(root)))
-            elif require_checksum_files:
-                result.errors.append(f"Missing checksum file: {checksum_path}")
+
+        if available_checksum_files:
+            if require_checksum_files:
+                missing_checksum_files = set(CHECKSUM_FILES) - {
+                    path.name for path in available_checksum_files
+                }
+                for checksum_name in sorted(missing_checksum_files):
+                    result.errors.append(
+                        f"Missing checksum file: {country_root / checksum_name}"
+                    )
+        else:
+            archive_checked = _validate_archive_checksum(root, country, result)
+            if require_checksum_files and not archive_checked:
+                result.errors.append(
+                    f"No checksum source found for {country}; expected country "
+                    f"manifests or {root.parent / 'checksum.md5'} with "
+                    f"{root.parent / f'{country}.zip'}"
+                )
 
     return result
 
@@ -210,15 +236,13 @@ def _validate_samples(
         )
         return
 
-    split_counts = chips["split"].value_counts()
+    split_counts = chips["split"].value_counts(dropna=False)
     for split in VALID_SPLITS:
         result.split_counts[split] = int(split_counts.get(split, 0))
-    unexpected_splits = sorted(set(split_counts.index) - set(VALID_SPLITS))
-    if unexpected_splits:
-        result.errors.append(
-            f"Chips file {chips_path} contains invalid splits: "
-            f"{', '.join(str(split) for split in unexpected_splits)}"
-        )
+    for split, count in split_counts.items():
+        split_name = str(split)
+        if split_name not in result.split_counts:
+            result.split_counts[split_name] = int(count)
 
     for aoi_id in chips["aoi_id"]:
         filename = f"{aoi_id}.tif"
@@ -228,3 +252,66 @@ def _validate_samples(
             path = directory / filename
             if not path.is_file():
                 result.missing_files.setdefault(label, []).append(path)
+
+
+def _validate_archive_checksum(
+    root: Path, country: str, result: CountryValidationResult
+) -> bool:
+    archive_root = root.parent
+    checksum_path = archive_root / "checksum.md5"
+    archive_path = archive_root / f"{country}.zip"
+    if not checksum_path.is_file() or not archive_path.is_file():
+        return False
+
+    result.checksum_files_checked += 1
+    try:
+        checksums = load_archive_checksums(checksum_path)
+    except (OSError, ValueError) as error:
+        result.errors.append(
+            f"Could not read archive checksums {checksum_path}: {error}"
+        )
+        return True
+
+    expected_checksum = checksums.get(country)
+    if expected_checksum is None:
+        result.errors.append(
+            f"No archive checksum found for {country} in {checksum_path}"
+        )
+        return True
+
+    current_checksum = compute_md5(str(archive_path))
+    if current_checksum != expected_checksum:
+        result.errors.append(f"Checksum mismatch: {archive_path}")
+    return True
+
+
+def format_validation_report(report: DatasetValidationResult) -> str:
+    """Format a dataset validation report for CLI output."""
+    lines = [f"Validating FTW dataset at {report.root}"]
+    for country in report.countries:
+        status = "OK" if country.valid else "FAILED"
+        counts = ", ".join(
+            f"{split}={count}" for split, count in country.split_counts.items()
+        )
+        lines.extend(
+            [
+                "",
+                f"{country.country}: {status}",
+                f"  samples: {counts}",
+                f"  checksum sources checked: {country.checksum_files_checked}",
+            ]
+        )
+        for label, paths in country.missing_files.items():
+            lines.append(f"  missing {label} files: {len(paths)}")
+            lines.extend(f"    - {path}" for path in paths[:5])
+            if len(paths) > 5:
+                lines.append(f"    - ... and {len(paths) - 5} more")
+        lines.extend(f"  error: {error}" for error in country.errors)
+
+    lines.extend(f"error: {error}" for error in report.errors)
+    totals = ", ".join(
+        f"{split}={count}" for split, count in report.split_counts.items()
+    )
+    outcome = "passed" if report.valid else "failed"
+    lines.extend(["", f"Validation {outcome} ({totals})."])
+    return "\n".join(lines)

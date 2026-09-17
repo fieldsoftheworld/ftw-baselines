@@ -8,14 +8,14 @@ from shapely.geometry import Point
 
 from ftw_tools.cli import data_validate
 from ftw_tools.data_validation import parse_countries, validate_dataset
+from ftw_tools.download.unpack import unpack
 from ftw_tools.training.datasets import FTW
 
 
-@pytest.fixture()
-def ftw_dataset(tmp_path):
-    """Build a complete, one-country FTW dataset with three samples."""
+def _make_ftw_dataset(root: Path, splits=("train", "val", "test")) -> Path:
+    """Build a complete, one-country FTW dataset."""
     country = "france"
-    country_root = tmp_path / country
+    country_root = root / country
     directories = (
         country_root / "s2_images" / "window_a",
         country_root / "s2_images" / "window_b",
@@ -25,18 +25,23 @@ def ftw_dataset(tmp_path):
     for directory in directories:
         directory.mkdir(parents=True)
 
-    aoi_ids = ["train_0", "val_0", "test_0"]
+    aoi_ids = [f"{split}_{index}" for index, split in enumerate(splits)]
     for aoi_id in aoi_ids:
         for directory in directories:
             (directory / f"{aoi_id}.tif").write_bytes(aoi_id.encode())
 
     chips = gpd.GeoDataFrame(
-        {"aoi_id": aoi_ids, "split": ["train", "val", "test"]},
-        geometry=[Point(0, 0), Point(1, 1), Point(2, 2)],
+        {"aoi_id": aoi_ids, "split": list(splits)},
+        geometry=[Point(index, index) for index in range(len(splits))],
         crs="EPSG:4326",
     )
     chips.to_parquet(country_root / f"chips_{country}.parquet")
-    return tmp_path
+    return root
+
+
+@pytest.fixture()
+def ftw_dataset(tmp_path):
+    return _make_ftw_dataset(tmp_path)
 
 
 def _write_checksum_manifest(root: Path, country: str, name: str, target: Path):
@@ -56,7 +61,7 @@ def test_validate_dataset_reports_split_counts(ftw_dataset):
 
 
 def test_validate_dataset_reports_missing_sample_files(ftw_dataset):
-    missing_file = ftw_dataset / "france/s2_images/window_a/val_0.tif"
+    missing_file = ftw_dataset / "france/s2_images/window_a/val_1.tif"
     missing_file.unlink()
 
     report = validate_dataset(ftw_dataset, ["france"])
@@ -84,6 +89,16 @@ def test_parse_all_countries_uses_only_downloaded_countries(ftw_dataset):
     assert parse_countries("all", ftw_dataset) == ["france"]
 
 
+def test_validate_dataset_reports_non_training_splits(tmp_path):
+    root = _make_ftw_dataset(tmp_path, splits=("train", "none"))
+
+    report = validate_dataset(root, ["france"])
+
+    assert report.valid
+    assert report.split_counts == {"train": 1, "val": 0, "test": 0, "none": 1}
+    assert report.countries[0].sample_count == 2
+
+
 def test_data_validate_command_succeeds(ftw_dataset):
     result = CliRunner().invoke(
         data_validate, [str(ftw_dataset), "--countries", "france"]
@@ -96,7 +111,7 @@ def test_data_validate_command_succeeds(ftw_dataset):
 
 
 def test_data_validate_command_fails_for_missing_file(ftw_dataset):
-    (ftw_dataset / "france/label_masks/semantic_3class/test_0.tif").unlink()
+    (ftw_dataset / "france/label_masks/semantic_3class/test_2.tif").unlink()
 
     result = CliRunner().invoke(
         data_validate, [str(ftw_dataset), "--countries", "france"]
@@ -127,3 +142,72 @@ def test_ftw_checksum_checks_only_selected_countries(ftw_dataset):
     )
 
     assert len(dataset) == 1
+
+
+def test_validate_dataset_checks_download_archive(tmp_path):
+    download_root = tmp_path / "data"
+    dataset_root = _make_ftw_dataset(download_root / "ftw")
+    archive = download_root / "france.zip"
+    archive.write_bytes(b"archive contents")
+    checksum = hashlib.md5(archive.read_bytes()).hexdigest()
+    (download_root / "checksum.md5").write_text(
+        f"france,{checksum}\n", encoding="utf-8"
+    )
+
+    report = validate_dataset(dataset_root, ["france"])
+
+    assert report.valid
+    assert report.countries[0].checksum_files_checked == 1
+
+
+def test_validate_dataset_reports_archive_checksum_failure(tmp_path):
+    download_root = tmp_path / "data"
+    dataset_root = _make_ftw_dataset(download_root / "ftw")
+    (download_root / "france.zip").write_bytes(b"archive contents")
+    (download_root / "checksum.md5").write_text(
+        f"france,{'0' * 32}\n", encoding="utf-8"
+    )
+
+    report = validate_dataset(dataset_root, ["france"])
+
+    assert not report.valid
+    assert report.countries[0].errors == [
+        f"Checksum mismatch: {download_root / 'france.zip'}"
+    ]
+
+
+def test_ftw_checksum_uses_download_archive(tmp_path):
+    download_root = tmp_path / "data"
+    dataset_root = _make_ftw_dataset(download_root / "ftw")
+    archive = download_root / "france.zip"
+    archive.write_bytes(b"archive contents")
+    checksum = hashlib.md5(archive.read_bytes()).hexdigest()
+    (download_root / "checksum.md5").write_text(
+        f"france,{checksum}\n", encoding="utf-8"
+    )
+
+    dataset = FTW(
+        root=str(dataset_root),
+        countries="france",
+        split="train",
+        checksum=True,
+        verbose=False,
+    )
+
+    assert len(dataset) == 1
+
+
+def test_unpack_runs_shared_dataset_validation(tmp_path, monkeypatch, capsys):
+    download_root = tmp_path / "data"
+    download_root.mkdir()
+
+    def fake_unpack_zip_files(_root_folder_path, ftw_folder_path):
+        _make_ftw_dataset(Path(ftw_folder_path))
+
+    monkeypatch.setattr(
+        "ftw_tools.download.unpack.unpack_zip_files", fake_unpack_zip_files
+    )
+
+    unpack(str(download_root))
+
+    assert "Validation passed" in capsys.readouterr().out

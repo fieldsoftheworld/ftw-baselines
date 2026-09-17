@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import os
+from pathlib import Path
 
 import click
 import pandas as pd
@@ -11,6 +12,23 @@ from ftw_tools.download.crop_calendar import ensure_crop_calendar_exists
 from ftw_tools.settings import CROP_CAL_SUMMER_END, CROP_CAL_SUMMER_START
 
 logger = logging.getLogger()
+
+
+def load_archive_checksums(checksum_file: str | Path) -> dict[str, str]:
+    """Load the country-to-MD5 mapping used for downloaded FTW archives."""
+    checksums = {}
+    with open(checksum_file) as file:
+        for line_number, line in enumerate(file, start=1):
+            if not line.strip():
+                continue
+            parts = line.strip().split(",")
+            if len(parts) != 2:
+                raise ValueError(
+                    f"Invalid archive checksum entry at line {line_number}"
+                )
+            country, checksum = (part.strip() for part in parts)
+            checksums[country.lower()] = checksum
+    return checksums
 
 
 def compute_md5(file_path: str) -> str | None:
