@@ -254,6 +254,60 @@ def data_unpack(input):
     unpack(input)
 
 
+@data.command("validate", help="Validate an unpacked FTW dataset before training.")
+@click.argument(
+    "input",
+    type=click.Path(exists=True, dir_okay=True, file_okay=False),
+    default="./data/ftw",
+    required=False,
+)
+@click.option(
+    "--countries",
+    default="all",
+    show_default=True,
+    help="Comma-separated countries to validate. 'all' uses countries found in INPUT.",
+)
+def data_validate(input, countries):
+    """Validate dataset structure, samples, splits, and available checksums."""
+    from ftw_tools.data_validation import parse_countries, validate_dataset
+
+    try:
+        selected_countries = parse_countries(countries, input)
+    except ValueError as error:
+        raise click.BadParameter(str(error), param_hint="--countries") from error
+
+    report = validate_dataset(input, selected_countries)
+    click.echo(f"Validating FTW dataset at {report.root}")
+    for country in report.countries:
+        status = "OK" if country.valid else "FAILED"
+        counts = ", ".join(
+            f"{split}={count}" for split, count in country.split_counts.items()
+        )
+        click.echo(f"\n{country.country}: {status}")
+        click.echo(f"  samples: {counts}")
+        click.echo(f"  checksum manifests checked: {country.checksum_files_checked}")
+        for label, paths in country.missing_files.items():
+            click.echo(f"  missing {label} files: {len(paths)}")
+            for path in paths[:5]:
+                click.echo(f"    - {path}")
+            if len(paths) > 5:
+                click.echo(f"    - ... and {len(paths) - 5} more")
+        for error in country.errors:
+            click.echo(f"  error: {error}")
+
+    for error in report.errors:
+        click.echo(f"error: {error}")
+
+    totals = ", ".join(
+        f"{split}={count}" for split, count in report.split_counts.items()
+    )
+    if report.valid:
+        click.echo(f"\nValidation passed ({totals}).")
+    else:
+        click.echo(f"\nValidation failed ({totals}).", err=True)
+        raise click.exceptions.Exit(1)
+
+
 ### Model group
 
 

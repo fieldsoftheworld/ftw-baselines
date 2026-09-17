@@ -32,6 +32,44 @@ def compute_md5(file_path: str) -> str | None:
     return hash_md5.hexdigest()
 
 
+def checksum_errors(checksum_file: str, root_directory: str) -> list[str]:
+    """Return validation errors for checksums stored in a checksum file.
+
+    Args:
+        checksum_file: Path to the checksum file.
+        root_directory: Root directory for resolving relative file paths.
+
+    Returns:
+        Human-readable errors. The list is empty when every checksum matches.
+    """
+    if not os.path.isfile(checksum_file):
+        return [f"Checksum file not found: {checksum_file}"]
+
+    with open(checksum_file, "r") as f:
+        lines = f.readlines()
+
+    errors = []
+    for line_number, line in enumerate(lines, start=1):
+        parts = line.strip().split()
+        if not parts:
+            continue
+        if len(parts) != 2:
+            errors.append(
+                f"Invalid checksum entry in {checksum_file} at line {line_number}"
+            )
+            continue
+
+        stored_checksum, file_path = parts
+        file_path = os.path.join(root_directory, file_path.lstrip("*"))
+        current_checksum = compute_md5(file_path)
+
+        if current_checksum is None:
+            errors.append(f"Checksum target not found: {file_path}")
+        elif current_checksum != stored_checksum:
+            errors.append(f"Checksum mismatch: {file_path}")
+    return errors
+
+
 def validate_checksums(checksum_file: str, root_directory: str) -> bool:
     """Validate checksums stored in a checksum file.
 
@@ -42,26 +80,10 @@ def validate_checksums(checksum_file: str, root_directory: str) -> bool:
     Returns:
         True if all checksums match, False otherwise.
     """
-    if not os.path.isfile(checksum_file):
-        print(f"Checksum file not found: {checksum_file}")
-        return False
-
-    with open(checksum_file, "r") as f:
-        lines = f.readlines()
-
-    for line in lines:
-        parts = line.strip().split()
-        if len(parts) != 2:
-            continue
-
-        stored_checksum, file_path = parts
-        file_path = os.path.join(root_directory, file_path)
-        current_checksum = compute_md5(file_path)
-
-        if current_checksum != stored_checksum:
-            print("Checksum mismatch: {file_path}")
-            return False
-    return True
+    errors = checksum_errors(checksum_file, root_directory)
+    for error in errors:
+        print(error)
+    return not errors
 
 
 def harvest_to_datetime(harvest_day: int, year: int) -> pd.Timestamp:
