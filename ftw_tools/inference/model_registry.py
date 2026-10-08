@@ -19,7 +19,7 @@ class ModelSpec(BaseModel):
     url: str
     title: str
     description: str = Field(min_length=1)
-    license: Literal["CC-BY-4.0", "AGPL-3", "Mixed Open Licenses"]
+    license: Literal["CC-BY-4.0", "CC-BY-NC-4.0", "AGPL-3", "Mixed Open Licenses"]
     version: str = Field(description="Model version (e.g., v1, v2, v3)")
     requires_window: bool = True
     requires_polygonize: bool = True
@@ -148,6 +148,20 @@ MODEL_REGISTRY = {
         description="A three class (field, boundary, neither) model trained with EfficientNet-B7 on a variety of open data licenses (including CC-BY-NC-SA and non-CC open data licenses), that is the part of the FTW Baseline v3 release. It along with the other two EfficientNet models will likely perform best. B7 is likely the most accurate of FTW v3, but the slowest. Requires two time windows, at the start and end of the growing season.",
         license="Mixed Open Licenses",
         version="v3",
+    ),
+    "FTP_PRUE_EFNET_B3": ModelSpec(
+        title="FTP: PRUE+, B3",
+        url="https://hf.co/taylor-geospatial/ftp-b3/resolve/main/ftp-b3.ckpt",
+        description="A three class (field, boundary, neither) Fields of the Planet model trained with EfficientNet-B3 on 3 m PlanetScope imagery. This is the headline PRUE+ model and is more compact than the B7 variant. Requires two seasonal time windows with four bands each.",
+        license="CC-BY-NC-4.0",
+        version="v1",
+    ),
+    "FTP_PRUE_EFNET_B7": ModelSpec(
+        title="FTP: PRUE+, B7",
+        url="https://hf.co/taylor-geospatial/ftp-b7/resolve/main/ftp-b7.ckpt",
+        description="A three class (field, boundary, neither) Fields of the Planet model trained with EfficientNet-B7 on 3 m PlanetScope imagery. This larger PRUE+ variant offers stronger pixel IoU at the cost of additional compute. Requires two seasonal time windows with four bands each.",
+        license="CC-BY-NC-4.0",
+        version="v1",
     ),
     "FTW_PRUE_EFNET_B3_CCBY": ModelSpec(
         title="FTW v3: CC-BY, B3",
