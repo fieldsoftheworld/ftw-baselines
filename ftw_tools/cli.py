@@ -1031,7 +1031,7 @@ def inference_run(
     type=click.FloatRange(min=0.0),
     default=2,
     show_default=True,
-    help="Simplification factor to use when polygonizing in the unit of the CRS, e.g. meters for Sentinel-2 imagery in UTM. Set to 0 to disable simplification.",
+    help="Simplification distance in metres. Set to 0 to disable simplification.",
 )
 @click.option(
     "--min_size",
@@ -1254,7 +1254,7 @@ def inference_run_instance_segmentation(
     type=click.FloatRange(min=0.0),
     default=2,
     show_default=True,
-    help="Simplification factor to use when polygonizing in the unit of the CRS, e.g. meters for Sentinel-2 imagery in UTM. Set to 0 to disable simplification.",
+    help="Simplification distance in metres. Set to 0 to disable simplification.",
 )
 @click.option(
     "--min_size",
@@ -1385,7 +1385,7 @@ def inference_run_instance_segmentation_all(
     type=click.FloatRange(min=0.0),
     default=15,
     show_default=True,
-    help="Simplification factor to use when polygonizing in the unit of the CRS, e.g. meters for Sentinel-2 imagery in UTM. Set to 0 to disable simplification.",
+    help="Simplification distance in metres for geographic rasters, or in CRS units for projected rasters. Set to 0 to disable simplification.",
 )
 @click.option(
     "--min_size",
@@ -1447,7 +1447,7 @@ def inference_run_instance_segmentation_all(
     type=click.FloatRange(min=0.0),
     default=0,
     show_default=True,
-    help="Distance (in CRS units, e.g., meters) for a morphological opening (erode then dilate) applied to each polygon to shave spurs and remove thin slivers. Set 0 to disable. A good starting value is 0.5–1x the raster pixel size.",
+    help="Distance in metres for geographic rasters, or in CRS units for projected rasters, for a morphological opening (erode then dilate) applied to each polygon to shave spurs and remove thin slivers. Set 0 to disable. A good starting value is 0.5–1x the raster pixel size.",
 )
 @click.option(
     "--dilate_erode",
@@ -1455,7 +1455,7 @@ def inference_run_instance_segmentation_all(
     type=click.FloatRange(min=0.0),
     default=0,
     show_default=True,
-    help="Distance (in CRS units, e.g., meters) for a morphological closing (dilate then erode) applied to each polygon to seal hairline gaps, fill pinholes, and connect near-touching parts without net growth. Set 0 to disable. A good starting value is 0.5–1x the raster pixel size.",
+    help="Distance in metres for geographic rasters, or in CRS units for projected rasters, for a morphological closing (dilate then erode) applied to each polygon to seal hairline gaps, fill pinholes, and connect near-touching parts without net growth. Set 0 to disable. A good starting value is 0.5–1x the raster pixel size.",
 )
 @click.option(
     "--erode_dilate_raster",
