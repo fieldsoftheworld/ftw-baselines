@@ -1,7 +1,7 @@
 import os
 import time
 from contextlib import contextmanager
-from typing import Sequence
+from typing import Literal, Sequence
 
 import kornia.augmentation as K
 import numpy as np
@@ -18,6 +18,7 @@ from ftw_tools.settings import FULL_DATA_COUNTRIES
 from ftw_tools.training.datasets import FTW
 from ftw_tools.training.metrics import get_object_level_metrics
 from ftw_tools.training.trainers import CustomSemanticSegmentationTask
+from ftw_tools.inference.models import DelineateAnything
 
 
 def expand_countries(countries: Sequence[str]) -> list[str]:
@@ -534,3 +535,247 @@ def test(
                 f.write(
                     f"{model_path},{country_str},{pixel_level_iou},{pixel_level_precision},{pixel_level_recall},{object_precision},{object_recall},{object_f1}\n"
                 )
+
+
+def test_delineate_anything(
+    dir: str,
+    gpu: int,
+    countries: Sequence[str],
+    iou_threshold: float,
+    out: str | None = None,
+    model_variant: Literal["DelineateAnything-S", "DelineateAnything"] = "DelineateAnything-S",
+    percentile_low: float | None = 0.02,
+    percentile_high: float | None = 0.98,
+    norm_constant: float | None = None,
+    resize_factor: int = 2,
+    patch_size: int = 256,
+    max_detections: int = 100,
+    conf_threshold: float = 0.05,
+    model_iou_threshold: float = 0.3,
+    num_workers: int = 4,
+    batch_size: int = 16,
+    use_val_set: bool = False,
+):
+    """Test DelineateAnything model on FTW dataset.
+
+    Args:
+        dir: Root directory of FTW dataset.
+        gpu: GPU device index (-1 for CPU).
+        countries: List of countries to test on.
+        iou_threshold: IoU threshold for object-level metrics.
+        out: Output CSV file path.
+        model_variant: "DelineateAnything-S" or "DelineateAnything".
+        percentile_low: Lower percentile for normalization. Mutually exclusive with norm_constant.
+        percentile_high: Upper percentile for normalization. Mutually exclusive with norm_constant.
+        norm_constant: If provided, divide by this value and clip to [0, 1] instead of
+            using percentile normalization. Mutually exclusive with percentile_low/percentile_high.
+        resize_factor: Factor to resize input images.
+        patch_size: Input patch size.
+        max_detections: Maximum detections per image.
+        conf_threshold: Confidence threshold for detections.
+        model_iou_threshold: IoU threshold for NMS in model.
+        num_workers: Number of dataloader workers.
+        batch_size: Batch size for inference.
+        use_val_set: If True, use validation set instead of test set.
+
+    Raises:
+        ValueError: If both norm_constant and percentile options are specified.
+    """
+    from scipy.ndimage import binary_erosion
+
+    # Validate mutually exclusive normalization options
+    if norm_constant is not None and (percentile_low is not None or percentile_high is not None):
+        raise ValueError(
+            "norm_constant is mutually exclusive with percentile_low/percentile_high. "
+            "Set percentile_low=None and percentile_high=None when using norm_constant."
+        )
+
+    target_split = "val" if use_val_set else "test"
+    print(f"Running DelineateAnything test on the {target_split} set")
+
+    if gpu is None:
+        gpu = -1
+
+    countries = expand_countries(countries)
+
+    if torch.cuda.is_available() and gpu >= 0:
+        device = torch.device(f"cuda:{gpu}")
+    else:
+        device = torch.device("cpu")
+
+    print(f"Loading DelineateAnything model ({model_variant})")
+    tic = time.time()
+    model = DelineateAnything(
+        model=model_variant,
+        patch_size=patch_size,
+        resize_factor=resize_factor,
+        max_detections=max_detections,
+        iou_threshold=model_iou_threshold,
+        conf_threshold=conf_threshold,
+        percentile_low=percentile_low,
+        percentile_high=percentile_high,
+        norm_constant=norm_constant,
+        device=str(device),
+    )
+    print(f"Model loaded in {time.time() - tic:.2f}s")
+
+    print("Creating dataloader")
+    tic = time.time()
+    ds = FTW(
+        root=dir,
+        countries=countries,
+        split=target_split,
+        load_boundaries=True,  # 3-class masks for comparison
+        temporal_options="stacked",
+    )
+    dl = DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    print(f"Created dataloader with {len(ds)} samples in {time.time() - tic:.2f}s")
+
+    # Metrics for 3-class evaluation (0=bg, 1=field, 2=boundary)
+    metrics = MetricCollection(
+        [
+            JaccardIndex(
+                task="multiclass", average="none", num_classes=3, ignore_index=3
+            ),
+            Precision(
+                task="multiclass", average="none", num_classes=3, ignore_index=3
+            ),
+            Recall(
+                task="multiclass", average="none", num_classes=3, ignore_index=3
+            ),
+        ]
+    ).to(device)
+
+    all_tps = 0
+    all_fps = 0
+    all_fns = 0
+
+    print("Running inference")
+    for batch in tqdm(dl):
+        images = batch["image"]  # (B, C, H, W)
+        masks = batch["mask"].to(device)  # (B, H, W)
+
+        # Run inference
+        with torch.inference_mode():
+            results_list = model(images)
+
+        # Convert instance segmentation results to 3-class masks
+        pred_masks = []
+        for results in results_list:
+            h, w = patch_size, patch_size
+            instance_mask = np.zeros((h, w), dtype=np.int32)
+
+            if results.masks is not None:
+                result_masks = results.masks.data.cpu().numpy()
+                from scipy.ndimage import zoom
+
+                for idx, mask in enumerate(result_masks, start=1):
+                    if mask.shape != (h, w):
+                        scale_y = h / mask.shape[0]
+                        scale_x = w / mask.shape[1]
+                        mask = zoom(mask, (scale_y, scale_x), order=0)
+                    instance_mask[mask > 0.5] = idx
+
+            # Convert to 3-class: 0=bg, 1=interior, 2=boundary
+            boundary_mask = np.zeros((h, w), dtype=np.uint8)
+            for idx in range(1, instance_mask.max() + 1):
+                instance_binary = instance_mask == idx
+                if not np.any(instance_binary):
+                    continue
+                interior = binary_erosion(instance_binary, iterations=1)
+                boundary = instance_binary & ~interior
+                boundary_mask[interior] = 1
+                boundary_mask[boundary] = 2
+
+            pred_masks.append(boundary_mask)
+
+        pred_masks = torch.from_numpy(np.stack(pred_masks)).to(device)
+
+        # Update metrics
+        metrics.update(pred_masks, masks)
+
+        # Object-level metrics
+        pred_masks_np = pred_masks.cpu().numpy().astype(np.uint8)
+        masks_np = masks.cpu().numpy().astype(np.uint8)
+
+        for i in range(len(pred_masks_np)):
+            # Convert to binary for object metrics (field vs background)
+            pred_binary = (pred_masks_np[i] > 0).astype(np.uint8)
+            mask_binary = (masks_np[i] > 0).astype(np.uint8)
+            tps, fps, fns = get_object_level_metrics(
+                mask_binary, pred_binary, iou_threshold=iou_threshold
+            )
+            all_tps += tps
+            all_fps += fps
+            all_fns += fns
+
+    # Compute metrics
+    results = metrics.compute()
+    pixel_level_iou = results["MulticlassJaccardIndex"][1].item()
+    pixel_level_precision = results["MulticlassPrecision"][1].item()
+    pixel_level_recall = results["MulticlassRecall"][1].item()
+
+    boundary_iou = results["MulticlassJaccardIndex"][2].item()
+    boundary_precision = results["MulticlassPrecision"][2].item()
+    boundary_recall = results["MulticlassRecall"][2].item()
+
+    if all_tps + all_fps > 0:
+        object_precision = all_tps / (all_tps + all_fps)
+    else:
+        object_precision = float("nan")
+
+    if all_tps + all_fns > 0:
+        object_recall = all_tps / (all_tps + all_fns)
+    else:
+        object_recall = float("nan")
+
+    if object_precision + object_recall > 0 and not (
+        np.isnan(object_precision) or np.isnan(object_recall)
+    ):
+        object_f1 = (
+            2 * object_precision * object_recall / (object_precision + object_recall)
+        )
+    else:
+        object_f1 = float("nan")
+
+    print(f"\n{'='*60}")
+    print(f"DelineateAnything ({model_variant}) Results")
+    if norm_constant is not None:
+        print(f"Constant normalization: {norm_constant}")
+    else:
+        print(f"Percentile normalization: [{percentile_low}, {percentile_high}]")
+    print(f"{'='*60}")
+    print(f"Field pixel IoU: {pixel_level_iou:.4f}")
+    print(f"Field pixel precision: {pixel_level_precision:.4f}")
+    print(f"Field pixel recall: {pixel_level_recall:.4f}")
+    print(f"Boundary pixel IoU: {boundary_iou:.4f}")
+    print(f"Boundary pixel precision: {boundary_precision:.4f}")
+    print(f"Boundary pixel recall: {boundary_recall:.4f}")
+    print(f"Object precision: {object_precision:.4f}")
+    print(f"Object recall: {object_recall:.4f}")
+    print(f"Object F1: {object_f1:.4f}")
+
+    country_str = ";".join(countries)
+    if set(countries) == set(FULL_DATA_COUNTRIES):
+        country_str = "all"
+
+    if out is not None:
+        if not os.path.exists(out):
+            with open(out, "w") as f:
+                f.write(
+                    "model,countries,percentile_low,percentile_high,norm_constant,resize_factor,conf_threshold,model_iou_threshold,"
+                    "field_pixel_iou,field_pixel_precision,field_pixel_recall,"
+                    "boundary_pixel_iou,boundary_pixel_precision,boundary_pixel_recall,"
+                    "object_precision,object_recall,object_f1\n"
+                )
+        with open(out, "a") as f:
+            norm_const_str = str(norm_constant) if norm_constant is not None else ""
+            percentile_low_str = str(percentile_low) if percentile_low is not None else ""
+            percentile_high_str = str(percentile_high) if percentile_high is not None else ""
+            f.write(
+                f"{model_variant},{country_str},{percentile_low_str},{percentile_high_str},{norm_const_str},{resize_factor},{conf_threshold},{model_iou_threshold},"
+                f"{pixel_level_iou},{pixel_level_precision},{pixel_level_recall},"
+                f"{boundary_iou},{boundary_precision},{boundary_recall},"
+                f"{object_precision},{object_recall},{object_f1}\n"
+            )
+        print(f"\nResults saved to {out}")
