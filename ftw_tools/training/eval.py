@@ -51,182 +51,145 @@ def gpu_memory_manager():
             torch.cuda.empty_cache()
 
 
-def compute_metrics_from_aggregated_data(
-    all_outputs: torch.Tensor,
-    all_masks: torch.Tensor,
-    all_object_tps: list[int],
-    all_object_fps: list[int],
-    all_object_fns: list[int],
-    test_on_3_classes: bool = False,
-) -> dict[str, float]:
-    """Compute metrics from aggregated predictions and targets."""
+COUNT_COLUMNS = (
+    "pixel_tp",
+    "pixel_fp",
+    "pixel_fn",
+    "object_tp",
+    "object_fp",
+    "object_fn",
+)
 
-    # Create metrics collection
-    if test_on_3_classes:
-        metrics = MetricCollection(
-            [
-                JaccardIndex(
-                    task="multiclass", average="none", num_classes=3, ignore_index=3
-                ),
-                Precision(
-                    task="multiclass", average="none", num_classes=3, ignore_index=3
-                ),
-                Recall(
-                    task="multiclass", average="none", num_classes=3, ignore_index=3
-                ),
-            ]
-        ).to(all_outputs.device)
-    else:
-        metrics = MetricCollection(
-            [
-                JaccardIndex(
-                    task="multiclass", average="none", num_classes=2, ignore_index=3
-                ),
-                Precision(
-                    task="multiclass", average="none", num_classes=2, ignore_index=3
-                ),
-                Recall(
-                    task="multiclass", average="none", num_classes=2, ignore_index=3
-                ),
-            ]
-        ).to(all_outputs.device)
 
-    # Compute pixel-level metrics on GPU
-    metrics.update(all_outputs, all_masks)
-    results = metrics.compute()
+def pixel_confusion_counts(
+    outputs: torch.Tensor,
+    masks: torch.Tensor,
+    positive_class: int = 1,
+    ignore_index: int = 3,
+) -> np.ndarray:
+    """Count per-sample pixel TP, FP and FN for one class.
 
-    pixel_iou = results["MulticlassJaccardIndex"][1].item()
-    pixel_precision = results["MulticlassPrecision"][1].item()
-    pixel_recall = results["MulticlassRecall"][1].item()
+    These match the per-class stats torchmetrics' multiclass metrics use with
+    ``ignore_index``, so summing the rows reproduces the global pixel metrics.
 
-    # Compute object-level metrics
-    total_tps = sum(all_object_tps)
-    total_fps = sum(all_object_fps)
-    total_fns = sum(all_object_fns)
+    Args:
+        outputs: Predicted labels of shape (B, H, W).
+        masks: Target labels of shape (B, H, W).
+        positive_class: Class to count.
+        ignore_index: Target value whose pixels are skipped.
 
-    if total_tps + total_fps > 0:
-        object_precision = total_tps / (total_tps + total_fps)
-    else:
-        object_precision = float("nan")
+    Returns:
+        Array of shape (B, 3) with columns (tp, fp, fn).
+    """
+    valid = masks != ignore_index
+    pred_pos = (outputs == positive_class) & valid
+    true_pos = masks == positive_class
+    counts = torch.stack(
+        [
+            (pred_pos & true_pos).flatten(1).sum(1),
+            (pred_pos & ~true_pos).flatten(1).sum(1),
+            (~pred_pos & true_pos).flatten(1).sum(1),
+        ],
+        dim=1,
+    )
+    return counts.cpu().numpy().astype(np.int64)
 
-    if total_tps + total_fns > 0:
-        object_recall = total_tps / (total_tps + total_fns)
-    else:
-        object_recall = float("nan")
 
-    if object_precision + object_recall > 0 and not (
-        np.isnan(object_precision) or np.isnan(object_recall)
-    ):
-        object_f1 = (
-            2 * object_precision * object_recall / (object_precision + object_recall)
+def _safe_ratio(numerator: np.ndarray, denominator: np.ndarray) -> np.ndarray:
+    """Divide elementwise, returning 0 where the denominator is 0 (as torchmetrics does)."""
+    return np.divide(
+        numerator, denominator, out=np.zeros_like(numerator), where=denominator > 0
+    )
+
+
+def metrics_from_counts(totals: np.ndarray) -> dict[str, np.ndarray]:
+    """Compute pixel and object metrics from summed counts.
+
+    Args:
+        totals: Array of shape (..., 6) with columns ordered as ``COUNT_COLUMNS``.
+
+    Returns:
+        Dict mapping metric names to arrays of shape ``totals.shape[:-1]``. Undefined
+        pixel metrics are 0 (as in torchmetrics) and undefined object metrics are NaN.
+    """
+    pixel_tp, pixel_fp, pixel_fn, object_tp, object_fp, object_fn = np.moveaxis(
+        np.asarray(totals, dtype=np.float64), -1, 0
+    )
+    with np.errstate(divide="ignore", invalid="ignore"):
+        object_precision = np.where(
+            object_tp + object_fp > 0, object_tp / (object_tp + object_fp), np.nan
         )
-    else:
-        object_f1 = float("nan")
-
+        object_recall = np.where(
+            object_tp + object_fn > 0, object_tp / (object_tp + object_fn), np.nan
+        )
+        pr_sum = object_precision + object_recall
+        object_f1 = np.where(
+            pr_sum > 0, 2 * object_precision * object_recall / pr_sum, np.nan
+        )
     return {
-        "pixel_iou": float(pixel_iou),
-        "pixel_precision": float(pixel_precision),
-        "pixel_recall": float(pixel_recall),
-        "object_precision": float(object_precision),
-        "object_recall": float(object_recall),
-        "object_f1": float(object_f1),
+        "pixel_iou": _safe_ratio(pixel_tp, pixel_tp + pixel_fp + pixel_fn),
+        "pixel_precision": _safe_ratio(pixel_tp, pixel_tp + pixel_fp),
+        "pixel_recall": _safe_ratio(pixel_tp, pixel_tp + pixel_fn),
+        "object_precision": object_precision,
+        "object_recall": object_recall,
+        "object_f1": object_f1,
     }
 
 
 def bootstrap_confidence_intervals(
-    all_outputs_list: list[np.ndarray],
-    all_masks_list: list[np.ndarray],
-    all_object_tps: list[int],
-    all_object_fps: list[int],
-    all_object_fns: list[int],
-    test_on_3_classes: bool = False,
-    device: torch.device | None = None,
-    n_bootstrap: int = 1000,
+    sample_counts: np.ndarray,
+    n_resamples: int = 1000,
     confidence_level: float = 0.95,
-) -> tuple[dict[str, float], dict[str, tuple[float, float]]]:
-    """
-    Compute bootstrap confidence intervals for metrics using global aggregation.
+    seed: int = 42,
+) -> dict[str, tuple[float, float]]:
+    """Compute percentile bootstrap confidence intervals over samples.
+
+    Each resample draws samples with replacement and sums their counts, so memory is
+    O(n_samples) regardless of image size or number of resamples.
+
+    Args:
+        sample_counts: Array of shape (n_samples, 6) with per-sample counts ordered as
+            ``COUNT_COLUMNS``.
+        n_resamples: Number of bootstrap resamples.
+        confidence_level: Confidence level of the intervals, in (0, 1).
+        seed: Seed for resampling; a fixed seed gives identical intervals.
 
     Returns:
-        metrics: Point estimates of metrics
-        confidence_intervals: Dict mapping metric names to (lower, upper) bounds
+        Dict mapping metric names to (lower, upper) bounds, or (nan, nan) for a metric
+        that is undefined in every resample.
     """
-    np.random.seed(42)  # For reproducibility
-    n_samples = len(all_outputs_list)
-
-    print("Creating tensor list for bootstrapping")
-    all_outputs_tensor_list = [
-        torch.from_numpy(arr).to(device) for arr in all_outputs_list
-    ]
-    all_masks_tensor_list = [torch.from_numpy(arr).to(device) for arr in all_masks_list]
-
-    # Compute point estimates using all data
-    print("Concatenating all data for point estimates")
-    all_outputs = torch.cat(all_outputs_tensor_list, dim=0)
-    all_masks = torch.cat(all_masks_tensor_list, dim=0)
-    print("Computing point estimates")
-    metrics = compute_metrics_from_aggregated_data(
-        all_outputs,
-        all_masks,
-        all_object_tps,
-        all_object_fps,
-        all_object_fns,
-        test_on_3_classes,
-    )
-    del all_outputs, all_masks
-    torch.cuda.empty_cache() if torch.cuda.is_available() else None
-
-    # Bootstrap sampling
-    bootstrap_metrics = []
-    print("Running bootstrapping")
-    for _ in tqdm(range(n_bootstrap)):
-        # Sample with replacement at the sample level
-        indices = np.random.choice(n_samples, size=n_samples, replace=True)
-
-        # Aggregate bootstrap sample data
-        boot_outputs_list = [all_outputs_tensor_list[i] for i in indices]
-        boot_masks_list = [all_masks_tensor_list[i] for i in indices]
-        boot_object_tps = [all_object_tps[i] for i in indices]
-        boot_object_fps = [all_object_fps[i] for i in indices]
-        boot_object_fns = [all_object_fns[i] for i in indices]
-
-        # Concatenate bootstrap sample
-        boot_outputs = torch.cat(boot_outputs_list, dim=0)
-        boot_masks = torch.cat(boot_masks_list, dim=0)
-
-        boot_metrics = compute_metrics_from_aggregated_data(
-            boot_outputs,
-            boot_masks,
-            boot_object_tps,
-            boot_object_fps,
-            boot_object_fns,
-            test_on_3_classes,
+    sample_counts = np.asarray(sample_counts, dtype=np.int64)
+    if sample_counts.ndim != 2 or sample_counts.shape[1] != len(COUNT_COLUMNS):
+        raise ValueError(
+            f"sample_counts must have shape (n_samples, {len(COUNT_COLUMNS)}), "
+            f"got {sample_counts.shape}"
         )
-        bootstrap_metrics.append(boot_metrics)
+    n_samples = len(sample_counts)
+    if n_samples == 0:
+        raise ValueError("Cannot bootstrap an empty set of samples")
+    if n_resamples < 1:
+        raise ValueError(f"n_resamples must be at least 1, got {n_resamples}")
+    if not 0 < confidence_level < 1:
+        raise ValueError(f"confidence_level must be in (0, 1), got {confidence_level}")
 
-        # Free memory after each bootstrap iteration
-        del boot_outputs, boot_masks
-        torch.cuda.empty_cache() if torch.cuda.is_available() else None
+    # Legacy RandomState keeps the resampled indices identical to earlier releases
+    rng = np.random.RandomState(seed)
+    totals = np.empty((n_resamples, len(COUNT_COLUMNS)), dtype=np.int64)
+    for i in tqdm(range(n_resamples), desc="Bootstrapping"):
+        indices = rng.choice(n_samples, size=n_samples, replace=True)
+        totals[i] = np.bincount(indices, minlength=n_samples) @ sample_counts
 
-    # Compute confidence intervals
     alpha = 1 - confidence_level
-    lower_percentile = 100 * (alpha / 2)
-    upper_percentile = 100 * (1 - alpha / 2)
-
+    percentiles = (100 * alpha / 2, 100 * (1 - alpha / 2))
     confidence_intervals = {}
-    for metric_name in metrics.keys():
-        if metric_name in bootstrap_metrics[0]:
-            values = [boot_metrics[metric_name] for boot_metrics in bootstrap_metrics]
-            # Filter out NaN values for percentile computation
-            values = [v for v in values if not np.isnan(v)]
-            if values:
-                lower = np.percentile(values, lower_percentile)
-                upper = np.percentile(values, upper_percentile)
-                confidence_intervals[metric_name] = (lower, upper)
-            else:
-                confidence_intervals[metric_name] = (float("nan"), float("nan"))
-
-    return metrics, confidence_intervals
+    for name, values in metrics_from_counts(totals).items():
+        values = values[~np.isnan(values)]
+        if values.size == 0:
+            confidence_intervals[name] = (float("nan"), float("nan"))
+        else:
+            lower, upper = np.percentile(values, percentiles)
+            confidence_intervals[name] = (float(lower), float(upper))
+    return confidence_intervals
 
 
 def fit(config, ckpt_path, cli_args):
@@ -281,6 +244,9 @@ def test(
     resize_factor: int,
     num_workers: int,
     bootstrap: bool = False,
+    n_bootstrap: int = 1000,
+    confidence_level: float = 0.95,
+    bootstrap_seed: int = 42,
 ):
     """Command to test the model."""
     target_split = "val" if use_val_set else "test"
@@ -360,12 +326,8 @@ def test(
         device
     )
 
-    # For bootstrap: collect per-sample data
-    all_outputs_list = []
-    all_masks_list = []
-    object_tps = []
-    object_fps = []
-    object_fns = []
+    # For bootstrap: per-sample counts ordered as COUNT_COLUMNS
+    sample_counts = []
 
     all_tps = 0
     all_fps = 0
@@ -404,29 +366,27 @@ def test(
         outputs_np = outputs.cpu().numpy().astype(np.uint8)
         masks_np = masks.cpu().numpy().astype(np.uint8)
 
-        # Store data for bootstrap if requested
+        batch_object_counts = []
         for i in range(len(outputs)):
-            output_np = outputs_np[i]
-            mask_np = masks_np[i]
-
-            if bootstrap:
-                # Store per-sample tensors for bootstrap
-                all_outputs_list.append(output_np)
-                all_masks_list.append(mask_np)
-
             # Object-level metrics per sample
             tps, fps, fns = get_object_level_metrics(
-                mask_np, output_np, iou_threshold=iou_threshold
+                masks_np[i], outputs_np[i], iou_threshold=iou_threshold
             )
-
-            if bootstrap:
-                object_tps.append(tps)
-                object_fps.append(fps)
-                object_fns.append(fns)
+            batch_object_counts.append((tps, fps, fns))
 
             all_tps += tps
             all_fps += fps
             all_fns += fns
+
+        if bootstrap:
+            sample_counts.append(
+                np.hstack(
+                    [
+                        pixel_confusion_counts(outputs, masks),
+                        np.array(batch_object_counts, dtype=np.int64),
+                    ]
+                )
+            )
 
     # Compute overall metrics
     results = metrics.compute()
@@ -457,36 +417,34 @@ def test(
     # Bootstrap confidence intervals if requested
     confidence_intervals = None
     if bootstrap:
-        del metrics, model  # Free memory
-        torch.cuda.empty_cache() if torch.cuda.is_available() else None
-
-        bootstrap_metrics, confidence_intervals = bootstrap_confidence_intervals(
-            all_outputs_list,
-            all_masks_list,
-            object_tps,
-            object_fps,
-            object_fns,
-            test_on_3_classes,
-            device,
+        confidence_intervals = bootstrap_confidence_intervals(
+            np.concatenate(sample_counts),
+            n_resamples=n_bootstrap,
+            confidence_level=confidence_level,
+            seed=bootstrap_seed,
         )
-
+        ci = confidence_intervals
         print(
-            f"Pixel level IoU: {pixel_level_iou:.4f}\t{bootstrap_metrics['pixel_iou']} [{confidence_intervals['pixel_iou'][0]:.4f}, {confidence_intervals['pixel_iou'][1]:.4f}]"
+            f"Bootstrap: {n_bootstrap} resamples, "
+            f"{confidence_level:.0%} confidence, seed {bootstrap_seed}"
         )
         print(
-            f"Pixel level precision: {pixel_level_precision:.4f}\t{bootstrap_metrics['pixel_precision']} [{confidence_intervals['pixel_precision'][0]:.4f}, {confidence_intervals['pixel_precision'][1]:.4f}]"
+            f"Pixel level IoU: {pixel_level_iou:.4f} [{ci['pixel_iou'][0]:.4f}, {ci['pixel_iou'][1]:.4f}]"
         )
         print(
-            f"Pixel level recall: {pixel_level_recall:.4f}\t{bootstrap_metrics['pixel_recall']} [{confidence_intervals['pixel_recall'][0]:.4f}, {confidence_intervals['pixel_recall'][1]:.4f}]"
+            f"Pixel level precision: {pixel_level_precision:.4f} [{ci['pixel_precision'][0]:.4f}, {ci['pixel_precision'][1]:.4f}]"
         )
         print(
-            f"Object level precision: {object_precision:.4f}\t{bootstrap_metrics['object_precision']} [{confidence_intervals['object_precision'][0]:.4f}, {confidence_intervals['object_precision'][1]:.4f}]"
+            f"Pixel level recall: {pixel_level_recall:.4f} [{ci['pixel_recall'][0]:.4f}, {ci['pixel_recall'][1]:.4f}]"
         )
         print(
-            f"Object level recall: {object_recall:.4f}\t{bootstrap_metrics['object_recall']} [{confidence_intervals['object_recall'][0]:.4f}, {confidence_intervals['object_recall'][1]:.4f}]"
+            f"Object level precision: {object_precision:.4f} [{ci['object_precision'][0]:.4f}, {ci['object_precision'][1]:.4f}]"
         )
         print(
-            f"Object level F1: {object_f1:.4f}\t{bootstrap_metrics['object_f1']} [{confidence_intervals['object_f1'][0]:.4f}, {confidence_intervals['object_f1'][1]:.4f}]"
+            f"Object level recall: {object_recall:.4f} [{ci['object_recall'][0]:.4f}, {ci['object_recall'][1]:.4f}]"
+        )
+        print(
+            f"Object level F1: {object_f1:.4f} [{ci['object_f1'][0]:.4f}, {ci['object_f1'][1]:.4f}]"
         )
     else:
         print(f"Pixel level IoU: {pixel_level_iou:.4f}")

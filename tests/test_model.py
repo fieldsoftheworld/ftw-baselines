@@ -153,6 +153,44 @@ def test_model_test(shared_data_dir, trained_model_checkpoint, caplog):
     assert (results_dir / "results.csv").exists()
 
 
+def test_model_test_bootstrap(shared_data_dir, trained_model_checkpoint):
+    if not trained_model_checkpoint.exists():
+        result, _ = _create_modified_config_and_train(shared_data_dir)
+        assert result.exit_code == 0, f"Model training failed: {result.stderr}"
+
+    out = shared_data_dir / "results" / "bootstrap.csv"
+    out.parent.mkdir(exist_ok=True)
+    args = [
+        "--gpu",
+        "0",
+        "--dir",
+        str(shared_data_dir / "data" / "ftw"),
+        "--model",
+        str(trained_model_checkpoint),
+        "--countries",
+        "rwanda",
+        "--out",
+        str(out),
+        "--bootstrap",
+        "--n_bootstrap",
+        "20",
+        "--confidence_level",
+        "0.9",
+        "--bootstrap_seed",
+        "3",
+    ]
+    runner = CliRunner()
+    first = runner.invoke(model_test, args)
+    second = runner.invoke(model_test, args)
+
+    assert first.exit_code == 0, first.output
+    assert "Bootstrap: 20 resamples, 90% confidence, seed 3" in first.output
+    lines = out.read_text().splitlines()
+    assert lines[0].endswith("object_level_f1_ci_upper")
+    assert len(lines) == 3
+    assert lines[1] == lines[2]  # Same seed gives identical intervals
+
+
 def test_model_list_output():
     runner = CliRunner()
     result = runner.invoke(model_list)
