@@ -1,7 +1,11 @@
+import geopandas as gpd
+import numpy as np
 import pytest
+import rasterio
 import torch
 import yaml
 from click.testing import CliRunner
+from shapely.geometry import Point
 
 from ftw_tools.cli import data_download, model_fit, model_list, model_show, model_test
 
@@ -99,6 +103,7 @@ def _create_modified_config_and_train(shared_data_dir):
     return result, config_dst
 
 
+@pytest.mark.integration
 def test_model_fit(caplog, shared_data_dir, trained_model_checkpoint):
     # Create modified config and train the model
     result, config_dst = _create_modified_config_and_train(shared_data_dir)
@@ -115,6 +120,7 @@ def test_model_fit(caplog, shared_data_dir, trained_model_checkpoint):
     assert trained_model_checkpoint.exists()
 
 
+@pytest.mark.integration
 def test_model_test(shared_data_dir, trained_model_checkpoint, caplog):
     # Ensure we have a trained model - if not, train it first
     if not trained_model_checkpoint.exists():
@@ -151,6 +157,75 @@ def test_model_test(shared_data_dir, trained_model_checkpoint, caplog):
     assert "Created dataloader" in result.output
     assert "Object level recall" in result.output
     assert (results_dir / "results.csv").exists()
+
+
+@pytest.fixture
+def tiny_ftw_root(tmp_path):
+    country_dir = tmp_path / "ftw" / "rwanda"
+    rng = np.random.default_rng(0)
+    image = rng.integers(0, 3000, (4, 256, 256), dtype=np.uint16)
+    mask = np.zeros((1, 256, 256), dtype=np.uint16)
+    mask[:, :128] = 1
+    splits = ["train", "val", "test"]
+    for aoi_id in splits:
+        for folder, data in [
+            ("s2_images/window_a", image),
+            ("s2_images/window_b", image),
+            ("label_masks/semantic_2class", mask),
+        ]:
+            path = country_dir / folder / f"{aoi_id}.tif"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with rasterio.open(
+                path,
+                "w",
+                driver="GTiff",
+                width=256,
+                height=256,
+                count=len(data),
+                dtype="uint16",
+            ) as dst:
+                dst.write(data)
+    gpd.GeoDataFrame(
+        {"aoi_id": splits, "split": splits},
+        geometry=[Point(0, 0)] * len(splits),
+        crs="EPSG:4326",
+    ).to_parquet(country_dir / "chips_rwanda.parquet")
+    return tmp_path / "ftw"
+
+
+def test_model_fit_and_test_offline(tmp_path, tiny_ftw_root):
+    with open(CONFIG_FILE) as f:
+        config = yaml.safe_load(f)
+    config["model"]["init_args"]["weights"] = False
+    config["data"]["dict_kwargs"]["root"] = str(tiny_ftw_root)
+    config["trainer"]["default_root_dir"] = str(tmp_path / "logs")
+    config_path = tmp_path / "config.yaml"
+    with open(config_path, "w") as f:
+        yaml.dump(config, f)
+
+    runner = CliRunner()
+    result = runner.invoke(model_fit, ["-c", str(config_path)])
+    assert result.exit_code == 0, result.output
+    checkpoint = tmp_path / "logs/lightning_logs/version_0/checkpoints/last.ckpt"
+    assert checkpoint.exists()
+
+    out = tmp_path / "results.csv"
+    args = [
+        "--dir",
+        str(tiny_ftw_root),
+        "--model",
+        str(checkpoint),
+        "--countries",
+        "rwanda",
+        "--out",
+        str(out),
+        "--num_workers",
+        "1",
+    ]
+    result = runner.invoke(model_test, args)
+    assert result.exit_code == 0, result.output
+    assert "Object level recall" in result.output
+    assert out.exists()
 
 
 def test_model_list_output():

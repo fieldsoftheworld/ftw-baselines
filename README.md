@@ -100,8 +100,11 @@ For development work with testing and linting tools:
 
 ```bash
 
-# Run tests
-uv run pytest tests/  # uses xdist via default -n auto
+# Run tests (offline, uses xdist via default -n auto)
+uv run pytest tests/
+
+# Run integration tests (need network access)
+uv run pytest tests/ -m integration
 
 # Set up pre-commit hooks (only run this once)
 uv run pre-commit install
@@ -109,6 +112,8 @@ uv run pre-commit install
 # Run pre-commit hooks
 uv run pre-commit run --all-files
 ```
+
+The default test run is offline and blocks network access, so it is deterministic. Tests that call STAC APIs or download imagery, model weights or datasets must be marked `@pytest.mark.integration`; they run in the integration workflow after merges to `main`. Where possible, pair each integration test with an offline test that uses recorded responses from `tests/data-files` or a small generated fixture.
 
 To install the optional delineate-anything feature:
 

@@ -7,6 +7,7 @@ import torch
 pytest.importorskip("ultralytics")
 
 
+@pytest.mark.integration
 def test_delineate_anything():
     from ultralytics.engine.results import Results
 

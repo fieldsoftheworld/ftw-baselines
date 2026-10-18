@@ -1,0 +1,2796 @@
+{
+ "2022-03-15T00:00:00Z/2022-04-12T23:59:59Z": [
+  {
+   "type": "Feature",
+   "stac_version": "1.1.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.1.0/schema.json",
+    "https://stac-extensions.github.io/sat/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v2.0.0/schema.json"
+   ],
+   "id": "S2A_MSIL2A_20220404T170851_R112_T15TVG_20240610T175303",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -93.2564914,
+       42.450833
+      ],
+      [
+       -93.2623285,
+       42.4354804
+      ],
+      [
+       -93.3177578,
+       42.2893548
+      ],
+      [
+       -93.3731043,
+       42.1432679
+      ],
+      [
+       -93.4281354,
+       41.9972508
+      ],
+      [
+       -93.4825704,
+       41.8512811
+      ],
+      [
+       -93.5368062,
+       41.705404
+      ],
+      [
+       -93.5906393,
+       41.5594513
+      ],
+      [
+       -93.6271627,
+       41.4601965
+      ],
+      [
+       -94.1978248,
+       41.4575152
+      ],
+      [
+       -94.2164833,
+       42.4462357
+      ],
+      [
+       -93.2564914,
+       42.450833
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -94.2164833,
+    41.4575152,
+    -93.2564914,
+    42.450833
+   ],
+   "properties": {
+    "datetime": "2022-04-04T17:08:51.024000Z",
+    "platform": "Sentinel-2A",
+    "instruments": [
+     "msi"
+    ],
+    "s2:mgrs_tile": "15TVG",
+    "constellation": "Sentinel 2",
+    "s2:granule_id": "S2A_OPER_MSI_L2A_TL_S2RP_20240610T175303_A035430_T15TVG_N05.10",
+    "eo:cloud_cover": 16.406362,
+    "s2:datatake_id": "GS2A_20220404T170851_035430_N05.10",
+    "s2:product_uri": "S2A_MSIL2A_20220404T170851_N0510_R112_T15TVG_20240610T175303.SAFE",
+    "s2:datastrip_id": "S2A_OPER_MSI_L2A_DS_S2RP_20240610T175303_S20220404T171416_N05.10",
+    "s2:product_type": "S2MSI2A",
+    "sat:orbit_state": "descending",
+    "s2:datatake_type": "INS-NOBS",
+    "s2:generation_time": "2024-06-10T17:53:03.000000Z",
+    "sat:relative_orbit": 112,
+    "s2:water_percentage": 0.456944,
+    "s2:mean_solar_zenith": 38.0922642849814,
+    "s2:mean_solar_azimuth": 157.469086351663,
+    "s2:processing_baseline": "05.10",
+    "s2:snow_ice_percentage": 0.000512,
+    "s2:vegetation_percentage": 0.937588,
+    "s2:thin_cirrus_percentage": 15.798831,
+    "s2:cloud_shadow_percentage": 0.962652,
+    "s2:nodata_pixel_percentage": 42.338011,
+    "s2:unclassified_percentage": 0.975737,
+    "s2:dark_features_percentage": 0.135828,
+    "s2:not_vegetated_percentage": 80.124384,
+    "s2:degraded_msi_data_percentage": 0.0266,
+    "s2:high_proba_clouds_percentage": 0.117277,
+    "s2:reflectance_conversion_factor": 1.0021986703017,
+    "s2:medium_proba_clouds_percentage": 0.490253,
+    "s2:saturated_defective_pixel_percentage": 0.0,
+    "proj:code": "EPSG:32615"
+   },
+   "links": [
+    {
+     "rel": "self",
+     "href": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2A_MSIL2A_20220404T170851_R112_T15TVG_20240610T175303",
+     "type": "application/geo+json"
+    }
+   ],
+   "assets": {
+    "B02": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/04/04/S2A_MSIL2A_20220404T170851_N0510_R112_T15TVG_20240610T175303.SAFE/GRANULE/L2A_T15TVG_A035430_20220404T171416/IMG_DATA/R10m/T15TVG_20220404T170851_B02_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 2 - Blue - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B02",
+       "common_name": "blue",
+       "description": "Band 2 - Blue",
+       "center_wavelength": 0.49,
+       "full_width_half_max": 0.098
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B03": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/04/04/S2A_MSIL2A_20220404T170851_N0510_R112_T15TVG_20240610T175303.SAFE/GRANULE/L2A_T15TVG_A035430_20220404T171416/IMG_DATA/R10m/T15TVG_20220404T170851_B03_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 3 - Green - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B03",
+       "common_name": "green",
+       "description": "Band 3 - Green",
+       "center_wavelength": 0.56,
+       "full_width_half_max": 0.045
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B04": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/04/04/S2A_MSIL2A_20220404T170851_N0510_R112_T15TVG_20240610T175303.SAFE/GRANULE/L2A_T15TVG_A035430_20220404T171416/IMG_DATA/R10m/T15TVG_20220404T170851_B04_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 4 - Red - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B04",
+       "common_name": "red",
+       "description": "Band 4 - Red",
+       "center_wavelength": 0.665,
+       "full_width_half_max": 0.038
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B08": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/04/04/S2A_MSIL2A_20220404T170851_N0510_R112_T15TVG_20240610T175303.SAFE/GRANULE/L2A_T15TVG_A035430_20220404T171416/IMG_DATA/R10m/T15TVG_20220404T170851_B08_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 8 - NIR - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B08",
+       "common_name": "nir",
+       "description": "Band 8 - NIR",
+       "center_wavelength": 0.842,
+       "full_width_half_max": 0.145
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    }
+   },
+   "collection": "sentinel-2-l2a"
+  },
+  {
+   "type": "Feature",
+   "stac_version": "1.1.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.1.0/schema.json",
+    "https://stac-extensions.github.io/sat/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v2.0.0/schema.json"
+   ],
+   "id": "S2A_MSIL2A_20220404T170851_R112_T15TVG_20220405T093646",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -93.2565,
+       42.450833
+      ],
+      [
+       -93.26233,
+       42.4355077
+      ],
+      [
+       -93.31775,
+       42.2893824
+      ],
+      [
+       -93.37311,
+       42.1432957
+      ],
+      [
+       -93.42813,
+       41.9972787
+      ],
+      [
+       -93.482574,
+       41.8513091
+      ],
+      [
+       -93.536804,
+       41.7054321
+      ],
+      [
+       -93.59064,
+       41.5594796
+      ],
+      [
+       -93.62717,
+       41.4601966
+      ],
+      [
+       -94.197815,
+       41.4575152
+      ],
+      [
+       -94.21649,
+       42.4462357
+      ],
+      [
+       -93.2565,
+       42.450833
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -94.21649,
+    41.4575152,
+    -93.2565,
+    42.450833
+   ],
+   "properties": {
+    "datetime": "2022-04-04T17:08:51.024000Z",
+    "platform": "Sentinel-2A",
+    "instruments": [
+     "msi"
+    ],
+    "s2:mgrs_tile": "15TVG",
+    "constellation": "Sentinel 2",
+    "s2:granule_id": "S2A_OPER_MSI_L2A_TL_ESRI_20220405T093647_A035430_T15TVG_N04.00",
+    "eo:cloud_cover": 16.412757,
+    "s2:datatake_id": "GS2A_20220404T170851_035430_N04.00",
+    "s2:product_uri": "S2A_MSIL2A_20220404T170851_N0400_R112_T15TVG_20220405T093646.SAFE",
+    "s2:datastrip_id": "S2A_OPER_MSI_L2A_DS_ESRI_20220405T093647_S20220404T171416_N04.00",
+    "s2:product_type": "S2MSI2A",
+    "sat:orbit_state": "descending",
+    "s2:datatake_type": "INS-NOBS",
+    "s2:generation_time": "2022-04-05T09:36:46.125517Z",
+    "sat:relative_orbit": 112,
+    "s2:water_percentage": 0.460752,
+    "s2:mean_solar_zenith": 38.0924965455153,
+    "s2:mean_solar_azimuth": 157.46850762454,
+    "s2:processing_baseline": "04.00",
+    "s2:snow_ice_percentage": 0.000512,
+    "s2:vegetation_percentage": 0.936119,
+    "s2:thin_cirrus_percentage": 15.802173,
+    "s2:cloud_shadow_percentage": 0.962374,
+    "s2:nodata_pixel_percentage": 42.337883,
+    "s2:unclassified_percentage": 0.995085,
+    "s2:dark_features_percentage": 0.054519,
+    "s2:not_vegetated_percentage": 80.177885,
+    "s2:degraded_msi_data_percentage": 0.0261,
+    "s2:high_proba_clouds_percentage": 0.116765,
+    "s2:reflectance_conversion_factor": 1.0021986703017,
+    "s2:medium_proba_clouds_percentage": 0.49382,
+    "s2:saturated_defective_pixel_percentage": 0.0,
+    "proj:code": "EPSG:32615"
+   },
+   "links": [
+    {
+     "rel": "self",
+     "href": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2A_MSIL2A_20220404T170851_R112_T15TVG_20220405T093646",
+     "type": "application/geo+json"
+    }
+   ],
+   "assets": {
+    "B02": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/04/04/S2A_MSIL2A_20220404T170851_N0400_R112_T15TVG_20220405T093646.SAFE/GRANULE/L2A_T15TVG_A035430_20220404T171416/IMG_DATA/R10m/T15TVG_20220404T170851_B02_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 2 - Blue - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B02",
+       "common_name": "blue",
+       "description": "Band 2 - Blue",
+       "center_wavelength": 0.49,
+       "full_width_half_max": 0.098
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B03": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/04/04/S2A_MSIL2A_20220404T170851_N0400_R112_T15TVG_20220405T093646.SAFE/GRANULE/L2A_T15TVG_A035430_20220404T171416/IMG_DATA/R10m/T15TVG_20220404T170851_B03_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 3 - Green - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B03",
+       "common_name": "green",
+       "description": "Band 3 - Green",
+       "center_wavelength": 0.56,
+       "full_width_half_max": 0.045
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B04": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/04/04/S2A_MSIL2A_20220404T170851_N0400_R112_T15TVG_20220405T093646.SAFE/GRANULE/L2A_T15TVG_A035430_20220404T171416/IMG_DATA/R10m/T15TVG_20220404T170851_B04_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 4 - Red - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B04",
+       "common_name": "red",
+       "description": "Band 4 - Red",
+       "center_wavelength": 0.665,
+       "full_width_half_max": 0.038
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B08": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/04/04/S2A_MSIL2A_20220404T170851_N0400_R112_T15TVG_20220405T093646.SAFE/GRANULE/L2A_T15TVG_A035430_20220404T171416/IMG_DATA/R10m/T15TVG_20220404T170851_B08_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 8 - NIR - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B08",
+       "common_name": "nir",
+       "description": "Band 8 - NIR",
+       "center_wavelength": 0.842,
+       "full_width_half_max": 0.145
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    }
+   },
+   "collection": "sentinel-2-l2a"
+  },
+  {
+   "type": "Feature",
+   "stac_version": "1.1.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.1.0/schema.json",
+    "https://stac-extensions.github.io/sat/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v2.0.0/schema.json"
+   ],
+   "id": "S2B_MSIL2A_20220327T165849_R069_T15TVG_20240527T123702",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -94.2164833,
+       42.4462357
+      ],
+      [
+       -92.8813058,
+       42.4526297
+      ],
+      [
+       -92.8831269,
+       41.4636925
+      ],
+      [
+       -94.1978248,
+       41.4575152
+      ],
+      [
+       -94.2164833,
+       42.4462357
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -94.2164833,
+    41.4575152,
+    -92.8813058,
+    42.4526297
+   ],
+   "properties": {
+    "datetime": "2022-03-27T16:58:49.024000Z",
+    "platform": "Sentinel-2B",
+    "instruments": [
+     "msi"
+    ],
+    "s2:mgrs_tile": "15TVG",
+    "constellation": "Sentinel 2",
+    "s2:granule_id": "S2B_OPER_MSI_L2A_TL_S2RP_20240527T123702_A026407_T15TVG_N05.10",
+    "eo:cloud_cover": 6.12341,
+    "s2:datatake_id": "GS2B_20220327T165849_026407_N05.10",
+    "s2:product_uri": "S2B_MSIL2A_20220327T165849_N0510_R069_T15TVG_20240527T123702.SAFE",
+    "s2:datastrip_id": "S2B_OPER_MSI_L2A_DS_S2RP_20240527T123702_S20220327T170621_N05.10",
+    "s2:product_type": "S2MSI2A",
+    "sat:orbit_state": "descending",
+    "s2:datatake_type": "INS-NOBS",
+    "s2:generation_time": "2024-05-27T12:37:02.000000Z",
+    "sat:relative_orbit": 69,
+    "s2:water_percentage": 0.431485,
+    "s2:mean_solar_zenith": 41.9821709068372,
+    "s2:mean_solar_azimuth": 154.356721852763,
+    "s2:processing_baseline": "05.10",
+    "s2:snow_ice_percentage": 0.000421,
+    "s2:vegetation_percentage": 0.815007,
+    "s2:thin_cirrus_percentage": 6.004356,
+    "s2:cloud_shadow_percentage": 0.000889,
+    "s2:nodata_pixel_percentage": 0.0,
+    "s2:unclassified_percentage": 0.185308,
+    "s2:dark_features_percentage": 0.12563,
+    "s2:not_vegetated_percentage": 92.317849,
+    "s2:degraded_msi_data_percentage": 0.0108,
+    "s2:high_proba_clouds_percentage": 0.013364,
+    "s2:reflectance_conversion_factor": 1.00679233258285,
+    "s2:medium_proba_clouds_percentage": 0.10569,
+    "s2:saturated_defective_pixel_percentage": 0.0,
+    "proj:code": "EPSG:32615"
+   },
+   "links": [
+    {
+     "rel": "self",
+     "href": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20220327T165849_R069_T15TVG_20240527T123702",
+     "type": "application/geo+json"
+    }
+   ],
+   "assets": {
+    "B02": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/03/27/S2B_MSIL2A_20220327T165849_N0510_R069_T15TVG_20240527T123702.SAFE/GRANULE/L2A_T15TVG_A026407_20220327T170621/IMG_DATA/R10m/T15TVG_20220327T165849_B02_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 2 - Blue - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B02",
+       "common_name": "blue",
+       "description": "Band 2 - Blue",
+       "center_wavelength": 0.49,
+       "full_width_half_max": 0.098
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B03": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/03/27/S2B_MSIL2A_20220327T165849_N0510_R069_T15TVG_20240527T123702.SAFE/GRANULE/L2A_T15TVG_A026407_20220327T170621/IMG_DATA/R10m/T15TVG_20220327T165849_B03_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 3 - Green - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B03",
+       "common_name": "green",
+       "description": "Band 3 - Green",
+       "center_wavelength": 0.56,
+       "full_width_half_max": 0.045
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B04": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/03/27/S2B_MSIL2A_20220327T165849_N0510_R069_T15TVG_20240527T123702.SAFE/GRANULE/L2A_T15TVG_A026407_20220327T170621/IMG_DATA/R10m/T15TVG_20220327T165849_B04_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 4 - Red - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B04",
+       "common_name": "red",
+       "description": "Band 4 - Red",
+       "center_wavelength": 0.665,
+       "full_width_half_max": 0.038
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B08": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/03/27/S2B_MSIL2A_20220327T165849_N0510_R069_T15TVG_20240527T123702.SAFE/GRANULE/L2A_T15TVG_A026407_20220327T170621/IMG_DATA/R10m/T15TVG_20220327T165849_B08_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 8 - NIR - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B08",
+       "common_name": "nir",
+       "description": "Band 8 - NIR",
+       "center_wavelength": 0.842,
+       "full_width_half_max": 0.145
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    }
+   },
+   "collection": "sentinel-2-l2a"
+  },
+  {
+   "type": "Feature",
+   "stac_version": "1.1.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.1.0/schema.json",
+    "https://stac-extensions.github.io/sat/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v2.0.0/schema.json"
+   ],
+   "id": "S2B_MSIL2A_20220327T165849_R069_T15TVG_20220328T074933",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -94.21649,
+       42.4462357
+      ],
+      [
+       -92.88132,
+       42.4526297
+      ],
+      [
+       -92.88312,
+       41.4636925
+      ],
+      [
+       -94.197815,
+       41.4575152
+      ],
+      [
+       -94.21649,
+       42.4462357
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -94.21649,
+    41.4575152,
+    -92.88132,
+    42.4526297
+   ],
+   "properties": {
+    "datetime": "2022-03-27T16:58:49.024000Z",
+    "platform": "Sentinel-2B",
+    "instruments": [
+     "msi"
+    ],
+    "s2:mgrs_tile": "15TVG",
+    "constellation": "Sentinel 2",
+    "s2:granule_id": "S2B_OPER_MSI_L2A_TL_ESRI_20220328T074935_A026407_T15TVG_N04.00",
+    "eo:cloud_cover": 6.098102,
+    "s2:datatake_id": "GS2B_20220327T165849_026407_N04.00",
+    "s2:product_uri": "S2B_MSIL2A_20220327T165849_N0400_R069_T15TVG_20220328T074933.SAFE",
+    "s2:datastrip_id": "S2B_OPER_MSI_L2A_DS_ESRI_20220328T074935_S20220327T170621_N04.00",
+    "s2:product_type": "S2MSI2A",
+    "sat:orbit_state": "descending",
+    "s2:datatake_type": "INS-NOBS",
+    "s2:generation_time": "2022-03-28T07:49:33.951558Z",
+    "sat:relative_orbit": 69,
+    "s2:water_percentage": 0.43752,
+    "s2:mean_solar_zenith": 41.982413723325,
+    "s2:mean_solar_azimuth": 154.356194670243,
+    "s2:processing_baseline": "04.00",
+    "s2:snow_ice_percentage": 0.000435,
+    "s2:vegetation_percentage": 0.8145,
+    "s2:thin_cirrus_percentage": 5.979157,
+    "s2:cloud_shadow_percentage": 0.000956,
+    "s2:nodata_pixel_percentage": 0.0,
+    "s2:unclassified_percentage": 0.189346,
+    "s2:dark_features_percentage": 0.056914,
+    "s2:not_vegetated_percentage": 92.402226,
+    "s2:degraded_msi_data_percentage": 0.0107,
+    "s2:high_proba_clouds_percentage": 0.013557,
+    "s2:reflectance_conversion_factor": 1.00679233258285,
+    "s2:medium_proba_clouds_percentage": 0.105388,
+    "s2:saturated_defective_pixel_percentage": 0.0,
+    "proj:code": "EPSG:32615"
+   },
+   "links": [
+    {
+     "rel": "self",
+     "href": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20220327T165849_R069_T15TVG_20220328T074933",
+     "type": "application/geo+json"
+    }
+   ],
+   "assets": {
+    "B02": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/03/27/S2B_MSIL2A_20220327T165849_N0400_R069_T15TVG_20220328T074933.SAFE/GRANULE/L2A_T15TVG_A026407_20220327T170621/IMG_DATA/R10m/T15TVG_20220327T165849_B02_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 2 - Blue - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B02",
+       "common_name": "blue",
+       "description": "Band 2 - Blue",
+       "center_wavelength": 0.49,
+       "full_width_half_max": 0.098
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B03": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/03/27/S2B_MSIL2A_20220327T165849_N0400_R069_T15TVG_20220328T074933.SAFE/GRANULE/L2A_T15TVG_A026407_20220327T170621/IMG_DATA/R10m/T15TVG_20220327T165849_B03_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 3 - Green - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B03",
+       "common_name": "green",
+       "description": "Band 3 - Green",
+       "center_wavelength": 0.56,
+       "full_width_half_max": 0.045
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B04": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/03/27/S2B_MSIL2A_20220327T165849_N0400_R069_T15TVG_20220328T074933.SAFE/GRANULE/L2A_T15TVG_A026407_20220327T170621/IMG_DATA/R10m/T15TVG_20220327T165849_B04_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 4 - Red - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B04",
+       "common_name": "red",
+       "description": "Band 4 - Red",
+       "center_wavelength": 0.665,
+       "full_width_half_max": 0.038
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B08": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/03/27/S2B_MSIL2A_20220327T165849_N0400_R069_T15TVG_20220328T074933.SAFE/GRANULE/L2A_T15TVG_A026407_20220327T170621/IMG_DATA/R10m/T15TVG_20220327T165849_B08_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 8 - NIR - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B08",
+       "common_name": "nir",
+       "description": "Band 8 - NIR",
+       "center_wavelength": 0.842,
+       "full_width_half_max": 0.145
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    }
+   },
+   "collection": "sentinel-2-l2a"
+  },
+  {
+   "type": "Feature",
+   "stac_version": "1.1.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.1.0/schema.json",
+    "https://stac-extensions.github.io/sat/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v2.0.0/schema.json"
+   ],
+   "id": "S2A_MSIL2A_20220325T170941_R112_T15TVG_20220326T045331",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -93.256805,
+       42.4508315
+      ],
+      [
+       -93.26059,
+       42.440893
+      ],
+      [
+       -93.31586,
+       42.2948896
+      ],
+      [
+       -93.371155,
+       42.148855
+      ],
+      [
+       -93.42642,
+       42.0027026
+      ],
+      [
+       -93.48132,
+       41.8565004
+      ],
+      [
+       -93.53595,
+       41.7103548
+      ],
+      [
+       -93.59006,
+       41.5642639
+      ],
+      [
+       -93.62851,
+       41.4601902
+      ],
+      [
+       -94.197815,
+       41.4575152
+      ],
+      [
+       -94.21649,
+       42.4462357
+      ],
+      [
+       -93.256805,
+       42.4508315
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -94.21649,
+    41.4575152,
+    -93.256805,
+    42.4508315
+   ],
+   "properties": {
+    "datetime": "2022-03-25T17:09:41.024000Z",
+    "platform": "Sentinel-2A",
+    "instruments": [
+     "msi"
+    ],
+    "s2:mgrs_tile": "15TVG",
+    "constellation": "Sentinel 2",
+    "s2:granule_id": "S2A_OPER_MSI_L2A_TL_ESRI_20220326T045332_A035287_T15TVG_N04.00",
+    "eo:cloud_cover": 14.035995,
+    "s2:datatake_id": "GS2A_20220325T170941_035287_N04.00",
+    "s2:product_uri": "S2A_MSIL2A_20220325T170941_N0400_R112_T15TVG_20220326T045331.SAFE",
+    "s2:datastrip_id": "S2A_OPER_MSI_L2A_DS_ESRI_20220326T045332_S20220325T171700_N04.00",
+    "s2:product_type": "S2MSI2A",
+    "sat:orbit_state": "descending",
+    "s2:datatake_type": "INS-NOBS",
+    "s2:generation_time": "2022-03-26T04:53:31.290020Z",
+    "sat:relative_orbit": 112,
+    "s2:water_percentage": 0.824034,
+    "s2:mean_solar_zenith": 42.0191544503629,
+    "s2:mean_solar_azimuth": 158.073029890939,
+    "s2:processing_baseline": "04.00",
+    "s2:snow_ice_percentage": 0.000478,
+    "s2:vegetation_percentage": 1.079368,
+    "s2:thin_cirrus_percentage": 5.615605,
+    "s2:cloud_shadow_percentage": 5.464356,
+    "s2:nodata_pixel_percentage": 42.371061,
+    "s2:unclassified_percentage": 1.824747,
+    "s2:dark_features_percentage": 0.085576,
+    "s2:not_vegetated_percentage": 76.685447,
+    "s2:degraded_msi_data_percentage": 0.0261,
+    "s2:high_proba_clouds_percentage": 4.526686,
+    "s2:reflectance_conversion_factor": 1.00792356581823,
+    "s2:medium_proba_clouds_percentage": 3.893705,
+    "s2:saturated_defective_pixel_percentage": 0.0,
+    "proj:code": "EPSG:32615"
+   },
+   "links": [
+    {
+     "rel": "self",
+     "href": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2A_MSIL2A_20220325T170941_R112_T15TVG_20220326T045331",
+     "type": "application/geo+json"
+    }
+   ],
+   "assets": {
+    "B02": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/03/25/S2A_MSIL2A_20220325T170941_N0400_R112_T15TVG_20220326T045331.SAFE/GRANULE/L2A_T15TVG_A035287_20220325T171700/IMG_DATA/R10m/T15TVG_20220325T170941_B02_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 2 - Blue - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B02",
+       "common_name": "blue",
+       "description": "Band 2 - Blue",
+       "center_wavelength": 0.49,
+       "full_width_half_max": 0.098
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B03": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/03/25/S2A_MSIL2A_20220325T170941_N0400_R112_T15TVG_20220326T045331.SAFE/GRANULE/L2A_T15TVG_A035287_20220325T171700/IMG_DATA/R10m/T15TVG_20220325T170941_B03_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 3 - Green - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B03",
+       "common_name": "green",
+       "description": "Band 3 - Green",
+       "center_wavelength": 0.56,
+       "full_width_half_max": 0.045
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B04": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/03/25/S2A_MSIL2A_20220325T170941_N0400_R112_T15TVG_20220326T045331.SAFE/GRANULE/L2A_T15TVG_A035287_20220325T171700/IMG_DATA/R10m/T15TVG_20220325T170941_B04_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 4 - Red - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B04",
+       "common_name": "red",
+       "description": "Band 4 - Red",
+       "center_wavelength": 0.665,
+       "full_width_half_max": 0.038
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B08": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/03/25/S2A_MSIL2A_20220325T170941_N0400_R112_T15TVG_20220326T045331.SAFE/GRANULE/L2A_T15TVG_A035287_20220325T171700/IMG_DATA/R10m/T15TVG_20220325T170941_B08_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 8 - NIR - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B08",
+       "common_name": "nir",
+       "description": "Band 8 - NIR",
+       "center_wavelength": 0.842,
+       "full_width_half_max": 0.145
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    }
+   },
+   "collection": "sentinel-2-l2a"
+  },
+  {
+   "type": "Feature",
+   "stac_version": "1.1.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.1.0/schema.json",
+    "https://stac-extensions.github.io/sat/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v2.0.0/schema.json"
+   ],
+   "id": "S2A_MSIL2A_20220315T171051_R112_T15TVG_20240525T020114",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -93.2593005,
+       42.4508196
+      ],
+      [
+       -93.3055157,
+       42.3288821
+      ],
+      [
+       -93.3606021,
+       42.1829577
+      ],
+      [
+       -93.4154074,
+       42.0369466
+      ],
+      [
+       -93.4702515,
+       41.89087
+      ],
+      [
+       -93.5250497,
+       41.7446804
+      ],
+      [
+       -93.5796074,
+       41.5984796
+      ],
+      [
+       -93.631041,
+       41.4601783
+      ],
+      [
+       -94.1978248,
+       41.4575152
+      ],
+      [
+       -94.2164833,
+       42.4462357
+      ],
+      [
+       -93.2593005,
+       42.4508196
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -94.2164833,
+    41.4575152,
+    -93.2593005,
+    42.4508196
+   ],
+   "properties": {
+    "datetime": "2022-03-15T17:10:51.024000Z",
+    "platform": "Sentinel-2A",
+    "instruments": [
+     "msi"
+    ],
+    "s2:mgrs_tile": "15TVG",
+    "constellation": "Sentinel 2",
+    "s2:granule_id": "S2A_OPER_MSI_L2A_TL_S2RP_20240525T020114_A035144_T15TVG_N05.10",
+    "eo:cloud_cover": 6.168145,
+    "s2:datatake_id": "GS2A_20220315T171051_035144_N05.10",
+    "s2:product_uri": "S2A_MSIL2A_20220315T171051_N0510_R112_T15TVG_20240525T020114.SAFE",
+    "s2:datastrip_id": "S2A_OPER_MSI_L2A_DS_S2RP_20240525T020114_S20220315T171846_N05.10",
+    "s2:product_type": "S2MSI2A",
+    "sat:orbit_state": "descending",
+    "s2:datatake_type": "INS-NOBS",
+    "s2:generation_time": "2024-05-25T02:01:14.000000Z",
+    "sat:relative_orbit": 112,
+    "s2:water_percentage": 0.574547,
+    "s2:mean_solar_zenith": 46.0155230343725,
+    "s2:mean_solar_azimuth": 158.618479518962,
+    "s2:processing_baseline": "05.10",
+    "s2:snow_ice_percentage": 0.019533,
+    "s2:vegetation_percentage": 0.302923,
+    "s2:thin_cirrus_percentage": 4.841917,
+    "s2:cloud_shadow_percentage": 0.058385,
+    "s2:nodata_pixel_percentage": 42.536467,
+    "s2:unclassified_percentage": 0.194023,
+    "s2:dark_features_percentage": 0.0,
+    "s2:not_vegetated_percentage": 92.682445,
+    "s2:degraded_msi_data_percentage": 0.026,
+    "s2:high_proba_clouds_percentage": 0.146135,
+    "s2:reflectance_conversion_factor": 1.01346035457647,
+    "s2:medium_proba_clouds_percentage": 1.180093,
+    "s2:saturated_defective_pixel_percentage": 0.0,
+    "proj:code": "EPSG:32615"
+   },
+   "links": [
+    {
+     "rel": "self",
+     "href": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2A_MSIL2A_20220315T171051_R112_T15TVG_20240525T020114",
+     "type": "application/geo+json"
+    }
+   ],
+   "assets": {
+    "B02": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/03/15/S2A_MSIL2A_20220315T171051_N0510_R112_T15TVG_20240525T020114.SAFE/GRANULE/L2A_T15TVG_A035144_20220315T171846/IMG_DATA/R10m/T15TVG_20220315T171051_B02_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 2 - Blue - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B02",
+       "common_name": "blue",
+       "description": "Band 2 - Blue",
+       "center_wavelength": 0.49,
+       "full_width_half_max": 0.098
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B03": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/03/15/S2A_MSIL2A_20220315T171051_N0510_R112_T15TVG_20240525T020114.SAFE/GRANULE/L2A_T15TVG_A035144_20220315T171846/IMG_DATA/R10m/T15TVG_20220315T171051_B03_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 3 - Green - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B03",
+       "common_name": "green",
+       "description": "Band 3 - Green",
+       "center_wavelength": 0.56,
+       "full_width_half_max": 0.045
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B04": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/03/15/S2A_MSIL2A_20220315T171051_N0510_R112_T15TVG_20240525T020114.SAFE/GRANULE/L2A_T15TVG_A035144_20220315T171846/IMG_DATA/R10m/T15TVG_20220315T171051_B04_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 4 - Red - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B04",
+       "common_name": "red",
+       "description": "Band 4 - Red",
+       "center_wavelength": 0.665,
+       "full_width_half_max": 0.038
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B08": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/03/15/S2A_MSIL2A_20220315T171051_N0510_R112_T15TVG_20240525T020114.SAFE/GRANULE/L2A_T15TVG_A035144_20220315T171846/IMG_DATA/R10m/T15TVG_20220315T171051_B08_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 8 - NIR - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B08",
+       "common_name": "nir",
+       "description": "Band 8 - NIR",
+       "center_wavelength": 0.842,
+       "full_width_half_max": 0.145
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    }
+   },
+   "collection": "sentinel-2-l2a"
+  },
+  {
+   "type": "Feature",
+   "stac_version": "1.1.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.1.0/schema.json",
+    "https://stac-extensions.github.io/sat/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v2.0.0/schema.json"
+   ],
+   "id": "S2A_MSIL2A_20220315T171051_R112_T15TVG_20220316T083617",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -93.25931,
+       42.4508196
+      ],
+      [
+       -93.30551,
+       42.3289211
+      ],
+      [
+       -93.360596,
+       42.1829968
+      ],
+      [
+       -93.415405,
+       42.0369856
+      ],
+      [
+       -93.470245,
+       41.8909089
+      ],
+      [
+       -93.525024,
+       41.7447191
+      ],
+      [
+       -93.57959,
+       41.5985185
+      ],
+      [
+       -93.63104,
+       41.4601783
+      ],
+      [
+       -94.197815,
+       41.4575152
+      ],
+      [
+       -94.21649,
+       42.4462357
+      ],
+      [
+       -93.25931,
+       42.4508196
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -94.21649,
+    41.4575152,
+    -93.25931,
+    42.4508196
+   ],
+   "properties": {
+    "datetime": "2022-03-15T17:10:51.024000Z",
+    "platform": "Sentinel-2A",
+    "instruments": [
+     "msi"
+    ],
+    "s2:mgrs_tile": "15TVG",
+    "constellation": "Sentinel 2",
+    "s2:granule_id": "S2A_OPER_MSI_L2A_TL_ESRI_20220316T083619_A035144_T15TVG_N04.00",
+    "eo:cloud_cover": 6.09385,
+    "s2:datatake_id": "GS2A_20220315T171051_035144_N04.00",
+    "s2:product_uri": "S2A_MSIL2A_20220315T171051_N0400_R112_T15TVG_20220316T083617.SAFE",
+    "s2:datastrip_id": "S2A_OPER_MSI_L2A_DS_ESRI_20220316T083619_S20220315T171846_N04.00",
+    "s2:product_type": "S2MSI2A",
+    "sat:orbit_state": "descending",
+    "s2:datatake_type": "INS-NOBS",
+    "s2:generation_time": "2022-03-16T08:36:17.778176Z",
+    "sat:relative_orbit": 112,
+    "s2:water_percentage": 0.5792,
+    "s2:mean_solar_zenith": 46.0157408294161,
+    "s2:mean_solar_azimuth": 158.617972940069,
+    "s2:processing_baseline": "04.00",
+    "s2:snow_ice_percentage": 0.019746,
+    "s2:vegetation_percentage": 0.303218,
+    "s2:thin_cirrus_percentage": 4.798841,
+    "s2:cloud_shadow_percentage": 0.053696,
+    "s2:nodata_pixel_percentage": 42.536432,
+    "s2:unclassified_percentage": 0.183145,
+    "s2:dark_features_percentage": 0.0,
+    "s2:not_vegetated_percentage": 92.767149,
+    "s2:degraded_msi_data_percentage": 0.0259,
+    "s2:high_proba_clouds_percentage": 0.143843,
+    "s2:reflectance_conversion_factor": 1.01346035457647,
+    "s2:medium_proba_clouds_percentage": 1.151166,
+    "s2:saturated_defective_pixel_percentage": 0.0,
+    "proj:code": "EPSG:32615"
+   },
+   "links": [
+    {
+     "rel": "self",
+     "href": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2A_MSIL2A_20220315T171051_R112_T15TVG_20220316T083617",
+     "type": "application/geo+json"
+    }
+   ],
+   "assets": {
+    "B02": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/03/15/S2A_MSIL2A_20220315T171051_N0400_R112_T15TVG_20220316T083617.SAFE/GRANULE/L2A_T15TVG_A035144_20220315T171846/IMG_DATA/R10m/T15TVG_20220315T171051_B02_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 2 - Blue - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B02",
+       "common_name": "blue",
+       "description": "Band 2 - Blue",
+       "center_wavelength": 0.49,
+       "full_width_half_max": 0.098
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B03": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/03/15/S2A_MSIL2A_20220315T171051_N0400_R112_T15TVG_20220316T083617.SAFE/GRANULE/L2A_T15TVG_A035144_20220315T171846/IMG_DATA/R10m/T15TVG_20220315T171051_B03_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 3 - Green - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B03",
+       "common_name": "green",
+       "description": "Band 3 - Green",
+       "center_wavelength": 0.56,
+       "full_width_half_max": 0.045
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B04": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/03/15/S2A_MSIL2A_20220315T171051_N0400_R112_T15TVG_20220316T083617.SAFE/GRANULE/L2A_T15TVG_A035144_20220315T171846/IMG_DATA/R10m/T15TVG_20220315T171051_B04_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 4 - Red - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B04",
+       "common_name": "red",
+       "description": "Band 4 - Red",
+       "center_wavelength": 0.665,
+       "full_width_half_max": 0.038
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B08": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/03/15/S2A_MSIL2A_20220315T171051_N0400_R112_T15TVG_20220316T083617.SAFE/GRANULE/L2A_T15TVG_A035144_20220315T171846/IMG_DATA/R10m/T15TVG_20220315T171051_B08_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 8 - NIR - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B08",
+       "common_name": "nir",
+       "description": "Band 8 - NIR",
+       "center_wavelength": 0.842,
+       "full_width_half_max": 0.145
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    }
+   },
+   "collection": "sentinel-2-l2a"
+  }
+ ],
+ "2022-10-29T00:00:00Z/2022-11-26T23:59:59Z": [
+  {
+   "type": "Feature",
+   "stac_version": "1.1.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.1.0/schema.json",
+    "https://stac-extensions.github.io/sat/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v2.0.0/schema.json"
+   ],
+   "id": "S2B_MSIL2A_20221125T171639_R112_T15TVG_20221202T081730",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -93.26199,
+       42.4508067
+      ],
+      [
+       -93.28055,
+       42.4017828
+      ],
+      [
+       -93.3356,
+       42.255876
+      ],
+      [
+       -93.39038,
+       42.1099213
+      ],
+      [
+       -93.44513,
+       41.9639099
+      ],
+      [
+       -93.49979,
+       41.817808
+      ],
+      [
+       -93.55441,
+       41.6717116
+      ],
+      [
+       -93.60895,
+       41.5255883
+      ],
+      [
+       -93.63324,
+       41.4601681
+      ],
+      [
+       -94.197815,
+       41.4575152
+      ],
+      [
+       -94.21649,
+       42.4462357
+      ],
+      [
+       -93.26199,
+       42.4508067
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -94.21649,
+    41.4575152,
+    -93.26199,
+    42.4508067
+   ],
+   "properties": {
+    "datetime": "2022-11-25T17:16:39.024000Z",
+    "platform": "Sentinel-2B",
+    "instruments": [
+     "msi"
+    ],
+    "s2:mgrs_tile": "15TVG",
+    "constellation": "Sentinel 2",
+    "s2:granule_id": "S2B_OPER_MSI_L2A_TL_ESRI_20221202T081730_A029882_T15TVG_N04.00",
+    "eo:cloud_cover": 0.003669,
+    "s2:datatake_id": "GS2B_20221125T171639_029882_N04.00",
+    "s2:product_uri": "S2B_MSIL2A_20221125T171639_N0400_R112_T15TVG_20221202T081730.SAFE",
+    "s2:datastrip_id": "S2B_OPER_MSI_L2A_DS_ESRI_20221202T081730_S20221125T171637_N04.00",
+    "s2:product_type": "S2MSI2A",
+    "sat:orbit_state": "descending",
+    "s2:datatake_type": "INS-NOBS",
+    "s2:generation_time": "2022-12-02T08:17:30.123726Z",
+    "sat:relative_orbit": 112,
+    "s2:water_percentage": 0.74652,
+    "s2:mean_solar_zenith": 63.4451215632547,
+    "s2:mean_solar_azimuth": 169.775684846283,
+    "s2:processing_baseline": "04.00",
+    "s2:snow_ice_percentage": 0.019091,
+    "s2:vegetation_percentage": 6.299944,
+    "s2:thin_cirrus_percentage": 0.002826,
+    "s2:cloud_shadow_percentage": 0.038223,
+    "s2:nodata_pixel_percentage": 42.944464,
+    "s2:unclassified_percentage": 0.00018,
+    "s2:dark_features_percentage": 0.019283,
+    "s2:not_vegetated_percentage": 92.873091,
+    "s2:degraded_msi_data_percentage": 0.0307,
+    "s2:high_proba_clouds_percentage": 0.000157,
+    "s2:reflectance_conversion_factor": 1.02526948060073,
+    "s2:medium_proba_clouds_percentage": 0.000686,
+    "s2:saturated_defective_pixel_percentage": 0.0,
+    "proj:code": "EPSG:32615"
+   },
+   "links": [
+    {
+     "rel": "self",
+     "href": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20221125T171639_R112_T15TVG_20221202T081730",
+     "type": "application/geo+json"
+    }
+   ],
+   "assets": {
+    "B02": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/11/25/S2B_MSIL2A_20221125T171639_N0400_R112_T15TVG_20221202T081730.SAFE/GRANULE/L2A_T15TVG_A029882_20221125T171637/IMG_DATA/R10m/T15TVG_20221125T171639_B02_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 2 - Blue - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B02",
+       "common_name": "blue",
+       "description": "Band 2 - Blue",
+       "center_wavelength": 0.49,
+       "full_width_half_max": 0.098
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B03": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/11/25/S2B_MSIL2A_20221125T171639_N0400_R112_T15TVG_20221202T081730.SAFE/GRANULE/L2A_T15TVG_A029882_20221125T171637/IMG_DATA/R10m/T15TVG_20221125T171639_B03_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 3 - Green - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B03",
+       "common_name": "green",
+       "description": "Band 3 - Green",
+       "center_wavelength": 0.56,
+       "full_width_half_max": 0.045
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B04": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/11/25/S2B_MSIL2A_20221125T171639_N0400_R112_T15TVG_20221202T081730.SAFE/GRANULE/L2A_T15TVG_A029882_20221125T171637/IMG_DATA/R10m/T15TVG_20221125T171639_B04_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 4 - Red - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B04",
+       "common_name": "red",
+       "description": "Band 4 - Red",
+       "center_wavelength": 0.665,
+       "full_width_half_max": 0.038
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B08": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/11/25/S2B_MSIL2A_20221125T171639_N0400_R112_T15TVG_20221202T081730.SAFE/GRANULE/L2A_T15TVG_A029882_20221125T171637/IMG_DATA/R10m/T15TVG_20221125T171639_B08_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 8 - NIR - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B08",
+       "common_name": "nir",
+       "description": "Band 8 - NIR",
+       "center_wavelength": 0.842,
+       "full_width_half_max": 0.145
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    }
+   },
+   "collection": "sentinel-2-l2a"
+  },
+  {
+   "type": "Feature",
+   "stac_version": "1.1.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.1.0/schema.json",
+    "https://stac-extensions.github.io/sat/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v2.0.0/schema.json"
+   ],
+   "id": "S2B_MSIL2A_20221122T170629_R069_T15TVG_20221123T063001",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -94.21649,
+       42.4462357
+      ],
+      [
+       -92.88132,
+       42.4526297
+      ],
+      [
+       -92.88312,
+       41.4636925
+      ],
+      [
+       -94.197815,
+       41.4575152
+      ],
+      [
+       -94.21649,
+       42.4462357
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -94.21649,
+    41.4575152,
+    -92.88132,
+    42.4526297
+   ],
+   "properties": {
+    "datetime": "2022-11-22T17:06:29.024000Z",
+    "platform": "Sentinel-2B",
+    "instruments": [
+     "msi"
+    ],
+    "s2:mgrs_tile": "15TVG",
+    "constellation": "Sentinel 2",
+    "s2:granule_id": "S2B_OPER_MSI_L2A_TL_ESRI_20221123T063003_A029839_T15TVG_N04.00",
+    "eo:cloud_cover": 15.17912,
+    "s2:datatake_id": "GS2B_20221122T170629_029839_N04.00",
+    "s2:product_uri": "S2B_MSIL2A_20221122T170629_N0400_R069_T15TVG_20221123T063001.SAFE",
+    "s2:datastrip_id": "S2B_OPER_MSI_L2A_DS_ESRI_20221123T063003_S20221122T170645_N04.00",
+    "s2:product_type": "S2MSI2A",
+    "sat:orbit_state": "descending",
+    "s2:datatake_type": "INS-NOBS",
+    "s2:generation_time": "2022-11-23T06:30:01.919564Z",
+    "sat:relative_orbit": 69,
+    "s2:water_percentage": 0.439936,
+    "s2:mean_solar_zenith": 63.179715868645,
+    "s2:mean_solar_azimuth": 167.317523176865,
+    "s2:processing_baseline": "04.00",
+    "s2:snow_ice_percentage": 12.059934,
+    "s2:vegetation_percentage": 2.415533,
+    "s2:thin_cirrus_percentage": 12.337478,
+    "s2:cloud_shadow_percentage": 0.019217,
+    "s2:nodata_pixel_percentage": 3e-06,
+    "s2:unclassified_percentage": 0.00081,
+    "s2:dark_features_percentage": 0.010796,
+    "s2:not_vegetated_percentage": 69.87465,
+    "s2:degraded_msi_data_percentage": 0.0107,
+    "s2:high_proba_clouds_percentage": 0.351877,
+    "s2:reflectance_conversion_factor": 1.02403067041912,
+    "s2:medium_proba_clouds_percentage": 2.489766,
+    "s2:saturated_defective_pixel_percentage": 0.0,
+    "proj:code": "EPSG:32615"
+   },
+   "links": [
+    {
+     "rel": "self",
+     "href": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20221122T170629_R069_T15TVG_20221123T063001",
+     "type": "application/geo+json"
+    }
+   ],
+   "assets": {
+    "B02": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/11/22/S2B_MSIL2A_20221122T170629_N0400_R069_T15TVG_20221123T063001.SAFE/GRANULE/L2A_T15TVG_A029839_20221122T170645/IMG_DATA/R10m/T15TVG_20221122T170629_B02_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 2 - Blue - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B02",
+       "common_name": "blue",
+       "description": "Band 2 - Blue",
+       "center_wavelength": 0.49,
+       "full_width_half_max": 0.098
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B03": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/11/22/S2B_MSIL2A_20221122T170629_N0400_R069_T15TVG_20221123T063001.SAFE/GRANULE/L2A_T15TVG_A029839_20221122T170645/IMG_DATA/R10m/T15TVG_20221122T170629_B03_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 3 - Green - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B03",
+       "common_name": "green",
+       "description": "Band 3 - Green",
+       "center_wavelength": 0.56,
+       "full_width_half_max": 0.045
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B04": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/11/22/S2B_MSIL2A_20221122T170629_N0400_R069_T15TVG_20221123T063001.SAFE/GRANULE/L2A_T15TVG_A029839_20221122T170645/IMG_DATA/R10m/T15TVG_20221122T170629_B04_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 4 - Red - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B04",
+       "common_name": "red",
+       "description": "Band 4 - Red",
+       "center_wavelength": 0.665,
+       "full_width_half_max": 0.038
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B08": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/11/22/S2B_MSIL2A_20221122T170629_N0400_R069_T15TVG_20221123T063001.SAFE/GRANULE/L2A_T15TVG_A029839_20221122T170645/IMG_DATA/R10m/T15TVG_20221122T170629_B08_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 8 - NIR - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B08",
+       "common_name": "nir",
+       "description": "Band 8 - NIR",
+       "center_wavelength": 0.842,
+       "full_width_half_max": 0.145
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    }
+   },
+   "collection": "sentinel-2-l2a"
+  },
+  {
+   "type": "Feature",
+   "stac_version": "1.1.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.1.0/schema.json",
+    "https://stac-extensions.github.io/sat/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v2.0.0/schema.json"
+   ],
+   "id": "S2A_MSIL2A_20221120T171621_R112_T15TVG_20221121T061909",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -93.2587,
+       42.4508224
+      ],
+      [
+       -93.28717,
+       42.3757137
+      ],
+      [
+       -93.34259,
+       42.2297435
+      ],
+      [
+       -93.39752,
+       42.0836826
+      ],
+      [
+       -93.45233,
+       41.9376613
+      ],
+      [
+       -93.50687,
+       41.7916452
+      ],
+      [
+       -93.5611,
+       41.6456
+      ],
+      [
+       -93.615204,
+       41.4995317
+      ],
+      [
+       -93.62976,
+       41.4601844
+      ],
+      [
+       -94.197815,
+       41.4575152
+      ],
+      [
+       -94.21649,
+       42.4462357
+      ],
+      [
+       -93.2587,
+       42.4508224
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -94.21649,
+    41.4575152,
+    -93.2587,
+    42.4508224
+   ],
+   "properties": {
+    "datetime": "2022-11-20T17:16:21.024000Z",
+    "platform": "Sentinel-2A",
+    "instruments": [
+     "msi"
+    ],
+    "s2:mgrs_tile": "15TVG",
+    "constellation": "Sentinel 2",
+    "s2:granule_id": "S2A_OPER_MSI_L2A_TL_ESRI_20221121T061910_A038719_T15TVG_N04.00",
+    "eo:cloud_cover": 6.004813,
+    "s2:datatake_id": "GS2A_20221120T171621_038719_N04.00",
+    "s2:product_uri": "S2A_MSIL2A_20221120T171621_N0400_R112_T15TVG_20221121T061909.SAFE",
+    "s2:datastrip_id": "S2A_OPER_MSI_L2A_DS_ESRI_20221121T061910_S20221120T171649_N04.00",
+    "s2:product_type": "S2MSI2A",
+    "sat:orbit_state": "descending",
+    "s2:datatake_type": "INS-NOBS",
+    "s2:generation_time": "2022-11-21T06:19:09.578282Z",
+    "sat:relative_orbit": 112,
+    "s2:water_percentage": 0.89585,
+    "s2:mean_solar_zenith": 62.3667944000977,
+    "s2:mean_solar_azimuth": 169.979002485472,
+    "s2:processing_baseline": "04.00",
+    "s2:snow_ice_percentage": 86.299592,
+    "s2:vegetation_percentage": 0.022356,
+    "s2:thin_cirrus_percentage": 5.059815,
+    "s2:cloud_shadow_percentage": 0.028321,
+    "s2:nodata_pixel_percentage": 42.490694,
+    "s2:unclassified_percentage": 0.00109,
+    "s2:dark_features_percentage": 0.007356,
+    "s2:not_vegetated_percentage": 6.74062,
+    "s2:degraded_msi_data_percentage": 0.026,
+    "s2:high_proba_clouds_percentage": 0.137388,
+    "s2:reflectance_conversion_factor": 1.02317457403219,
+    "s2:medium_proba_clouds_percentage": 0.80761,
+    "s2:saturated_defective_pixel_percentage": 0.0,
+    "proj:code": "EPSG:32615"
+   },
+   "links": [
+    {
+     "rel": "self",
+     "href": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2A_MSIL2A_20221120T171621_R112_T15TVG_20221121T061909",
+     "type": "application/geo+json"
+    }
+   ],
+   "assets": {
+    "B02": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/11/20/S2A_MSIL2A_20221120T171621_N0400_R112_T15TVG_20221121T061909.SAFE/GRANULE/L2A_T15TVG_A038719_20221120T171649/IMG_DATA/R10m/T15TVG_20221120T171621_B02_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 2 - Blue - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B02",
+       "common_name": "blue",
+       "description": "Band 2 - Blue",
+       "center_wavelength": 0.49,
+       "full_width_half_max": 0.098
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B03": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/11/20/S2A_MSIL2A_20221120T171621_N0400_R112_T15TVG_20221121T061909.SAFE/GRANULE/L2A_T15TVG_A038719_20221120T171649/IMG_DATA/R10m/T15TVG_20221120T171621_B03_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 3 - Green - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B03",
+       "common_name": "green",
+       "description": "Band 3 - Green",
+       "center_wavelength": 0.56,
+       "full_width_half_max": 0.045
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B04": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/11/20/S2A_MSIL2A_20221120T171621_N0400_R112_T15TVG_20221121T061909.SAFE/GRANULE/L2A_T15TVG_A038719_20221120T171649/IMG_DATA/R10m/T15TVG_20221120T171621_B04_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 4 - Red - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B04",
+       "common_name": "red",
+       "description": "Band 4 - Red",
+       "center_wavelength": 0.665,
+       "full_width_half_max": 0.038
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B08": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/11/20/S2A_MSIL2A_20221120T171621_N0400_R112_T15TVG_20221121T061909.SAFE/GRANULE/L2A_T15TVG_A038719_20221120T171649/IMG_DATA/R10m/T15TVG_20221120T171621_B08_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 8 - NIR - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B08",
+       "common_name": "nir",
+       "description": "Band 8 - NIR",
+       "center_wavelength": 0.842,
+       "full_width_half_max": 0.145
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    }
+   },
+   "collection": "sentinel-2-l2a"
+  },
+  {
+   "type": "Feature",
+   "stac_version": "1.1.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.1.0/schema.json",
+    "https://stac-extensions.github.io/sat/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v2.0.0/schema.json"
+   ],
+   "id": "S2A_MSIL2A_20221031T171441_R112_T15TVG_20221101T050242",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -93.25806,
+       42.4508255
+      ],
+      [
+       -93.29108,
+       42.3643479
+      ],
+      [
+       -93.34659,
+       42.2182782
+      ],
+      [
+       -93.40204,
+       42.0722139
+      ],
+      [
+       -93.45706,
+       41.9260943
+      ],
+      [
+       -93.51196,
+       41.7800099
+      ],
+      [
+       -93.56656,
+       41.6338572
+      ],
+      [
+       -93.620544,
+       41.4877797
+      ],
+      [
+       -93.63068,
+       41.4601801
+      ],
+      [
+       -94.197815,
+       41.4575152
+      ],
+      [
+       -94.21649,
+       42.4462357
+      ],
+      [
+       -93.25806,
+       42.4508255
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -94.21649,
+    41.4575152,
+    -93.25806,
+    42.4508255
+   ],
+   "properties": {
+    "datetime": "2022-10-31T17:14:41.024000Z",
+    "platform": "Sentinel-2A",
+    "instruments": [
+     "msi"
+    ],
+    "s2:mgrs_tile": "15TVG",
+    "constellation": "Sentinel 2",
+    "s2:granule_id": "S2A_OPER_MSI_L2A_TL_ESRI_20221101T050243_A038433_T15TVG_N04.00",
+    "eo:cloud_cover": 0.636081,
+    "s2:datatake_id": "GS2A_20221031T171441_038433_N04.00",
+    "s2:product_uri": "S2A_MSIL2A_20221031T171441_N0400_R112_T15TVG_20221101T050242.SAFE",
+    "s2:datastrip_id": "S2A_OPER_MSI_L2A_DS_ESRI_20221101T050243_S20221031T172138_N04.00",
+    "s2:product_type": "S2MSI2A",
+    "sat:orbit_state": "descending",
+    "s2:datatake_type": "INS-NOBS",
+    "s2:generation_time": "2022-11-01T05:02:42.905433Z",
+    "sat:relative_orbit": 112,
+    "s2:water_percentage": 0.657623,
+    "s2:mean_solar_zenith": 56.8184276719385,
+    "s2:mean_solar_azimuth": 169.671249199982,
+    "s2:processing_baseline": "04.00",
+    "s2:snow_ice_percentage": 0.000837,
+    "s2:vegetation_percentage": 10.528486,
+    "s2:thin_cirrus_percentage": 0.627858,
+    "s2:cloud_shadow_percentage": 0.0,
+    "s2:nodata_pixel_percentage": 42.505935,
+    "s2:unclassified_percentage": 0.001016,
+    "s2:dark_features_percentage": 0.0,
+    "s2:not_vegetated_percentage": 88.175964,
+    "s2:degraded_msi_data_percentage": 0.0259,
+    "s2:high_proba_clouds_percentage": 0.001685,
+    "s2:reflectance_conversion_factor": 1.01330997630336,
+    "s2:medium_proba_clouds_percentage": 0.006538,
+    "s2:saturated_defective_pixel_percentage": 0.0,
+    "proj:code": "EPSG:32615"
+   },
+   "links": [
+    {
+     "rel": "self",
+     "href": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2A_MSIL2A_20221031T171441_R112_T15TVG_20221101T050242",
+     "type": "application/geo+json"
+    }
+   ],
+   "assets": {
+    "B02": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/10/31/S2A_MSIL2A_20221031T171441_N0400_R112_T15TVG_20221101T050242.SAFE/GRANULE/L2A_T15TVG_A038433_20221031T172138/IMG_DATA/R10m/T15TVG_20221031T171441_B02_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 2 - Blue - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B02",
+       "common_name": "blue",
+       "description": "Band 2 - Blue",
+       "center_wavelength": 0.49,
+       "full_width_half_max": 0.098
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B03": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/10/31/S2A_MSIL2A_20221031T171441_N0400_R112_T15TVG_20221101T050242.SAFE/GRANULE/L2A_T15TVG_A038433_20221031T172138/IMG_DATA/R10m/T15TVG_20221031T171441_B03_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 3 - Green - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B03",
+       "common_name": "green",
+       "description": "Band 3 - Green",
+       "center_wavelength": 0.56,
+       "full_width_half_max": 0.045
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B04": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/10/31/S2A_MSIL2A_20221031T171441_N0400_R112_T15TVG_20221101T050242.SAFE/GRANULE/L2A_T15TVG_A038433_20221031T172138/IMG_DATA/R10m/T15TVG_20221031T171441_B04_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 4 - Red - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B04",
+       "common_name": "red",
+       "description": "Band 4 - Red",
+       "center_wavelength": 0.665,
+       "full_width_half_max": 0.038
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    },
+    "B08": {
+     "href": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/15/T/VG/2022/10/31/S2A_MSIL2A_20221031T171441_N0400_R112_T15TVG_20221101T050242.SAFE/GRANULE/L2A_T15TVG_A038433_20221031T172138/IMG_DATA/R10m/T15TVG_20221031T171441_B08_10m.tif",
+     "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+     "title": "Band 8 - NIR - 10m",
+     "proj:bbox": [
+      399960.0,
+      4590240.0,
+      509760.0,
+      4700040.0
+     ],
+     "proj:shape": [
+      10980,
+      10980
+     ],
+     "proj:transform": [
+      10.0,
+      0.0,
+      399960.0,
+      0.0,
+      -10.0,
+      4700040.0
+     ],
+     "gsd": 10,
+     "eo:bands": [
+      {
+       "name": "B08",
+       "common_name": "nir",
+       "description": "Band 8 - NIR",
+       "center_wavelength": 0.842,
+       "full_width_half_max": 0.145
+      }
+     ],
+     "roles": [
+      "data"
+     ]
+    }
+   },
+   "collection": "sentinel-2-l2a"
+  }
+ ]
+}
