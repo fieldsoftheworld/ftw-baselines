@@ -4,6 +4,7 @@ import sys
 import matplotlib
 
 os.environ.setdefault("MPLBACKEND", "Agg")
+os.environ.setdefault("YOLO_OFFLINE", "true")
 matplotlib.use("Agg", force=True)
 matplotlib.interactive(False)
 

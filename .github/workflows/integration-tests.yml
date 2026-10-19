@@ -18,4 +18,4 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --all-extras --dev
       - name: Run all tests
-        run: uv run pytest -vvv -m "integration or not integration"
+        run: uv run pytest -vvv -m "integration or not integration" --force-enable-socket

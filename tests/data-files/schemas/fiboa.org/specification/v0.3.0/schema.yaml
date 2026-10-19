@@ -1,0 +1,39 @@
+$schema: https://vecorel.org/sdl/v0.2.0/schema.json
+# extensions:
+#   - https://vecorel.org/metrics-extension/v0.1.0/schema.yaml
+collection:
+  metrics:area: false
+  metrics:perimeter: false
+properties:
+  category:
+    type: array
+    uniqueItems: true
+    items:
+      type: string
+      enum:
+        - conceptual
+        - operational
+        - economic
+        - administrative
+        - other
+  metrics:area:
+    type: float
+    exclusiveMinimum: 0
+    maximum: 1000000000
+  metrics:perimeter:
+    type: float
+    exclusiveMinimum: 0
+    maximum: 1250000000
+  determination:datetime:
+    type: date-time
+  determination:method:
+    type: string
+    enum:
+     - manual
+     - driven
+     - surveyed
+     - auto-operation
+     - auto-imagery
+     - unknown
+  determination:details:
+    type: string

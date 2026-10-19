@@ -1,0 +1,11 @@
+$schema: https://vecorel.org/sdl/v0.2.0/schema.json
+collection:
+  metrics:area: false
+  metrics:perimeter: false
+properties:
+  metrics:area:
+    type: float
+    exclusiveMinimum: 0
+  metrics:perimeter:
+    type: float
+    exclusiveMinimum: 0
