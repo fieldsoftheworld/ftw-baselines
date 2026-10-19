@@ -64,6 +64,7 @@ optional-dependencies.dev = [
   "hatchling",
   "pre-commit>=4,<=5",
   "pytest>=7.4,<9",
+  "pytest-socket>=0.7,<1",
   "pytest-xdist>=3.8,<4",
   "ruff>=0.1,<1",
   "twine",
@@ -109,4 +110,4 @@ ini_options.tmp_path_retention_policy = "failed"
 ini_options.markers = [
   "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
 ]
-ini_options.addopts = '-m "not integration" -n auto'
+ini_options.addopts = '-m "not integration" --disable-socket --allow-unix-socket -n auto'
