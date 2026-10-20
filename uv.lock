@@ -1114,7 +1114,6 @@ dependencies = [
     { name = "kornia" },
     { name = "lightning" },
     { name = "matplotlib" },
-    { name = "notebook" },
     { name = "numpy" },
     { name = "odc-stac" },
     { name = "planetary-computer" },
@@ -1139,6 +1138,7 @@ dependencies = [
 all = [
     { name = "build" },
     { name = "hatchling" },
+    { name = "notebook" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-xdist" },
@@ -1152,6 +1152,7 @@ delineate-anything = [
 dev = [
     { name = "build" },
     { name = "hatchling" },
+    { name = "notebook" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-xdist" },
@@ -1172,7 +1173,7 @@ requires-dist = [
     { name = "kornia", specifier = ">=0.8.2,<0.9" },
     { name = "lightning", specifier = ">=2.6.6,<3" },
     { name = "matplotlib", specifier = ">=3.7,<4" },
-    { name = "notebook", specifier = ">=7,<8" },
+    { name = "notebook", marker = "extra == 'dev'", specifier = ">=7,<8" },
     { name = "numpy", specifier = ">=1.24,<3" },
     { name = "odc-stac", specifier = ">=0.5,<1" },
     { name = "planetary-computer", specifier = ">=1,<2" },
