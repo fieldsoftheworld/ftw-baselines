@@ -1,6 +1,7 @@
 import math
 import os
 import time
+from functools import partial
 from pathlib import Path
 from typing import Callable, Literal, Optional
 
@@ -25,9 +26,11 @@ from ftw_tools.inference.model_registry import MODEL_REGISTRY
 from ftw_tools.inference.models import load_model_from_checkpoint
 from ftw_tools.inference.utils import convert_to_fiboa, postprocess_instance_polygons
 
+DEFAULT_NORMALIZATION = 3000.0
 
-def default_preprocess(sample):
-    sample["image"] = sample["image"] / 3000
+
+def normalize(sample, divisor: float = DEFAULT_NORMALIZATION):
+    sample["image"] = sample["image"] / divisor
     return sample
 
 
@@ -124,7 +127,7 @@ def run(
     save_scores: bool,
     compute_consensus: bool = False,
     nan_fill_value: float = 0.0,
-    preprocess_fn: Callable = default_preprocess,
+    preprocess_fn: Callable | None = None,
 ) -> None:
     """Run semantic segmentation inference on a raster image.
 
@@ -143,7 +146,9 @@ def run(
         save_scores: Save per-class softmax scores instead of argmax labels.
         compute_consensus: Track overlap disagreements across patches.
         nan_fill_value: Replacement value for NaN/nodata pixels. Defaults to 0.0.
-        preprocess_fn: Transform applied to each sample before inference.
+        preprocess_fn: Transform applied to each sample before inference. Defaults
+            to dividing by the registry model's ``normalization`` (3000 for
+            checkpoint paths).
 
     Returns:
         None
@@ -155,10 +160,13 @@ def run(
         input, out, gpu, patch_size, padding, overwrite, mps_mode
     )
 
+    divisor = DEFAULT_NORMALIZATION
+
     # Load model
     if model in MODEL_REGISTRY.keys():
         print(f"Downloading model {model} from {MODEL_REGISTRY[model].url}")
         model_path = MODEL_REGISTRY[model].url
+        divisor = MODEL_REGISTRY[model].normalization
 
         # Ensure cache directory exists
         cache_dir = Path(torch.hub.get_dir()) / "checkpoints"
@@ -195,6 +203,9 @@ def run(
         down_sample = K.Resize(
             (patch_size, patch_size), resample=Resample.NEAREST.name
         ).to(device)
+
+    if preprocess_fn is None:
+        preprocess_fn = partial(normalize, divisor=divisor)
 
     dataset = SingleRasterDataset(input, transforms=preprocess_fn)
     sampler = GridGeoSampler(dataset, size=patch_size, stride=stride)
