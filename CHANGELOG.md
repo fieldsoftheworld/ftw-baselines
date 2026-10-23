@@ -10,6 +10,7 @@
 
 ### Unreleased
 
+- Added the Fields of the Planet (FTP) PlanetScope models `FTP_PRUE_EFNET_B3` and `FTP_PRUE_EFNET_B7` (CC-BY-NC-4.0)
 - Added a `normalization` field to registry models; `ftw inference run` now divides input imagery by the selected model's value (default 3000)
 
 ### 1.3.0
