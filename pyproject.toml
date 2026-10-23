@@ -37,7 +37,6 @@ dependencies = [
   "kornia>=0.8.2,<0.9",
   "lightning>=2.6.6,<3",
   "matplotlib>=3.7,<4",
-  "notebook>=7,<8",
   "numpy>=1.24,<3",
   "odc-stac>=0.5,<1",
   "planetary-computer>=1,<2",
@@ -62,6 +61,7 @@ optional-dependencies.delineate-anything = [ "ultralytics>=8.3.187,<9" ]
 optional-dependencies.dev = [
   "build",
   "hatchling",
+  "notebook>=7,<8",
   "pre-commit>=4,<=5",
   "pytest>=9.0.3,<10",
   "pytest-xdist>=3.8,<4",
