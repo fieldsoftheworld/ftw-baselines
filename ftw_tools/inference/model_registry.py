@@ -154,17 +154,21 @@ MODEL_REGISTRY = {
     ),
     "FTP_PRUE_EFNET_B3": ModelSpec(
         title="FTP: PRUE+, B3",
-        url="https://hf.co/taylor-geospatial/ftp-b3/resolve/main/ftp-b3.ckpt",
+        url="https://hf.co/fieldsoftheworld/ftp-b3/resolve/"
+        "301701bb04e62b1b55c7d807556a53600e6f386a/ftp-b3.ckpt",
         description="A three class (field, boundary, neither) Fields of the Planet model trained with EfficientNet-B3 on 3 m PlanetScope imagery. This is the headline PRUE+ model and is more compact than the B7 variant. Requires two seasonal time windows with four bands each.",
         license="CC-BY-NC-4.0",
         version="v1",
+        normalization=10000.0,
     ),
     "FTP_PRUE_EFNET_B7": ModelSpec(
         title="FTP: PRUE+, B7",
-        url="https://hf.co/taylor-geospatial/ftp-b7/resolve/main/ftp-b7.ckpt",
+        url="https://hf.co/fieldsoftheworld/ftp-b7/resolve/"
+        "334c2f11aac989b279c46c031aa9fcdf15ccfe74/ftp-b7.ckpt",
         description="A three class (field, boundary, neither) Fields of the Planet model trained with EfficientNet-B7 on 3 m PlanetScope imagery. This larger PRUE+ variant offers stronger pixel IoU at the cost of additional compute. Requires two seasonal time windows with four bands each.",
         license="CC-BY-NC-4.0",
         version="v1",
+        normalization=10000.0,
     ),
     "FTW_PRUE_EFNET_B3_CCBY": ModelSpec(
         title="FTW v3: CC-BY, B3",
