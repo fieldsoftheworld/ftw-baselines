@@ -1,3 +1,6 @@
+from pathlib import Path
+from unittest.mock import patch
+
 import geopandas as gpd
 import numpy as np
 import pytest
@@ -5,6 +8,27 @@ import rasterio
 import torch
 
 pytest.importorskip("ultralytics")
+
+
+def test_delineate_anything_loads_from_hub_cache(tmp_path: Path):
+    from ftw_tools.inference.models import DelineateAnything
+
+    url = DelineateAnything.checkpoints["DelineateAnything-S"]
+    expected = tmp_path / "checkpoints" / url.rsplit("/", 1)[-1]
+
+    def fake_download(url, dst, progress=True):
+        Path(dst).write_bytes(b"weights")
+
+    with (
+        patch("torch.hub.get_dir", return_value=str(tmp_path)),
+        patch("torch.hub.download_url_to_file", side_effect=fake_download) as dl,
+        patch("ultralytics.YOLO") as yolo,
+    ):
+        DelineateAnything(model="DelineateAnything-S", device="cpu")
+        DelineateAnything(model="DelineateAnything-S", device="cpu")
+
+    assert dl.call_count == 1
+    assert [c.args[0] for c in yolo.call_args_list] == [str(expected)] * 2
 
 
 def test_delineate_anything():

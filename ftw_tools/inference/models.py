@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Literal
 
 import geopandas as gpd
@@ -107,6 +108,18 @@ class FCSiamAvg(FCSiamDiff):
         return masks
 
 
+def cached_checkpoint(url: str) -> str:
+    """Download ``url`` into the torch hub cache once and return the local path."""
+    # ultralytics writes downloads in place, so concurrent loaders can read a
+    # partial file; torch.hub writes to a temp file and moves it into place.
+    cache_dir = Path(torch.hub.get_dir()) / "checkpoints"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    path = cache_dir / url.rsplit("/", 1)[-1]
+    if not path.exists():
+        torch.hub.download_url_to_file(url, str(path), progress=True)
+    return str(path)
+
+
 class DelineateAnything:
     """DelineateAnything model for delineating fields in satellite imagery."""
 
@@ -153,7 +166,7 @@ class DelineateAnything:
         self.device = device
         from ultralytics import YOLO
 
-        self.model = YOLO(self.checkpoints[model]).to(device)
+        self.model = YOLO(cached_checkpoint(self.checkpoints[model])).to(device)
         self.model.eval()
         self.model.fuse()
         self.transforms = nn.Sequential(
