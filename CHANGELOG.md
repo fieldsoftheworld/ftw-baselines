@@ -10,6 +10,8 @@
 
 ### Unreleased
 
+- Added a `normalization` field to registry models; `ftw inference run` now divides input imagery by the selected model's value (default 3000)
+
 ### 1.3.0
 
 - Fixed the overwrite check in `ftw run inference`

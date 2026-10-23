@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+import torch
 from click.testing import CliRunner
 
 from ftw_tools.cli import (
@@ -14,6 +15,8 @@ from ftw_tools.cli import (
     inference_run_instance_segmentation_all,
     scene_selection,
 )
+from ftw_tools.inference.inference import run
+from ftw_tools.inference.model_registry import MODEL_REGISTRY
 
 
 @pytest.fixture(scope="session")
@@ -165,6 +168,52 @@ def test_inference_run(tmp_path: Path):
     )
     assert "Finished inference and saved output" in result.output
     assert os.path.exists(str(inf_output_path))
+
+
+class _StopBeforeInference(Exception):
+    pass
+
+
+@pytest.mark.parametrize("divisor", [3000.0, 10000.0])
+def test_run_uses_registry_normalization(tmp_path: Path, divisor: float):
+    model_name = "FTW_PRUE_EFNET_B5"
+    spec = MODEL_REGISTRY[model_name].model_copy(update={"normalization": divisor})
+    captured = {}
+
+    def capture_dataset(fn, transforms=None):
+        captured["transforms"] = transforms
+        raise _StopBeforeInference
+
+    with (
+        patch.dict(MODEL_REGISTRY, {model_name: spec}),
+        patch("ftw_tools.inference.inference.torch.hub.download_url_to_file"),
+        patch(
+            "ftw_tools.inference.inference.load_model_from_checkpoint",
+            return_value=(torch.nn.Identity(), "unet"),
+        ),
+        patch(
+            "ftw_tools.inference.inference.SingleRasterDataset",
+            side_effect=capture_dataset,
+        ),
+        pytest.raises(_StopBeforeInference),
+    ):
+        run(
+            input="./tests/data-files/inference-img.tif",
+            model=model_name,
+            out=str(tmp_path / "out.tif"),
+            resize_factor=1,
+            gpu=-1,
+            patch_size=None,
+            batch_size=1,
+            num_workers=0,
+            padding=None,
+            overwrite=True,
+            mps_mode=False,
+            save_scores=False,
+        )
+
+    sample = captured["transforms"]({"image": torch.full((8, 2, 2), divisor)})
+    assert torch.equal(sample["image"], torch.ones(8, 2, 2))
 
 
 def test_inference_polygonize(tmp_path: Path):

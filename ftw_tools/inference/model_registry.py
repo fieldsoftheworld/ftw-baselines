@@ -21,6 +21,9 @@ class ModelSpec(BaseModel):
     description: str = Field(min_length=1)
     license: Literal["CC-BY-4.0", "AGPL-3", "Mixed Open Licenses"]
     version: str = Field(description="Model version (e.g., v1, v2, v3)")
+    normalization: float = Field(
+        default=3000.0, gt=0, description="Divisor applied to input imagery"
+    )
     requires_window: bool = True
     requires_polygonize: bool = True
     instance_segmentation: bool = False
