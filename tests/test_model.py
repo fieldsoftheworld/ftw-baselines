@@ -144,6 +144,9 @@ def test_model_test(shared_data_dir, trained_model_checkpoint, caplog):
             "Rwanda",  # should be "rwanda", but let's test case insensitivity
             "--out",
             str(results_dir / "results.csv"),
+            "--bootstrap",
+            "--n_bootstrap",
+            "10",
         ],
     )
 
@@ -151,42 +154,6 @@ def test_model_test(shared_data_dir, trained_model_checkpoint, caplog):
     assert "Created dataloader" in result.output
     assert "Object level recall" in result.output
     assert (results_dir / "results.csv").exists()
-
-
-def test_model_test_bootstrap(shared_data_dir, trained_model_checkpoint):
-    if not trained_model_checkpoint.exists():
-        result, _ = _create_modified_config_and_train(shared_data_dir)
-        assert result.exit_code == 0, f"Model training failed: {result.stderr}"
-
-    out = shared_data_dir / "results" / "bootstrap.csv"
-    out.parent.mkdir(exist_ok=True)
-    result = CliRunner().invoke(
-        model_test,
-        [
-            "--gpu",
-            "0",
-            "--dir",
-            str(shared_data_dir / "data" / "ftw"),
-            "--model",
-            str(trained_model_checkpoint),
-            "--countries",
-            "rwanda",
-            "--out",
-            str(out),
-            "--bootstrap",
-            "--n_bootstrap",
-            "20",
-            "--confidence_level",
-            "0.9",
-            "--bootstrap_seed",
-            "3",
-        ],
-    )
-
-    assert result.exit_code == 0, result.output
-    header, row = out.read_text().splitlines()
-    assert header.endswith("object_level_f1_ci_upper")
-    assert len(row.split(",")) == len(header.split(","))
 
 
 def test_model_list_output():

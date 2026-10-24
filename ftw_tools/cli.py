@@ -479,13 +479,6 @@ def model_fit(config, ckpt_path, cli_args):
     show_default=True,
     help="Confidence level of the bootstrap intervals (with --bootstrap).",
 )
-@click.option(
-    "--bootstrap_seed",
-    type=int,
-    default=42,
-    show_default=True,
-    help="Random seed for bootstrap resampling (with --bootstrap).",
-)
 def model_test(
     model,
     countries,
@@ -504,7 +497,6 @@ def model_test(
     bootstrap,
     n_bootstrap,
     confidence_level,
-    bootstrap_seed,
 ):
     from ftw_tools.training.eval import test
 
@@ -526,7 +518,6 @@ def model_test(
         bootstrap,
         n_bootstrap,
         confidence_level,
-        bootstrap_seed,
     )
 
 

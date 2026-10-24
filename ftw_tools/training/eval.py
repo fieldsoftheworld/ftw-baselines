@@ -52,7 +52,7 @@ def gpu_memory_manager():
 
 
 def pixel_confusion_counts(outputs: torch.Tensor, masks: torch.Tensor) -> np.ndarray:
-    """Per-sample TP, FP and FN pixel counts for class 1, ignoring mask value 3."""
+    """Per-sample (TP, FP, FN) pixel counts for class 1, ignoring mask value 3."""
     pred = (outputs == 1) & (masks != 3)
     true = masks == 1
     counts = torch.stack([pred & true, pred & ~true, ~pred & true], dim=1)
@@ -65,32 +65,28 @@ def bootstrap_confidence_intervals(
     confidence_level: float = 0.95,
     seed: int = 42,
 ) -> dict[str, tuple[float, float]]:
-    """Compute bootstrap confidence intervals from per-sample pixel and object TP, FP, FN counts."""
+    """Bootstrap CIs from per-sample pixel and object (TP, FP, FN) counts."""
     rng = np.random.RandomState(seed)
     n_samples = len(sample_counts)
-    totals = np.empty((n_resamples, 6), dtype=np.int64)
-    for i in tqdm(range(n_resamples)):
+    totals = np.empty((n_resamples, 6))
+    for i in range(n_resamples):
         indices = rng.choice(n_samples, size=n_samples, replace=True)
         totals[i] = np.bincount(indices, minlength=n_samples) @ sample_counts
 
-    pixel_tp, pixel_fp, pixel_fn, object_tp, object_fp, object_fn = totals.T.astype(
-        np.float64
-    )
-    with np.errstate(divide="ignore", invalid="ignore"):
-        object_precision = object_tp / (object_tp + object_fp)
-        object_recall = object_tp / (object_tp + object_fn)
-        resampled = {
-            "pixel_iou": pixel_tp / (pixel_tp + pixel_fp + pixel_fn),
-            "pixel_precision": pixel_tp / (pixel_tp + pixel_fp),
-            "pixel_recall": pixel_tp / (pixel_tp + pixel_fn),
-            "object_precision": object_precision,
-            "object_recall": object_recall,
-            "object_f1": 2
-            * object_precision
-            * object_recall
-            / (object_precision + object_recall),
-        }
-
+    pixel_tp, pixel_fp, pixel_fn, object_tp, object_fp, object_fn = totals.T
+    object_precision = object_tp / (object_tp + object_fp)
+    object_recall = object_tp / (object_tp + object_fn)
+    resampled = {
+        "pixel_iou": pixel_tp / (pixel_tp + pixel_fp + pixel_fn),
+        "pixel_precision": pixel_tp / (pixel_tp + pixel_fp),
+        "pixel_recall": pixel_tp / (pixel_tp + pixel_fn),
+        "object_precision": object_precision,
+        "object_recall": object_recall,
+        "object_f1": 2
+        * object_precision
+        * object_recall
+        / (object_precision + object_recall),
+    }
     alpha = 1 - confidence_level
     return {
         name: tuple(np.nanpercentile(values, [100 * alpha / 2, 100 * (1 - alpha / 2)]))
@@ -152,7 +148,6 @@ def test(
     bootstrap: bool = False,
     n_bootstrap: int = 1000,
     confidence_level: float = 0.95,
-    bootstrap_seed: int = 42,
 ):
     """Command to test the model."""
     target_split = "val" if use_val_set else "test"
@@ -232,16 +227,8 @@ def test(
         device
     )
 
-    # For bootstrap: collect per-sample data
     pixel_counts = []
-    object_tps = []
-    object_fps = []
-    object_fns = []
-
-    all_tps = 0
-    all_fps = 0
-    all_fns = 0
-
+    object_counts = []
     for batch in tqdm(dl):
         images = batch["image"].to(device) / norm
         masks = batch["mask"].to(device)
@@ -270,37 +257,24 @@ def test(
                     "Cannot test on 3 classes when the model was trained on 2 classes"
                 )
 
-        # Update global metrics (for backward compatibility)
         metrics.update(outputs, masks)
-        outputs_np = outputs.cpu().numpy().astype(np.uint8)
-        masks_np = masks.cpu().numpy().astype(np.uint8)
         if bootstrap:
             pixel_counts.append(pixel_confusion_counts(outputs, masks))
-
-        # Store data for bootstrap if requested
-        for i in range(len(outputs)):
-            output_np = outputs_np[i]
-            mask_np = masks_np[i]
-
-            # Object-level metrics per sample
-            tps, fps, fns = get_object_level_metrics(
-                mask_np, output_np, iou_threshold=iou_threshold
+        outputs_np = outputs.cpu().numpy().astype(np.uint8)
+        masks_np = masks.cpu().numpy().astype(np.uint8)
+        for output_np, mask_np in zip(outputs_np, masks_np):
+            object_counts.append(
+                get_object_level_metrics(
+                    mask_np, output_np, iou_threshold=iou_threshold
+                )
             )
-
-            if bootstrap:
-                object_tps.append(tps)
-                object_fps.append(fps)
-                object_fns.append(fns)
-
-            all_tps += tps
-            all_fps += fps
-            all_fns += fns
 
     # Compute overall metrics
     results = metrics.compute()
     pixel_level_iou = results["MulticlassJaccardIndex"][1].item()
     pixel_level_precision = results["MulticlassPrecision"][1].item()
     pixel_level_recall = results["MulticlassRecall"][1].item()
+    all_tps, all_fps, all_fns = np.sum(object_counts, axis=0).tolist()
 
     if all_tps + all_fps > 0:
         object_precision = all_tps / (all_tps + all_fps)
@@ -322,44 +296,27 @@ def test(
     else:
         object_f1 = float("nan")
 
-    # Bootstrap confidence intervals if requested
     confidence_intervals = None
     if bootstrap:
-        del metrics, model  # Free memory
-        torch.cuda.empty_cache() if torch.cuda.is_available() else None
-
-        sample_counts = np.column_stack(
-            [np.concatenate(pixel_counts), object_tps, object_fps, object_fns]
-        )
+        sample_counts = np.hstack([np.concatenate(pixel_counts), object_counts])
         confidence_intervals = bootstrap_confidence_intervals(
-            sample_counts, n_bootstrap, confidence_level, bootstrap_seed
+            sample_counts, n_bootstrap, confidence_level
         )
 
-        print(
-            f"Pixel level IoU: {pixel_level_iou:.4f} [{confidence_intervals['pixel_iou'][0]:.4f}, {confidence_intervals['pixel_iou'][1]:.4f}]"
-        )
-        print(
-            f"Pixel level precision: {pixel_level_precision:.4f} [{confidence_intervals['pixel_precision'][0]:.4f}, {confidence_intervals['pixel_precision'][1]:.4f}]"
-        )
-        print(
-            f"Pixel level recall: {pixel_level_recall:.4f} [{confidence_intervals['pixel_recall'][0]:.4f}, {confidence_intervals['pixel_recall'][1]:.4f}]"
-        )
-        print(
-            f"Object level precision: {object_precision:.4f} [{confidence_intervals['object_precision'][0]:.4f}, {confidence_intervals['object_precision'][1]:.4f}]"
-        )
-        print(
-            f"Object level recall: {object_recall:.4f} [{confidence_intervals['object_recall'][0]:.4f}, {confidence_intervals['object_recall'][1]:.4f}]"
-        )
-        print(
-            f"Object level F1: {object_f1:.4f} [{confidence_intervals['object_f1'][0]:.4f}, {confidence_intervals['object_f1'][1]:.4f}]"
-        )
-    else:
-        print(f"Pixel level IoU: {pixel_level_iou:.4f}")
-        print(f"Pixel level precision: {pixel_level_precision:.4f}")
-        print(f"Pixel level recall: {pixel_level_recall:.4f}")
-        print(f"Object level precision: {object_precision:.4f}")
-        print(f"Object level recall: {object_recall:.4f}")
-        print(f"Object level F1: {object_f1:.4f}")
+    point_estimates = {
+        "pixel_iou": ("Pixel level IoU", pixel_level_iou),
+        "pixel_precision": ("Pixel level precision", pixel_level_precision),
+        "pixel_recall": ("Pixel level recall", pixel_level_recall),
+        "object_precision": ("Object level precision", object_precision),
+        "object_recall": ("Object level recall", object_recall),
+        "object_f1": ("Object level F1", object_f1),
+    }
+    for name, (label, value) in point_estimates.items():
+        line = f"{label}: {value:.4f}"
+        if confidence_intervals is not None:
+            lower, upper = confidence_intervals[name]
+            line += f" [{lower:.4f}, {upper:.4f}]"
+        print(line)
 
     country_str = ";".join(countries)
     if set(countries) == set(FULL_DATA_COUNTRIES):
@@ -384,7 +341,7 @@ def test(
                     )
 
         with open(out, "a") as f:
-            if bootstrap and confidence_intervals is not None:
+            if confidence_intervals is not None:
                 ci = confidence_intervals
                 f.write(
                     f"{model_path},{country_str},{pixel_level_iou},{pixel_level_precision},{pixel_level_recall},{object_precision},{object_recall},{object_f1},"
