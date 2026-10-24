@@ -53,7 +53,7 @@ dependencies = [
   "tensorboard>=2.15,<3",
   "torch>=2.2,<3",
   "torchgeo>=0.9,<1",
-  "torchvision>=0.17,<0.26",
+  "torchvision>=0.17,<0.30",
   "tqdm>=4.65,<5",
 ]
 optional-dependencies.all = [ "ftw-tools[delineate-anything,dev]" ]
