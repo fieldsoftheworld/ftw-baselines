@@ -1,4 +1,3 @@
-import hashlib
 import logging
 import os
 import shutil
@@ -8,30 +7,7 @@ from tqdm import tqdm
 
 from ftw_tools.download.io import copy_url_to_file
 from ftw_tools.settings import ALL_COUNTRIES
-
-
-def load_checksums(local_md5_file_path):
-    """
-    Load the checksum data from a local md5 file.
-
-    :param local_md5_file_path: Path to the local checksum.md5 file
-    :return: Dictionary with country name as key and checksum hash as value
-    """
-    checksum_data = {}
-    with open(local_md5_file_path, "r") as file:
-        for line in file:
-            country, checksum = line.strip().split(",")
-            checksum_data[country.lower()] = checksum
-    return checksum_data
-
-
-def calculate_md5(file_path):
-    """Calculate the MD5 checksum of a file."""
-    hash_md5 = hashlib.md5()
-    with open(file_path, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-    return hash_md5.hexdigest()
+from ftw_tools.utils import compute_md5, load_archive_checksums
 
 
 def download(out, clean_download, countries):
@@ -119,7 +95,7 @@ def download(out, clean_download, countries):
             return False
 
         # Calculate the MD5 checksum of the downloaded file
-        calculated_checksum = calculate_md5(zip_file_path)
+        calculated_checksum = compute_md5(zip_file_path)
         expected_checksum = checksum_data[country]
 
         if calculated_checksum == expected_checksum:
@@ -186,7 +162,7 @@ def download(out, clean_download, countries):
             print(f"Downloaded checksum.md5 to {local_md5_file_path}")
 
     # Step 2: Load the checksum data
-    checksum_data = load_checksums(local_md5_file_path)
+    checksum_data = load_archive_checksums(local_md5_file_path)
 
     # Step 3: Handle country selection (all or specific countries)
     if countries == "all":

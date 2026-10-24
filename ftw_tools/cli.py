@@ -254,6 +254,38 @@ def data_unpack(input):
     unpack(input)
 
 
+@data.command("validate", help="Validate an unpacked FTW dataset before training.")
+@click.argument(
+    "input",
+    type=click.Path(exists=True, dir_okay=True, file_okay=False),
+    default="./data/ftw",
+    required=False,
+)
+@click.option(
+    "--countries",
+    default="all",
+    show_default=True,
+    help="Comma-separated countries to validate. 'all' uses countries found in INPUT.",
+)
+def data_validate(input, countries):
+    """Validate dataset structure, samples, splits, and available checksums."""
+    from ftw_tools.data_validation import (
+        format_validation_report,
+        parse_countries,
+        validate_dataset,
+    )
+
+    try:
+        selected_countries = parse_countries(countries, input)
+    except ValueError as error:
+        raise click.BadParameter(str(error), param_hint="--countries") from error
+
+    report = validate_dataset(input, selected_countries)
+    click.echo(format_validation_report(report))
+    if not report.valid:
+        raise click.exceptions.Exit(1)
+
+
 ### Model group
 
 
