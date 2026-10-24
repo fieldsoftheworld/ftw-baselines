@@ -1,5 +1,6 @@
 """Trainer for semantic segmentation."""
 
+import logging
 import warnings
 from typing import Any, Optional, Union
 
@@ -20,6 +21,9 @@ from torchgeo.models import FCN, FCSiamConc, FCSiamDiff
 from torchgeo.trainers.base import BaseTask
 from torchmetrics import MetricCollection
 from torchmetrics.classification import (
+    BinaryJaccardIndex,
+    BinaryPrecision,
+    BinaryRecall,
     MulticlassJaccardIndex,
     MulticlassPrecision,
     MulticlassRecall,
@@ -39,6 +43,9 @@ from .losses import (
 )
 from .metrics import get_object_level_metrics
 from .utils import batch_corner_consensus_from_model
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 
 class CustomSemanticSegmentationTask(BaseTask):
@@ -66,7 +73,8 @@ class CustomSemanticSegmentationTask(BaseTask):
         freeze_backbone: bool = False,
         freeze_decoder: bool = False,
         edge_agreement_loss: bool = False,
-        model_kwargs: dict[Any, Any] = dict(),
+        pretrained_checkpoint: Optional[str] = None,
+        model_kwargs: Optional[dict[Any, Any]] = None,
     ) -> None:
         """Initialize a new SemanticSegmentationTask instance.
 
@@ -101,6 +109,10 @@ class CustomSemanticSegmentationTask(BaseTask):
                 the segmentation head.
             edge_agreement_loss: If True, ignore non-edge pixels by remapping them to
                 the reserved "unknown" class index before loss computation.
+            pretrained_checkpoint: Path to a checkpoint file from which to load
+                encoder and decoder weights. This is used for transfer learning from
+                edge pre-training. If provided, weights are loaded after model
+                initialization, overriding ImageNet or random weights.
             model_kwargs: Additional keyword arguments to pass to the model
 
         Warns:
@@ -325,7 +337,7 @@ class CustomSemanticSegmentationTask(BaseTask):
         in_channels: int = self.hparams["in_channels"]
         num_classes: int = self.hparams["num_classes"]
         num_filters: int = self.hparams["num_filters"]
-        model_kwargs: dict[Any, Any] = self.hparams["model_kwargs"]
+        model_kwargs: dict[Any, Any] = self.hparams["model_kwargs"] or {}
         patch_weights: bool = self.hparams["patch_weights"]
 
         if model == "unet":
@@ -407,6 +419,12 @@ class CustomSemanticSegmentationTask(BaseTask):
         if in_channels < 5 and model in ["fcsiamdiff", "fcsiamconc", "fcsiamavg"]:
             raise ValueError("FCSiam models require more than one input image.")
 
+        # Load encoder and decoder weights from a pre-trained checkpoint (e.g., edge pre-training)
+        pretrained_checkpoint = self.hparams.get("pretrained_checkpoint")
+        if pretrained_checkpoint is not None:
+            logger.info("Loading from checkpoint: %s", pretrained_checkpoint)
+            self._load_pretrained_weights(pretrained_checkpoint)
+
         # Freeze backbone
         if self.hparams["freeze_backbone"] and model in ["unet", "deeplabv3+"]:
             for param in self.model.encoder.parameters():
@@ -419,6 +437,63 @@ class CustomSemanticSegmentationTask(BaseTask):
 
         if patch_weights:
             self.transfer_weights(self.model, backbone)
+
+    def _load_pretrained_weights(self, checkpoint_path: str) -> None:
+        """Load encoder and decoder weights from a checkpoint file.
+
+        Args:
+            checkpoint_path: Path to the checkpoint file (.ckpt).
+        """
+        ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+        state_dict = ckpt.get("state_dict", ckpt)
+
+        # Extract encoder weights (keys start with "model.encoder.")
+        encoder_state = {}
+        for key, value in state_dict.items():
+            if key.startswith("model.encoder."):
+                new_key = key.replace("model.encoder.", "")
+                encoder_state[new_key] = value
+
+        # Extract decoder weights (keys start with "model.decoder.")
+        decoder_state = {}
+        for key, value in state_dict.items():
+            if key.startswith("model.decoder."):
+                new_key = key.replace("model.decoder.", "")
+                decoder_state[new_key] = value
+
+        if not encoder_state and not decoder_state:
+            raise ValueError(
+                f"No encoder or decoder weights found in checkpoint {checkpoint_path}. "
+                "Expected keys starting with 'model.encoder.' or 'model.decoder.'"
+            )
+
+        # Load encoder weights
+        if encoder_state:
+            result = self.model.encoder.load_state_dict(encoder_state, strict=False)
+            if result is None:
+                logger.info("Loaded encoder weights from %s.", checkpoint_path)
+            else:
+                missing, unexpected = result
+                logger.info(
+                    "Loaded encoder weights from %s. Missing: %d, Unexpected: %d",
+                    checkpoint_path,
+                    len(missing),
+                    len(unexpected),
+                )
+
+        # Load decoder weights
+        if decoder_state:
+            result = self.model.decoder.load_state_dict(decoder_state, strict=False)
+            if result is None:
+                logger.info("Loaded decoder weights from %s.", checkpoint_path)
+            else:
+                missing, unexpected = result
+                logger.info(
+                    "Loaded decoder weights from %s. Missing: %d, Unexpected: %d",
+                    checkpoint_path,
+                    len(missing),
+                    len(unexpected),
+                )
 
     def _log_per_class(self, metrics_dict, split: str):
         # metrics_dict like {"precision": tensor(C,), "recall": tensor(C,), "iou": tensor(C,)}
@@ -725,3 +800,262 @@ class CustomSemanticSegmentationTask(BaseTask):
             model.load_state_dict(model_dict)
         else:
             print("Due to mismatch in the Tensor size, unable to patch weights.")
+
+
+class EdgePretrainingTask(BaseTask):
+    """Pre-training task for edge prediction.
+
+    This task trains a segmentation model to predict binary edge masks from
+    satellite imagery. The pre-trained encoder can then be used as initialization
+    for the main segmentation task.
+    """
+
+    def __init__(
+        self,
+        model: str = "unet",
+        backbone: str = "efficientnet-b3",
+        weights: Optional[Union[WeightsEnum, str, bool]] = True,
+        in_channels: int = 8,
+        lr: float = 1e-3,
+        patience: int = 100,
+        model_kwargs: Optional[dict[Any, Any]] = None,
+    ) -> None:
+        """Initialize EdgePretrainingTask.
+
+        Args:
+            model: Name of the segmentation model (e.g., "unet").
+            backbone: Name of the encoder backbone (e.g., "efficientnet-b3").
+            weights: Initial encoder weights. True for ImageNet, False/None for random.
+            in_channels: Number of input channels.
+            lr: Learning rate.
+            patience: Patience for cosine annealing scheduler.
+            model_kwargs: Additional keyword arguments for the model.
+        """
+        self.weights = weights
+        super().__init__()
+
+    def configure_losses(self) -> None:
+        """Initialize the loss criterion (BCE + Dice for edge prediction)."""
+        self.bce_loss = nn.BCEWithLogitsLoss()
+        self.dice_loss = smp.losses.DiceLoss(mode="binary", from_logits=True)
+
+    def configure_metrics(self) -> None:
+        """Initialize the performance metrics for binary edge prediction."""
+        base_metrics = {
+            "precision": BinaryPrecision(),
+            "recall": BinaryRecall(),
+            "iou": BinaryJaccardIndex(),
+        }
+        self.train_metrics = MetricCollection(base_metrics, prefix="train/")
+        self.val_metrics = self.train_metrics.clone(prefix="val/")
+        self.test_metrics = self.train_metrics.clone(prefix="test/")
+
+    def configure_models(self) -> None:
+        """Initialize the segmentation model with 1 output class for binary edges."""
+        model: str = self.hparams["model"]
+        backbone: str = self.hparams["backbone"]
+        weights = self.weights
+        in_channels: int = self.hparams["in_channels"]
+        model_kwargs: dict[Any, Any] = self.hparams["model_kwargs"] or {}
+
+        if model == "unet":
+            self.model = smp.Unet(
+                encoder_name=backbone,
+                encoder_weights="imagenet" if weights is True else None,
+                in_channels=in_channels,
+                classes=1,
+                **model_kwargs,
+            )
+        elif model == "deeplabv3+":
+            self.model = smp.DeepLabV3Plus(
+                encoder_name=backbone,
+                encoder_weights="imagenet" if weights is True else None,
+                in_channels=in_channels,
+                classes=1,
+                **model_kwargs,
+            )
+        else:
+            raise ValueError(
+                f"Model '{model}' not supported for edge pretraining. Use 'unet' or 'deeplabv3+'."
+            )
+
+    def forward(self, x: Tensor) -> Tensor:
+        """Forward pass."""
+        return self.model(x)
+
+    def _log_edge_visualization(
+        self, x: Tensor, edge: Tensor, y_hat: Tensor, batch_idx: int
+    ) -> None:
+        """Log visualization of edge predictions to TensorBoard.
+
+        Args:
+            x: Input image tensor (B, C, H, W).
+            edge: Ground truth edge mask (B, H, W).
+            y_hat: Raw model output logits (B, H, W).
+            batch_idx: Batch index for labeling.
+        """
+        # Take first sample from batch
+        img = x[0].cpu().numpy()
+        gt_edge = edge[0].cpu().numpy()
+        pred_prob = torch.sigmoid(y_hat[0]).cpu().numpy()
+        pred_binary = (pred_prob > 0.5).astype(np.float32)
+
+        # Check if we have stacked temporal windows (8 channels = 2x4 bands)
+        num_channels = img.shape[0]
+        has_two_windows = num_channels >= 8
+
+        if has_two_windows:
+            # Two temporal windows stacked
+            img1 = img[:3].transpose(1, 2, 0)
+            img2 = img[4:7].transpose(1, 2, 0)
+            num_panels = 5
+        else:
+            # Single window
+            img1 = img[:3].transpose(1, 2, 0)
+            img2 = None
+            num_panels = 4
+
+        fig, axes = plt.subplots(1, num_panels, figsize=(num_panels * 4, 4))
+
+        # Use np.clip like FTW.plot() for consistency
+        axes[0].imshow(np.clip(img1, 0, 1))
+        axes[0].set_title("Window B")
+        axes[0].axis("off")
+
+        panel_idx = 1
+        if has_two_windows:
+            axes[panel_idx].imshow(np.clip(img2, 0, 1))
+            axes[panel_idx].set_title("Window A")
+            axes[panel_idx].axis("off")
+            panel_idx += 1
+
+        axes[panel_idx].imshow(gt_edge, cmap="gray", vmin=0, vmax=1)
+        axes[panel_idx].set_title("Ground Truth Edge")
+        axes[panel_idx].axis("off")
+
+        axes[panel_idx + 1].imshow(pred_prob, cmap="gray", vmin=0, vmax=1)
+        axes[panel_idx + 1].set_title("Predicted Probability")
+        axes[panel_idx + 1].axis("off")
+
+        axes[panel_idx + 2].imshow(pred_binary, cmap="gray", vmin=0, vmax=1)
+        axes[panel_idx + 2].set_title("Predicted Edge (>0.5)")
+        axes[panel_idx + 2].axis("off")
+
+        plt.tight_layout()
+
+        # Log to all available loggers
+        for log in self.loggers:
+            if hasattr(log, "experiment") and hasattr(log.experiment, "add_figure"):
+                log.experiment.add_figure(
+                    f"edge_val/{batch_idx}", fig, global_step=self.global_step
+                )
+
+        plt.close(fig)
+
+    def training_step(
+        self, batch: Any, batch_idx: int, dataloader_idx: int = 0
+    ) -> Tensor:
+        """Compute training loss for edge prediction.
+
+        Args:
+            batch: Dictionary with "image" and "edge" tensors.
+            batch_idx: Index of this batch.
+            dataloader_idx: Index of the current dataloader.
+
+        Returns:
+            The loss tensor.
+        """
+        x = batch["image"]
+        # Binarize edges: edge > 0 means edge pixel
+        edge = (batch["edge"].squeeze(1) > 0).float()
+
+        y_hat = self(x).squeeze(1)  # Shape: (B, H, W)
+
+        bce = self.bce_loss(y_hat, edge)
+        dice = self.dice_loss(y_hat.unsqueeze(1), edge.unsqueeze(1))
+        loss = bce + dice
+
+        self.log("train/loss", loss, on_step=True, on_epoch=True, prog_bar=True)
+        self.log("train/bce", bce, on_step=False, on_epoch=True)
+        self.log("train/dice", dice, on_step=False, on_epoch=True)
+
+        preds = (torch.sigmoid(y_hat) > 0.5).long()
+        self.train_metrics.update(preds, edge.long())
+
+        return loss
+
+    def validation_step(
+        self, batch: Any, batch_idx: int, dataloader_idx: int = 0
+    ) -> None:
+        """Compute validation loss for edge prediction."""
+        x = batch["image"]
+        edge = (batch["edge"].squeeze(1) > 0).float()
+
+        y_hat = self(x).squeeze(1)
+
+        bce = self.bce_loss(y_hat, edge)
+        dice = self.dice_loss(y_hat.unsqueeze(1), edge.unsqueeze(1))
+        loss = bce + dice
+
+        self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("val/bce", bce, on_step=False, on_epoch=True)
+        self.log("val/dice", dice, on_step=False, on_epoch=True)
+
+        preds = (torch.sigmoid(y_hat) > 0.5).long()
+        self.val_metrics.update(preds, edge.long())
+
+        # Validation visualization for first few batches
+        if (
+            batch_idx < 10
+            and self.logger
+            and hasattr(self.logger, "experiment")
+            and hasattr(self.logger.experiment, "add_figure")
+        ):
+            self._log_edge_visualization(x, edge, y_hat, batch_idx)
+
+    def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
+        """Compute test loss for edge prediction."""
+        x = batch["image"]
+        edge = (batch["edge"].squeeze(1) > 0).float()
+
+        y_hat = self(x).squeeze(1)
+
+        bce = self.bce_loss(y_hat, edge)
+        dice = self.dice_loss(y_hat.unsqueeze(1), edge.unsqueeze(1))
+        loss = bce + dice
+
+        self.log("test/loss", loss)
+
+        preds = (torch.sigmoid(y_hat) > 0.5).long()
+        self.test_metrics.update(preds, edge.long())
+
+    def configure_optimizers(
+        self,
+    ) -> "lightning.pytorch.utilities.types.OptimizerLRSchedulerConfig":
+        """Initialize optimizer and learning rate scheduler."""
+        optimizer = AdamW(self.parameters(), lr=self.hparams["lr"], amsgrad=True)
+        scheduler = CosineAnnealingLR(
+            optimizer, T_max=self.hparams["patience"], eta_min=1e-6
+        )
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {"scheduler": scheduler, "monitor": "val/loss"},
+        }
+
+    def on_train_epoch_end(self) -> None:
+        """Log per-epoch training metrics."""
+        computed = self.train_metrics.compute()
+        self.log_dict(computed, on_step=False, on_epoch=True)
+        self.train_metrics.reset()
+
+    def on_validation_epoch_end(self) -> None:
+        """Log per-epoch validation metrics."""
+        computed = self.val_metrics.compute()
+        self.log_dict(computed, on_step=False, on_epoch=True)
+        self.val_metrics.reset()
+
+    def on_test_epoch_end(self) -> None:
+        """Log per-epoch test metrics."""
+        computed = self.test_metrics.compute()
+        self.log_dict(computed, on_step=False, on_epoch=True)
+        self.test_metrics.reset()
