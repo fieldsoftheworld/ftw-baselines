@@ -7,6 +7,8 @@ import torch
 pytest.importorskip("ultralytics")
 
 
+# ultralytics downloads weights in place, so tests sharing them must not run concurrently
+@pytest.mark.xdist_group("delineate_anything")
 def test_delineate_anything():
     from ultralytics.engine.results import Results
 

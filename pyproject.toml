@@ -109,4 +109,4 @@ ini_options.tmp_path_retention_policy = "failed"
 ini_options.markers = [
   "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
 ]
-ini_options.addopts = '-m "not integration" -n auto'
+ini_options.addopts = '-m "not integration" -n auto --dist loadgroup'
