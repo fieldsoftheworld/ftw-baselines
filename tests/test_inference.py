@@ -255,6 +255,7 @@ def test_ftw_inference_all(tmp_path: Path, mock_crop_calendar_downloads):
     assert os.path.exists(str(out_path))
 
 
+@pytest.mark.xdist_group("delineate_anything")
 def test_instance_segmentation_inference(tmp_path: Path):
     runner = CliRunner()
 
@@ -279,6 +280,7 @@ def test_instance_segmentation_inference(tmp_path: Path):
     assert os.path.exists(str(inf_output_path))
 
 
+@pytest.mark.xdist_group("delineate_anything")
 def test_instance_segmentation_inference_all(tmp_path: Path):
     runner = CliRunner()
 
