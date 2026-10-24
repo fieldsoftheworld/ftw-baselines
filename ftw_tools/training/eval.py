@@ -10,7 +10,7 @@ from einops import rearrange
 from kornia.constants import Resample
 from lightning.pytorch.cli import LightningCLI
 from torch.utils.data import DataLoader
-from torchgeo.trainers import BaseTask
+from torchgeo.tasks import BaseTask
 from torchmetrics import JaccardIndex, MetricCollection, Precision, Recall
 from tqdm import tqdm
 

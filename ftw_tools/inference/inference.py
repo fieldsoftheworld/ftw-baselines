@@ -19,7 +19,7 @@ from rasterio.enums import ColorInterp
 from rasterio.transform import from_bounds
 from torch.utils.data import DataLoader
 from torchgeo.datasets import RasterDataset, stack_samples
-from torchgeo.samplers import GridGeoSampler
+from torchgeo.samplers import GriddedPatchSampler
 from tqdm import tqdm
 
 from ftw_tools.inference.model_registry import MODEL_REGISTRY
@@ -208,7 +208,7 @@ def run(
         preprocess_fn = partial(normalize, divisor=divisor)
 
     dataset = SingleRasterDataset(input, transforms=preprocess_fn)
-    sampler = GridGeoSampler(dataset, size=patch_size, stride=stride)
+    sampler = GriddedPatchSampler(dataset, size=patch_size, stride=stride)
     dataloader = DataLoader(
         dataset,
         sampler=sampler,
@@ -528,7 +528,7 @@ def run_instance_segmentation(
 
     # Load dataset
     dataset = SingleRasterDataset(input)
-    sampler = GridGeoSampler(dataset, size=patch_size, stride=stride)
+    sampler = GriddedPatchSampler(dataset, size=patch_size, stride=stride)
     dataloader = DataLoader(
         dataset,
         sampler=sampler,
