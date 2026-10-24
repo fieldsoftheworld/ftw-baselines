@@ -52,7 +52,7 @@ dependencies = [
   "tenacity>=9.1.2,<10",
   "tensorboard>=2.15,<3",
   "torch>=2.2,<3",
-  "torchgeo>=0.9,<1",
+  "torchgeo>=0.10,<1",
   "torchvision>=0.17,<0.26",
   "tqdm>=4.65,<5",
 ]

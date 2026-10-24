@@ -17,7 +17,7 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torchgeo.datasets import unbind_samples
 from torchgeo.models import FCN, FCSiamConc, FCSiamDiff
-from torchgeo.trainers.base import BaseTask
+from torchgeo.tasks import BaseTask
 from torchmetrics import MetricCollection
 from torchmetrics.classification import (
     MulticlassJaccardIndex,
@@ -44,7 +44,7 @@ from .utils import batch_corner_consensus_from_model
 class CustomSemanticSegmentationTask(BaseTask):
     """Semantic Segmentation.
 
-    This is currently a copy of torchgeo.trainers.SemanticSegmentationTask, but with a
+    This is currently a copy of torchgeo.tasks.SemanticSegmentation, but with a
     fix to allow loading of saved weights.
     """
 
