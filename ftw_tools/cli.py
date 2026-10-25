@@ -292,7 +292,7 @@ def model_list(include_legacy):
             f"  {task_label(spec)} | {inputs_label(spec)} | {output_label(spec)} | {spec.license}"
         )
 
-    click.echo("\nTip: run `ftw model show <name>` for details.")
+    click.echo("\nTip: run `ftw-tools model show <name>` for details.")
 
 
 @model.command("show", help="Show details for a released FTW model.")
@@ -317,15 +317,15 @@ def model_show(name):
     click.echo("\nNext commands:")
     if spec.instance_segmentation:
         click.echo(
-            f"  ftw inference run-instance-segmentation INPUT --model {model_name}"
+            f"  ftw-tools inference run-instance-segmentation INPUT --model {model_name}"
         )
         click.echo(
-            f"  ftw inference instance-segmentation-all STAC_ITEM --model {model_name} --out_dir output"
+            f"  ftw-tools inference instance-segmentation-all STAC_ITEM --model {model_name} --out_dir output"
         )
     else:
-        click.echo(f"  ftw inference run INPUT --model {model_name}")
+        click.echo(f"  ftw-tools inference run INPUT --model {model_name}")
         if spec.requires_polygonize:
-            click.echo("  ftw inference polygonize inference_output.tif")
+            click.echo("  ftw-tools inference polygonize inference_output.tif")
 
 
 @model.command("fit", help="Fit the model")
@@ -1431,7 +1431,7 @@ def inference_run_instance_segmentation_all(
     type=click.FloatRange(min=0, max=1),
     default=None,
     show_default=True,
-    help="Threshold on softmax scores for class predictions. Note: To use this option, you must pass a tif of scores (using `--save_scores` option from `ftw inference run`).",
+    help="Threshold on softmax scores for class predictions. Note: To use this option, you must pass a tif of scores (using `--save_scores` option from `ftw-tools inference run`).",
 )
 @click.option(
     "--merge_adjacent",

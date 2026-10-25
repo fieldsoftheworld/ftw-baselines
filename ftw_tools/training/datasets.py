@@ -119,7 +119,7 @@ class FTW(NonGeoDataset):
 
         if not self._check_integrity():
             raise RuntimeError(
-                "Dataset not found at root directory or corrupted.  Download dataset with `ftw data download`"
+                "Dataset not found at root directory or corrupted.  Download dataset with `ftw-tools data download`"
             )
 
         if checksum:
