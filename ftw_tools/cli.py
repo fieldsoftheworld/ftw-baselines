@@ -190,10 +190,22 @@ def ftw():
 ## Data group
 
 
-@ftw.group()
+MOVED_TO_FTW_CLI = (
+    "It moves to the ftw-cli package (`pip install ftw-cli`) and will be removed "
+    "from ftw-tools in the next major release."
+)
+
+
+def warn_moved_to_ftw_cli(group: str) -> None:
+    click.echo(f"`ftw-tools {group}` is deprecated. {MOVED_TO_FTW_CLI}", err=True)
+
+
+@ftw.group(
+    help=f"Downloading, unpacking, and preparing the FTW dataset.\n\nDeprecated. {MOVED_TO_FTW_CLI}",
+    short_help="(Deprecated) Download and unpack the FTW dataset.",
+)
 def data():
-    """Downloading, unpacking, and preparing the FTW dataset."""
-    pass
+    warn_moved_to_ftw_cli("data")
 
 
 @data.command("download", help="Download and unpack the FTW dataset.")
@@ -508,10 +520,12 @@ def model_test(
 WIN_HELP = "URL to a Sentinel-2 L2A STAC item for the window {x} image. Alternatively, an ID of a STAC Item on Microsoft Planetary Computer."
 
 
-@ftw.group()
+@ftw.group(
+    help=f"Inference-related commands.\n\nDeprecated. {MOVED_TO_FTW_CLI}",
+    short_help="(Deprecated) Inference-related commands.",
+)
 def inference():
-    """Inference-related commands."""
-    pass
+    warn_moved_to_ftw_cli("inference")
 
 
 @inference.command(
