@@ -1,5 +1,18 @@
+import numpy as np
+import pytest
+import torch
+from torchmetrics.classification import (
+    MulticlassJaccardIndex,
+    MulticlassPrecision,
+    MulticlassRecall,
+)
+
 from ftw_tools.settings import FULL_DATA_COUNTRIES
-from ftw_tools.training.eval import expand_countries
+from ftw_tools.training.eval import (
+    bootstrap_confidence_intervals,
+    expand_countries,
+    pixel_confusion_counts,
+)
 
 
 def test_expand_countries_with_full_data():
@@ -57,3 +70,32 @@ def test_expand_countries_does_not_modify_original():
     assert original == original_copy
     assert result == original
     assert result is not original  # Should be a different object
+
+
+def test_bootstrap_matches_direct_computation():
+    rng = np.random.default_rng(0)
+    outputs = torch.from_numpy(rng.integers(0, 2, (24, 16, 16)))
+    masks = torch.from_numpy(rng.choice([0, 1, 2, 3], (24, 16, 16)))
+    object_counts = rng.integers(1, 6, (24, 3))
+    sample_counts = np.hstack([pixel_confusion_counts(outputs, masks), object_counts])
+    actual = bootstrap_confidence_intervals(sample_counts, 50, 0.9)
+
+    pixel_metrics = {
+        "pixel_iou": MulticlassJaccardIndex(3, average="none", ignore_index=3),
+        "pixel_precision": MulticlassPrecision(3, average="none", ignore_index=3),
+        "pixel_recall": MulticlassRecall(3, average="none", ignore_index=3),
+    }
+    resampled = {name: [] for name in actual}
+    np_rng = np.random.RandomState(42)
+    for _ in range(50):
+        idx = np_rng.choice(24, size=24, replace=True)
+        for name, metric in pixel_metrics.items():
+            resampled[name].append(metric(outputs[idx], masks[idx])[1].item())
+        tp, fp, fn = object_counts[idx].sum(0)
+        precision, recall = tp / (tp + fp), tp / (tp + fn)
+        resampled["object_precision"].append(precision)
+        resampled["object_recall"].append(recall)
+        resampled["object_f1"].append(2 * precision * recall / (precision + recall))
+
+    for name, values in resampled.items():
+        assert actual[name] == pytest.approx(np.percentile(values, [5, 95])), name
