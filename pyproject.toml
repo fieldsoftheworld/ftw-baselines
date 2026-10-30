@@ -72,7 +72,7 @@ urls.Changelog = "https://github.com/fieldsoftheworld/ftw-baselines/blob/main/CH
 urls.Homepage = "https://fieldsofthe.world/"
 urls.Issues = "https://github.com/fieldsoftheworld/ftw-baselines/issues"
 urls.Repository = "https://github.com/fieldsoftheworld/ftw-baselines.git"
-scripts.ftw = "ftw_tools.cli:ftw"
+scripts.ftw-tools = "ftw_tools.cli:ftw"
 
 [tool.hatch]
 build.exclude = [

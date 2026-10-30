@@ -10,8 +10,10 @@
 
 ### Unreleased
 
+- Renamed the command from `ftw` to `ftw-tools` to match the PyPI package. `ftw` now belongs to the practitioner CLI, `ftw-cli`.
+- Deprecated `ftw-tools data` and `ftw-tools inference`; they move to `ftw-cli` and will be removed in the next major release.
 - Added the Fields of the Planet (FTP) PlanetScope models `FTP_PRUE_EFNET_B3` and `FTP_PRUE_EFNET_B7` (CC-BY-NC-4.0)
-- Added a `normalization` field to registry models; `ftw inference run` now divides input imagery by the selected model's value (default 3000)
+- Added a `normalization` field to registry models; `ftw-tools inference run` now divides input imagery by the selected model's value (default 3000)
 - Requires torchgeo 0.10. Inference now tiles with `GriddedPatchSampler`, which centers the patch grid on the image instead of anchoring it at the corner, so patch seams move and outputs differ slightly from earlier versions
 
 ### 1.3.0

@@ -163,7 +163,7 @@ def test_model_list_output():
     assert "Released FTW models" in result.output
     assert "FTW_PRUE_EFNET_B5 [default]" in result.output
     assert "DelineateAnything" in result.output
-    assert "Tip: run `ftw model show <name>` for details." in result.output
+    assert "Tip: run `ftw-tools model show <name>` for details." in result.output
     assert "FTW_v1_2_Class_CCBY" not in result.output
 
 
@@ -188,7 +188,7 @@ def test_model_show_output():
     assert "Task: semantic segmentation" in result.output
     assert "Inputs: 2 windows" in result.output
     assert "Default: yes" in result.output
-    assert "ftw inference run INPUT --model FTW_PRUE_EFNET_B5" in result.output
+    assert "ftw-tools inference run INPUT --model FTW_PRUE_EFNET_B5" in result.output
 
 
 def test_model_show_case_insensitive():

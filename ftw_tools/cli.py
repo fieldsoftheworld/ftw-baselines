@@ -190,10 +190,22 @@ def ftw():
 ## Data group
 
 
-@ftw.group()
+MOVED_TO_FTW_CLI = (
+    "It moves to the ftw-cli package (`pip install ftw-cli`) and will be removed "
+    "from ftw-tools in the next major release."
+)
+
+
+def warn_moved_to_ftw_cli(group: str) -> None:
+    click.echo(f"`ftw-tools {group}` is deprecated. {MOVED_TO_FTW_CLI}", err=True)
+
+
+@ftw.group(
+    help=f"Downloading, unpacking, and preparing the FTW dataset.\n\nDeprecated. {MOVED_TO_FTW_CLI}",
+    short_help="(Deprecated) Download and unpack the FTW dataset.",
+)
 def data():
-    """Downloading, unpacking, and preparing the FTW dataset."""
-    pass
+    warn_moved_to_ftw_cli("data")
 
 
 @data.command("download", help="Download and unpack the FTW dataset.")
@@ -292,7 +304,7 @@ def model_list(include_legacy):
             f"  {task_label(spec)} | {inputs_label(spec)} | {output_label(spec)} | {spec.license}"
         )
 
-    click.echo("\nTip: run `ftw model show <name>` for details.")
+    click.echo("\nTip: run `ftw-tools model show <name>` for details.")
 
 
 @model.command("show", help="Show details for a released FTW model.")
@@ -317,15 +329,15 @@ def model_show(name):
     click.echo("\nNext commands:")
     if spec.instance_segmentation:
         click.echo(
-            f"  ftw inference run-instance-segmentation INPUT --model {model_name}"
+            f"  ftw-tools inference run-instance-segmentation INPUT --model {model_name}"
         )
         click.echo(
-            f"  ftw inference instance-segmentation-all STAC_ITEM --model {model_name} --out_dir output"
+            f"  ftw-tools inference instance-segmentation-all STAC_ITEM --model {model_name} --out_dir output"
         )
     else:
-        click.echo(f"  ftw inference run INPUT --model {model_name}")
+        click.echo(f"  ftw-tools inference run INPUT --model {model_name}")
         if spec.requires_polygonize:
-            click.echo("  ftw inference polygonize inference_output.tif")
+            click.echo("  ftw-tools inference polygonize inference_output.tif")
 
 
 @model.command("fit", help="Fit the model")
@@ -508,10 +520,12 @@ def model_test(
 WIN_HELP = "URL to a Sentinel-2 L2A STAC item for the window {x} image. Alternatively, an ID of a STAC Item on Microsoft Planetary Computer."
 
 
-@ftw.group()
+@ftw.group(
+    help=f"Inference-related commands.\n\nDeprecated. {MOVED_TO_FTW_CLI}",
+    short_help="(Deprecated) Inference-related commands.",
+)
 def inference():
-    """Inference-related commands."""
-    pass
+    warn_moved_to_ftw_cli("inference")
 
 
 @inference.command(
@@ -1431,7 +1445,7 @@ def inference_run_instance_segmentation_all(
     type=click.FloatRange(min=0, max=1),
     default=None,
     show_default=True,
-    help="Threshold on softmax scores for class predictions. Note: To use this option, you must pass a tif of scores (using `--save_scores` option from `ftw inference run`).",
+    help="Threshold on softmax scores for class predictions. Note: To use this option, you must pass a tif of scores (using `--save_scores` option from `ftw-tools inference run`).",
 )
 @click.option(
     "--merge_adjacent",

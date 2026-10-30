@@ -11,7 +11,7 @@ def resolve_model_name(name: str) -> str:
         if model_name.lower() == lowered:
             return model_name
     raise click.BadParameter(
-        f"Unknown model '{name}'. Use `ftw model list` to see available models."
+        f"Unknown model '{name}'. Use `ftw-tools model list` to see available models."
     )
 
 
