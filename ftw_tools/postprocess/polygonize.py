@@ -15,7 +15,11 @@ from shapely.ops import transform, unary_union
 from skimage.morphology import dilation, erosion
 from tqdm import tqdm
 
-from ftw_tools.inference.utils import convert_to_fiboa, features_to_dataframe
+from ftw_tools.inference.utils import (
+    convert_to_fiboa,
+    features_to_dataframe,
+    metric_crs_for_geographic_bounds,
+)
 from ftw_tools.settings import SUPPORTED_POLY_FORMATS_TXT
 
 
@@ -344,6 +348,8 @@ def polygonize(
     # read the input file as a mask
     with rasterio.open(input) as src:
         original_crs = src.crs.to_string()
+        source_crs = CRS.from_user_input(src.crs)
+        is_geographic = source_crs.is_geographic
         is_meters = src.crs.linear_units in ["m", "metre", "meter"]
         equal_area_crs = CRS.from_epsg(
             6933
@@ -355,6 +361,14 @@ def polygonize(
         equal_area_from_4326 = Transformer.from_crs(
             CRS.from_epsg(4326), equal_area_crs, always_xy=True
         ).transform
+        if is_geographic:
+            metric_crs = metric_crs_for_geographic_bounds(source_crs, src.bounds)
+            to_metric = Transformer.from_crs(
+                source_crs, metric_crs, always_xy=True
+            ).transform
+            from_metric = Transformer.from_crs(
+                metric_crs, source_crs, always_xy=True
+            ).transform
         tags = src.tags()
 
         input_height, input_width = src.shape
@@ -427,6 +441,12 @@ def polygonize(
 
                         geom = shapely.geometry.shape(geom_geojson)
 
+                        # Distance- and area-based operations use metres for a
+                        # geographic raster. Projected rasters intentionally
+                        # retain their existing input-CRS behaviour.
+                        if is_geographic:
+                            geom = transform(to_metric, geom)
+
                         if erode_dilate > 0:
                             # morphological opening
                             geom = geom.buffer(
@@ -458,8 +478,12 @@ def polygonize(
                         if simplify > 0:
                             geom = geom.simplify(simplify)
 
-                        # Calculate the area of the reprojected geometry
-                        if is_meters:
+                        # Restore the input CRS before writing while retaining
+                        # the metric geometry for filtering and measurements.
+                        if is_geographic:
+                            geom_proj_meters = geom
+                            geom = transform(from_metric, geom)
+                        elif is_meters:
                             geom_proj_meters = geom
                         else:
                             # Reproject the geometry to the equal-area projection
@@ -481,7 +505,20 @@ def polygonize(
                         # explode MultiPolygons if needed
                         if isinstance(geom, shapely.geometry.MultiPolygon):
                             for g in geom.geoms:
-                                if is_meters:
+                                if is_geographic:
+                                    # GeoJSON rows are already in EPSG:4326;
+                                    # other rows remain in the source CRS.
+                                    proj_fn = (
+                                        Transformer.from_crs(
+                                            CRS.from_epsg(4326),
+                                            metric_crs,
+                                            always_xy=True,
+                                        ).transform
+                                        if is_geojson
+                                        else to_metric
+                                    )
+                                    g_proj = transform(proj_fn, g)
+                                elif is_meters:
                                     g_proj = g
                                 else:
                                     # If is_geojson, g has been reprojected to
@@ -520,7 +557,19 @@ def polygonize(
 
     # Merge adjacent polygons
     if merge_adjacent is not None:
-        if is_meters:
+        if is_geographic:
+            merge_proj_fn = (
+                Transformer.from_crs(
+                    CRS.from_epsg(4326), metric_crs, always_xy=True
+                ).transform
+                if is_geojson
+                else to_metric
+            )
+
+            def reproject_fn(geom):
+                return transform(merge_proj_fn, geom)
+
+        elif is_meters:
             reproject_fn = None
         else:
             # Geometries stored in `rows` may already have been reprojected to EPSG:4326
