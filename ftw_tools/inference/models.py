@@ -153,6 +153,7 @@ class DelineateAnything:
         self.device = device
 
         from ultralytics import YOLO, settings
+
         settings.update({"sync": False})
 
         self.model = YOLO(self.checkpoints[model]).to(device)
