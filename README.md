@@ -692,6 +692,17 @@ Options:
   --help  Show this message and exit.
 ```
 
+Before training, validate the unpacked dataset structure, sample files, split
+counts, and any available checksum manifests. By default, the command validates
+all supported country directories found under `INPUT`.
+
+```bash
+ftw data validate ./data/ftw
+ftw data validate ./data/ftw --countries belgium,kenya,vietnam
+```
+
+The command exits with a nonzero status when validation fails.
+
 ### Download the FTW Baseline Dataset
 
 To download and unpack the complete FTW Baseline Dataset, use following command:

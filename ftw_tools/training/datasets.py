@@ -14,8 +14,8 @@ from matplotlib.figure import Figure
 from torch import Tensor
 from torchgeo.datasets import NonGeoDataset
 
+from ftw_tools.data_validation import validate_dataset
 from ftw_tools.settings import ALL_COUNTRIES, TEMPORAL_OPTIONS
-from ftw_tools.utils import validate_checksums
 
 
 class FTW(NonGeoDataset):
@@ -217,21 +217,21 @@ class FTW(NonGeoDataset):
         Returns:
             True if the checksum matches, else False
         """
-        for country in ALL_COUNTRIES:
-            print(f"Validating checksums for {country}")
-            for checksum_file in [
-                "distances_checksums.md5",
-                "masks_checksums.md5",
-                "window_b_checksums.md5",
-                "window_a_checksums.md5",
-            ]:
-                checksum_file = os.path.join(self.root, country, checksum_file)
-                if not os.path.exists(checksum_file):
-                    print(f"Checksum file {checksum_file} not found")
-                    return False
-                if not validate_checksums(checksum_file, self.root):
-                    return False
-        return True
+        mask_directory = (
+            "semantic_3class" if self.load_boundaries else "semantic_2class"
+        )
+        report = validate_dataset(
+            self.root,
+            self.countries,
+            mask_directories=(mask_directory,),
+            check_samples=False,
+            check_checksums=True,
+            require_checksum_files=True,
+        )
+        for country in report.countries:
+            for error in country.errors:
+                print(error)
+        return report.valid
 
     def _check_integrity(self) -> bool:
         """Check the integrity of the dataset structure.
@@ -240,47 +240,22 @@ class FTW(NonGeoDataset):
             True if the dataset directories and split files are found, else False
         """
 
-        for country in self.countries:
-            if country not in ALL_COUNTRIES:
-                print(f"Invalid country {country}")
-                return False
-
-            country_dir = os.path.join(self.root, country)
-            if not os.path.exists(country_dir):
-                print(f"Country directory {country_dir} not found")
-                return False
-
-            chips_fns = list(Path(country_dir).glob("chips_*.parquet"))
-            # boundaries_fns = list(Path(country_dir).glob(f"boundaries_*.parquet"))
-            if len(chips_fns) != 1:
-                print(f"Country {country} does not have chips file")
-                return False
-
-            if self.load_boundaries:
-                if not all(
-                    [
-                        os.path.exists(os.path.join(country_dir, "s2_images/window_b")),
-                        os.path.exists(os.path.join(country_dir, "s2_images/window_a")),
-                        os.path.exists(
-                            os.path.join(country_dir, "label_masks/semantic_3class")
-                        ),
-                    ]
-                ):
-                    print(f"Country {country} does not have all required directories")
-                    return False
-            else:
-                if not all(
-                    [
-                        os.path.exists(os.path.join(country_dir, "s2_images/window_b")),
-                        os.path.exists(os.path.join(country_dir, "s2_images/window_a")),
-                        os.path.exists(
-                            os.path.join(country_dir, "label_masks/semantic_2class")
-                        ),
-                    ]
-                ):
-                    print(f"Country {country} does not have all required directories")
-                    return False
-        return True
+        mask_directory = (
+            "semantic_3class" if self.load_boundaries else "semantic_2class"
+        )
+        report = validate_dataset(
+            self.root,
+            self.countries,
+            mask_directories=(mask_directory,),
+            check_samples=False,
+            check_checksums=False,
+        )
+        for error in report.errors:
+            print(error)
+        for country in report.countries:
+            for error in country.errors:
+                print(error)
+        return report.valid
 
     def __len__(self) -> int:
         """Return the number of data points in the dataset.

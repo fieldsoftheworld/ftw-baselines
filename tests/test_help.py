@@ -2,6 +2,7 @@ from click.testing import CliRunner
 
 from ftw_tools.cli import data_download as download
 from ftw_tools.cli import data_unpack as unpack
+from ftw_tools.cli import data_validate as validate
 from ftw_tools.cli import (
     inference_download,
     inference_polygonize,
@@ -32,6 +33,15 @@ def test_data_unpack():
         f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
     )
     assert "Usage: unpack [OPTIONS] [INPUT]" in result.output
+
+
+def test_data_validate():
+    runner = CliRunner()
+    result = runner.invoke(validate, ["--help"])
+    assert result.exit_code == 0, (
+        f"Exited with {result.exit_code}. Output: {result.stdout} {result.stderr}"
+    )
+    assert "Usage: validate [OPTIONS] [INPUT]" in result.output
 
 
 def test_inference_download():  # create_input
