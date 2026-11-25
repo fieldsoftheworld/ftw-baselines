@@ -16,8 +16,8 @@
 This experimentation section provides guidelines for running model training, testing, and experimentation using multiple GPUs and configuration files.
 
 ```text
-ftw model --help
-  Usage: ftw model [OPTIONS] COMMAND [ARGS]...
+ftw-tools model --help
+  Usage: ftw-tools model [OPTIONS] COMMAND [ARGS]...
 
   Model-related commands.
 
@@ -99,9 +99,9 @@ We use [LightningCLI](https://lightning.ai/docs/pytorch/stable/api/lightning.pyt
 ### Train a model from scratch
 
 ```text
-ftw model fit --help
+ftw-tools model fit --help
 
-Usage: ftw model fit [OPTIONS] [CLI_ARGS]...
+Usage: ftw-tools model fit [OPTIONS] [CLI_ARGS]...
 
   Fit the model
 
@@ -114,7 +114,7 @@ Options:
 You can train your model using a configuration file as follows:
 
 ```bash
-ftw model fit --config configs/example_config.yaml
+ftw-tools model fit --config configs/example_config.yaml
 ```
 
 ### Resume training from a checkpoint
@@ -122,7 +122,7 @@ ftw model fit --config configs/example_config.yaml
 If training has been interrupted or if you wish to fine-tune a pre-trained model, you can resume training from a checkpoint:
 
 ```bash
-ftw model fit --config configs/example_config.yaml --ckpt_path <Checkpoint File Path>
+ftw-tools model fit --config configs/example_config.yaml --ckpt_path <Checkpoint File Path>
 ```
 
 ### Visualizing the training process
@@ -155,9 +155,9 @@ Currently logged informations are:
 Once your model has been trained, you can evaluate it on the test set specified in your datamodule. This can be done using the same configuration file used for training.
 
 ```text
-ftw model test --help
+ftw-tools model test --help
 
-Usage: ftw model test [OPTIONS] [CLI_ARGS]...
+Usage: ftw-tools model test [OPTIONS] [CLI_ARGS]...
 
   Test the model
 
@@ -182,7 +182,7 @@ Options:
 Using FTW cli commands to test the model, you can pass specific options, such as selecting the GPUs, providing checkpoints, and specifying countries for testing:
 
 ```bash
-ftw model test --gpu 0 --dir /path/to/dataset --model logs/path_to_model/checkpoints/last.ckpt --countries country_to_test_on --out results.csv
+ftw-tools model test --gpu 0 --dir /path/to/dataset --model logs/path_to_model/checkpoints/last.ckpt --countries country_to_test_on --out results.csv
 ```
 
 This will output test results into `results.csv` after running on the selected GPUs and processing the specified countries.
