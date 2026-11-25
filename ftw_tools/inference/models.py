@@ -151,7 +151,10 @@ class DelineateAnything:
         self.iou_threshold = iou_threshold
         self.conf_threshold = conf_threshold
         self.device = device
-        from ultralytics import YOLO
+
+        from ultralytics import YOLO, settings
+
+        settings.update({"sync": False})
 
         self.model = YOLO(self.checkpoints[model]).to(device)
         self.model.eval()
