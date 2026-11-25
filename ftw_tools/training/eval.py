@@ -1,3 +1,4 @@
+import csv
 import os
 import time
 from contextlib import contextmanager
@@ -5,10 +6,12 @@ from typing import Sequence
 
 import kornia.augmentation as K
 import numpy as np
+import rasterio
 import torch
 from einops import rearrange
 from kornia.constants import Resample
 from lightning.pytorch.cli import LightningCLI
+from pyproj import CRS
 from torch.utils.data import DataLoader
 from torchgeo.tasks import BaseTask
 from torchmetrics import JaccardIndex, MetricCollection, Precision, Recall
@@ -16,7 +19,13 @@ from tqdm import tqdm
 
 from ftw_tools.settings import FULL_DATA_COUNTRIES
 from ftw_tools.training.datasets import FTW
-from ftw_tools.training.metrics import get_object_level_metrics
+from ftw_tools.training.metrics import (
+    InstanceStatistics,
+    chamfer_statistics,
+    get_object_level_metrics,
+    instance_scores_for_reporting,
+    instance_statistics,
+)
 from ftw_tools.training.trainers import CustomSemanticSegmentationTask
 
 
@@ -49,6 +58,106 @@ def gpu_memory_manager():
     finally:
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
+
+
+def _reference_pixel_spacing(reference, shape):
+    """Return (row, column) metre spacing on the original reference grid.
+
+    Geographic grids use geodesic one-pixel steps at the chip centre: a local,
+    constant-spacing approximation, not exact geodesic distances across a chip.
+    Projected grids use their CRS linear units. No resampling is performed.
+    """
+    with rasterio.open(reference) as source:
+        if source.shape != shape:
+            raise ValueError(
+                f"Reference grid shape differs from scored mask: {reference}"
+            )
+        transform = source.transform
+        if (
+            source.crs is None
+            or not np.isfinite(tuple(transform)).all()
+            or transform.b != 0
+            or transform.d != 0
+            or transform.a == 0
+            or transform.e == 0
+        ):
+            raise ValueError(
+                f"Boundary metrics require a known CRS and unrotated, "
+                f"nondegenerate grid: {reference}"
+            )
+        crs = CRS.from_user_input(source.crs)
+        if crs.is_projected:
+            _, factor = source.crs.linear_units_factor
+            spacing = (abs(transform.e) * factor, abs(transform.a) * factor)
+        elif crs.is_geographic:
+            x, y = transform * (source.width / 2, source.height / 2)
+            geod = crs.get_geod()
+            spacing = (
+                abs(geod.inv(x, y, x, y + transform.e)[2]),
+                abs(geod.inv(x, y, x + transform.a, y)[2]),
+            )
+        else:
+            raise ValueError(f"Unsupported CRS for boundary metrics: {reference}")
+    if not np.isfinite(spacing).all() or min(spacing) <= 0:
+        raise ValueError(f"Invalid metre pixel spacing: {reference}")
+    return spacing
+
+
+def _extended_object_scores(instance_stats, boundary_stats, *, background_known):
+    """Pool chip statistics, never chip means; keep legacy score names separate."""
+    pooled = InstanceStatistics()
+    for stats in instance_stats:
+        pooled += stats
+    scores = instance_scores_for_reporting(pooled, background_known=background_known)
+    for prefix in ("threshold_chamfer_m", "best_iou_chamfer_m"):
+        count = sum(stats[prefix + "_count"] for stats in boundary_stats)
+        total = sum(stats[prefix + "_sum"] for stats in boundary_stats)
+        scores[prefix] = total / count if count else float("nan")
+        scores[prefix + "_count"] = count
+    reference_count = sum(stats["reference_count"] for stats in boundary_stats)
+    best_count = sum(stats["best_iou_reference_count"] for stats in boundary_stats)
+    scores.update(
+        reference_count=reference_count,
+        best_iou_reference_count=best_count,
+        best_iou_reference_coverage=best_count / reference_count
+        if reference_count
+        else float("nan"),
+    )
+    return {f"extended_{name}": value for name, value in scores.items()}
+
+
+def _test_csv_fields(*, extended_object_metrics, bootstrap):
+    fields = [
+        "train_checkpoint",
+        "countries",
+        "pixel_level_iou",
+        "pixel_level_precision",
+        "pixel_level_recall",
+        "object_level_precision",
+        "object_level_recall",
+        "object_level_f1",
+    ]
+    if bootstrap:
+        for name in fields[2:8]:
+            fields.extend((name + "_ci_lower", name + "_ci_upper"))
+    if extended_object_metrics:
+        names = _extended_object_scores([], [], background_known=True)
+        fields.extend(names)
+        if bootstrap:
+            for name in names:
+                fields.extend((name + "_ci_lower", name + "_ci_upper"))
+    return fields
+
+
+def _check_test_csv_header(out, fields):
+    """Do not mix legacy, extended, or bootstrap schemas in one results file."""
+    if out is not None and os.path.exists(out) and os.path.getsize(out):
+        with open(out, newline="") as source:
+            if next(csv.reader(source), None) != fields:
+                raise ValueError(
+                    f"Metrics CSV header does not match requested metrics: {out}. "
+                    "Choose a separate output file."
+                )
 
 
 def compute_metrics_from_aggregated_data(
@@ -143,6 +252,10 @@ def bootstrap_confidence_intervals(
     device: torch.device | None = None,
     n_bootstrap: int = 1000,
     confidence_level: float = 0.95,
+    *,
+    instance_stats: list[InstanceStatistics] | None = None,
+    boundary_stats: list[dict] | None = None,
+    background_known: bool = True,
 ) -> tuple[dict[str, float], dict[str, tuple[float, float]]]:
     """
     Compute bootstrap confidence intervals for metrics using global aggregation.
@@ -153,6 +266,12 @@ def bootstrap_confidence_intervals(
     """
     np.random.seed(42)  # For reproducibility
     n_samples = len(all_outputs_list)
+    if (instance_stats is None) != (boundary_stats is None):
+        raise ValueError("Provide both instance and boundary statistics")
+    if instance_stats is not None and (
+        len(instance_stats) != n_samples or len(boundary_stats) != n_samples
+    ):
+        raise ValueError("Extended statistics must align with bootstrap samples")
 
     print("Creating tensor list for bootstrapping")
     all_outputs_tensor_list = [
@@ -173,6 +292,12 @@ def bootstrap_confidence_intervals(
         all_object_fns,
         test_on_3_classes,
     )
+    if instance_stats is not None:
+        metrics.update(
+            _extended_object_scores(
+                instance_stats, boundary_stats, background_known=background_known
+            )
+        )
     del all_outputs, all_masks
     torch.cuda.empty_cache() if torch.cuda.is_available() else None
 
@@ -202,6 +327,14 @@ def bootstrap_confidence_intervals(
             boot_object_fns,
             test_on_3_classes,
         )
+        if instance_stats is not None:
+            boot_metrics.update(
+                _extended_object_scores(
+                    [instance_stats[i] for i in indices],
+                    [boundary_stats[i] for i in indices],
+                    background_known=background_known,
+                )
+            )
         bootstrap_metrics.append(boot_metrics)
 
         # Free memory after each bootstrap iteration
@@ -281,14 +414,30 @@ def test(
     resize_factor: int,
     num_workers: int,
     bootstrap: bool = False,
+    *,
+    extended_object_metrics: bool = False,
 ):
-    """Command to test the model."""
+    """Test a checkpoint, optionally adding the reference-based instance suite.
+
+    Extended results use semantic reference components, mask ignored pixels on
+    both sides, and pool sufficient statistics before taking ratios. They do not
+    replace legacy scores or modify training/validation. Chamfer distances are
+    object-weighted metres with matching counts and reference coverage reported.
+    FP-dependent extended scores are NaN when any country is presence-only.
+    """
+    csv_fields = _test_csv_fields(
+        extended_object_metrics=extended_object_metrics, bootstrap=bootstrap
+    )
+    _check_test_csv_header(out, csv_fields)
     target_split = "val" if use_val_set else "test"
     print(f"Running test command on the {target_split} set")
     if gpu is None:
         gpu = -1
 
     countries = expand_countries(countries)
+    background_known = all(
+        country.lower() in FULL_DATA_COUNTRIES for country in countries
+    )
 
     # Merge `test_model` function into this test command
     if torch.cuda.is_available() and gpu >= 0:
@@ -370,6 +519,20 @@ def test(
     all_tps = 0
     all_fps = 0
     all_fns = 0
+    extended_stats = []
+    boundary_stats = []
+    sample_offset = 0
+    if extended_object_metrics:
+        print(
+            "Extended object metrics: four-connected semantic references; ignored "
+            "pixels excluded from both masks. Chamfer distances use per-chip "
+            "metre spacing (local centre approximation for geographic grids)."
+        )
+        if not background_known:
+            print(
+                "Presence-only labels included: extended precision, F1, RQ and PQ "
+                "are undefined; legacy results are unchanged."
+            )
 
     for batch in tqdm(dl):
         images = batch["image"].to(device) / norm
@@ -384,7 +547,7 @@ def test(
         with torch.inference_mode():
             outputs = model(images).argmax(dim=1)
         if resize_factor != 1:
-            outputs = down_sample(outputs.unsqueeze(1).float()).squeeze().long()
+            outputs = down_sample(outputs.unsqueeze(1).float()).squeeze(1).long()
         if model_predicts_3_classes:
             new_outputs = torch.zeros(
                 outputs.shape[0], outputs.shape[1], outputs.shape[2], device=device
@@ -418,6 +581,30 @@ def test(
             tps, fps, fns = get_object_level_metrics(
                 mask_np, output_np, iou_threshold=iou_threshold
             )
+            if extended_object_metrics:
+                # Read georeferencing only when explicitly requested; no dataset
+                # changes or instance-mask files are required.
+                reference = ds.filenames[sample_offset + i]["mask"]
+                spacing = _reference_pixel_spacing(reference, mask_np.shape)
+                truth = masks[i].cpu().numpy()
+                ignore_index = trainer.hparams.get("ignore_index")
+                extended_stats.append(
+                    instance_statistics(
+                        truth,
+                        output_np,
+                        iou_threshold=iou_threshold,
+                        ignore_index=ignore_index,
+                    )
+                )
+                boundary_stats.append(
+                    chamfer_statistics(
+                        truth,
+                        output_np,
+                        pixel_size_m=spacing,
+                        iou_threshold=iou_threshold,
+                        ignore_index=ignore_index,
+                    )
+                )
 
             if bootstrap:
                 object_tps.append(tps)
@@ -427,6 +614,7 @@ def test(
             all_tps += tps
             all_fps += fps
             all_fns += fns
+        sample_offset += len(outputs)
 
     # Compute overall metrics
     results = metrics.compute()
@@ -468,6 +656,9 @@ def test(
             object_fns,
             test_on_3_classes,
             device,
+            instance_stats=extended_stats if extended_object_metrics else None,
+            boundary_stats=boundary_stats if extended_object_metrics else None,
+            background_known=background_known,
         )
 
         print(
@@ -499,6 +690,54 @@ def test(
     country_str = ";".join(countries)
     if set(countries) == set(FULL_DATA_COUNTRIES):
         country_str = "all"
+
+    if extended_object_metrics:
+        extended_scores = _extended_object_scores(
+            extended_stats, boundary_stats, background_known=background_known
+        )
+        for name, score in extended_scores.items():
+            interval = (
+                f" [{confidence_intervals[name][0]:.4f}, "
+                f"{confidence_intervals[name][1]:.4f}]"
+                if confidence_intervals is not None
+                else ""
+            )
+            print(f"{name}: {score:.4f}{interval}")
+        if out is not None:
+            row = dict(
+                zip(
+                    csv_fields[:8],
+                    (
+                        model_path,
+                        country_str,
+                        pixel_level_iou,
+                        pixel_level_precision,
+                        pixel_level_recall,
+                        object_precision,
+                        object_recall,
+                        object_f1,
+                    ),
+                )
+            )
+            row.update(extended_scores)
+            if confidence_intervals is not None:
+                for name, interval in confidence_intervals.items():
+                    column = (
+                        name
+                        if name.startswith("extended_")
+                        else name.replace("_", "_level_", 1)
+                    )
+                    row[column + "_ci_lower"], row[column + "_ci_upper"] = interval
+            _check_test_csv_header(out, csv_fields)
+            write_header = not os.path.exists(out) or not os.path.getsize(out)
+            with open(out, "a", newline="") as target:
+                writer = csv.DictWriter(
+                    target, fieldnames=csv_fields, lineterminator="\n"
+                )
+                if write_header:
+                    writer.writeheader()
+                writer.writerow(row)
+        return
 
     if out is not None:
         if not os.path.exists(out):

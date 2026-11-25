@@ -465,6 +465,18 @@ def model_fit(config, ckpt_path, cli_args):
     show_default=True,
     help="Whether to compute 95% confidence intervals using bootstrap sampling.",
 )
+@click.option(
+    "--extended_object_metrics",
+    is_flag=True,
+    default=False,
+    help=(
+        "Also report pooled instance quality, split/merge, coverage, and boundary "
+        "Chamfer metrics at test time. Uses semantic reference components, masks "
+        "ignored pixels on both sides, and derives metre spacing from each chip's "
+        "georeferencing (locally approximated for geographic grids). Does not "
+        "change training or legacy scores. Use a separate output CSV."
+    ),
+)
 def model_test(
     model,
     countries,
@@ -481,6 +493,7 @@ def model_test(
     resize_factor,
     num_workers,
     bootstrap,
+    extended_object_metrics,
 ):
     from ftw_tools.training.eval import test
 
@@ -500,6 +513,7 @@ def model_test(
         resize_factor,
         num_workers,
         bootstrap,
+        extended_object_metrics=extended_object_metrics,
     )
 
 
