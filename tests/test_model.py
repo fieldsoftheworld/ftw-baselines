@@ -144,6 +144,9 @@ def test_model_test(shared_data_dir, trained_model_checkpoint, caplog):
             "Rwanda",  # should be "rwanda", but let's test case insensitivity
             "--out",
             str(results_dir / "results.csv"),
+            "--bootstrap",
+            "--n_bootstrap",
+            "10",
         ],
     )
 

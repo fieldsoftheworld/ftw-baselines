@@ -463,7 +463,21 @@ def model_fit(config, ckpt_path, cli_args):
     is_flag=True,
     default=False,
     show_default=True,
-    help="Whether to compute 95% confidence intervals using bootstrap sampling.",
+    help="Whether to compute confidence intervals using bootstrap sampling.",
+)
+@click.option(
+    "--n_bootstrap",
+    type=click.IntRange(min=1),
+    default=1000,
+    show_default=True,
+    help="Number of bootstrap resamples (with --bootstrap).",
+)
+@click.option(
+    "--confidence_level",
+    type=click.FloatRange(min=0.0, max=1.0, min_open=True, max_open=True),
+    default=0.95,
+    show_default=True,
+    help="Confidence level of the bootstrap intervals (with --bootstrap).",
 )
 def model_test(
     model,
@@ -481,6 +495,8 @@ def model_test(
     resize_factor,
     num_workers,
     bootstrap,
+    n_bootstrap,
+    confidence_level,
 ):
     from ftw_tools.training.eval import test
 
@@ -500,6 +516,8 @@ def model_test(
         resize_factor,
         num_workers,
         bootstrap,
+        n_bootstrap,
+        confidence_level,
     )
 
 
