@@ -4,8 +4,28 @@ import geopandas as gpd
 import numpy as np
 import shapely
 from fiboa_cli.registry import Registry
+from pyproj import CRS
 from vecorel_cli.encoding.geoparquet import GeoParquet
 from vecorel_cli.vecorel.collection import Collection
+
+
+def metric_crs_for_geographic_bounds(crs, bounds) -> CRS:
+    """Choose a local metre-based CRS for a geographic footprint."""
+    footprint = gpd.GeoSeries([shapely.geometry.box(*bounds)], crs=crs)
+    footprint_wgs84 = footprint.to_crs(CRS.from_epsg(4326))
+    latitude = float(footprint_wgs84.union_all().centroid.y)
+
+    # UTM stops at 84 N / 80 S. Use the matching Universal Polar
+    # Stereographic CRS for inputs beyond those limits.
+    if latitude >= 84:
+        return CRS.from_epsg(32661)
+    if latitude <= -80:
+        return CRS.from_epsg(32761)
+
+    estimated = footprint.estimate_utm_crs()
+    if estimated is None:
+        raise ValueError("Unable to determine a metric CRS for the input bounds.")
+    return CRS.from_user_input(estimated)
 
 
 def _to_polygons_only(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -122,9 +142,17 @@ def postprocess_instance_polygons(
     Returns:
         The postprocessed polygons.
     """
-    # Convert polygons to a meter based CRS
+    # Use a local metre-based CRS for geographic inputs. Keep the existing
+    # EPSG:6933 path for projected inputs so their behaviour remains unchanged.
     src_crs = polygons.crs
-    polygons.to_crs("EPSG:6933", inplace=True)
+    parsed_crs = CRS.from_user_input(src_crs)
+    if parsed_crs.is_geographic and not polygons.empty:
+        working_crs = metric_crs_for_geographic_bounds(
+            parsed_crs, polygons.total_bounds
+        )
+    else:
+        working_crs = CRS.from_epsg(6933)
+    polygons.to_crs(working_crs, inplace=True)
 
     if close_interiors:
         polygons.geometry = polygons.geometry.exterior
