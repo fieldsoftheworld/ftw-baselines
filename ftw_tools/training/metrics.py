@@ -20,11 +20,16 @@ when both sides are empty. Callers with presence-only labels should use
 instance_scores_for_reporting(background_known=False) to suppress ratios that
 require false-positive counts. Boundary distances require explicit metre spacing
 and are not automatically calculated by training.
+
+get_object_level_metrics retains the original unmasked polygon-based counts for
+existing training and evaluation callers; the rules above apply to the new API.
 """
 
 from dataclasses import dataclass, fields
 
 import numpy as np
+import rasterio.features
+import shapely.geometry
 from scipy.ndimage import label
 from scipy.optimize import linear_sum_assignment
 from skimage.measure import label as label_values
@@ -343,6 +348,31 @@ def _statistics_from_labels(
 
 
 def get_object_level_metrics(y_true, y_pred, iou_threshold=0.5):
-    """Return one-to-one TP, FP, FN using the shared instance contract."""
-    stats = instance_statistics(y_true, y_pred, iou_threshold=iou_threshold)
-    return int(stats.tp), int(stats.fp), int(stats.fn)
+    """Return legacy polygon-based TP, FP, FN without changing training behavior.
+
+    Unlike instance_statistics, this helper does not mask predictions using the
+    reference valid domain and retains the historical threshold restriction.
+    """
+    if iou_threshold < 0.5:
+        raise ValueError("iou_threshold must be greater than 0.5")
+
+    def polygons(mask):
+        return [
+            shapely.geometry.shape(geometry)
+            for geometry, value in rasterio.features.shapes(mask)
+            if value == 1
+        ]
+
+    references, predictions = polygons(y_true), polygons(y_pred)
+    matched = set()
+    tp = 0
+    for reference in references:
+        for index, prediction in enumerate(predictions):
+            if reference.intersects(prediction):
+                intersection = reference.intersection(prediction)
+                union = reference.union(prediction)
+                if intersection.area / union.area > iou_threshold:
+                    tp += 1
+                    matched.add(index)
+                    break
+    return tp, len(predictions) - len(matched), len(references) - tp

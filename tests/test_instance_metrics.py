@@ -57,6 +57,22 @@ def test_compatibility_counts_match_original_polygon_helper(truth, prediction):
     assert all(isinstance(value, int) for value in counts)
 
 
+def test_legacy_helper_keeps_unmasked_counts_and_threshold_restriction(monkeypatch):
+    from ftw_tools.training import metrics
+
+    truth = np.array([[1, 3, 0]], dtype=np.uint8)
+    prediction = np.array([[0, 1, 0]], dtype=np.uint8)
+    assert instance_statistics(truth, prediction).fp == 0
+    monkeypatch.setattr(
+        metrics,
+        "instance_statistics",
+        lambda *args, **kwargs: pytest.fail("New engine called"),
+    )
+    assert get_object_level_metrics(truth, prediction) == (0, 1, 1)
+    with pytest.raises(ValueError, match="greater than 0.5"):
+        get_object_level_metrics(truth, prediction, iou_threshold=0.3)
+
+
 def test_connectivity_and_match_labels():
     mask = np.array([[1, 0], [0, 1]])
     assert instance_statistics(mask, mask).tp == 2
